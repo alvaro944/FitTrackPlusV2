@@ -90,7 +90,7 @@ Fuera de alcance:
 
 ### Fase 2 - Registro de entrenamiento
 
-Estado: siguiente fase.
+Estado: completada tecnicamente.
 
 Objetivo:
 
@@ -101,6 +101,8 @@ Objetivo:
 - Verificar ciclo de dias y semana.
 
 ### Fase 3 - Historial
+
+Estado: siguiente fase.
 
 Objetivo:
 

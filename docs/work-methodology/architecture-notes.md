@@ -40,6 +40,12 @@ Patron usado en Fase 1:
 - funciones como `saveEditor`, `archiveRoutine` o `setActiveRoutine` representan eventos de usuario.
 - repositorios quedan inyectados con Hilt.
 
+Patron usado en Fase 2:
+
+- `WorkoutViewModel` combina preferencia de rutina activa, preview del siguiente dia y sesion abierta.
+- Una sesion abierta se trata como estado principal y se reanuda antes de permitir crear otra.
+- Los inputs de series viven como texto en UI, pero se normalizan en un caso de uso antes de persistir.
+
 ## Repositorios
 
 Los repositorios ocultan detalles de persistencia:
@@ -58,6 +64,8 @@ DataStore se usa para preferencias pequenas:
 - unidad de peso
 - ajustes simples
 
+En el registro de entrenamiento, Room guarda la sesion inmediatamente al iniciarla y cada serie se actualiza durante la edicion. Finalizar solo marca `finishedAt`, por lo que una sesion abierta puede reanudarse.
+
 ## Snapshots Historicos
 
 Regla importante del dominio:
@@ -65,3 +73,5 @@ Regla importante del dominio:
 Editar una rutina no debe modificar entrenamientos antiguos.
 
 Por eso el historico guarda snapshots de nombres, ejercicios, reps objetivo y otros datos relevantes en el momento del entrenamiento.
+
+En Fase 2 la sesion se crea desde `RoutineSnapshot`: se copian nombre de rutina, nombre de dia, nombre de ejercicio y objetivo de reps antes de registrar pesos/reps reales.

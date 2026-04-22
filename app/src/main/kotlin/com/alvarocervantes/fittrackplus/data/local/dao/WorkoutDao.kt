@@ -20,6 +20,10 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_sessions WHERE id = :sessionId")
     suspend fun getSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises?
 
+    @Transaction
+    @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
+    suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises?
+
     @Query("SELECT COUNT(*) FROM workout_sessions WHERE routineId = :routineId AND finishedAt IS NOT NULL")
     suspend fun countFinishedSessionsForRoutine(routineId: Long): Int
 
@@ -33,8 +37,14 @@ interface WorkoutDao {
     suspend fun insertSet(set: WorkoutSetEntity): Long
 
     @Update
+    suspend fun updateSet(set: WorkoutSetEntity)
+
+    @Update
     suspend fun updateSession(session: WorkoutSessionEntity)
 
     @Query("SELECT * FROM workout_sessions WHERE id = :sessionId")
     suspend fun getSession(sessionId: Long): WorkoutSessionEntity?
+
+    @Query("SELECT * FROM workout_sets WHERE id = :setId")
+    suspend fun getSet(setId: Long): WorkoutSetEntity?
 }

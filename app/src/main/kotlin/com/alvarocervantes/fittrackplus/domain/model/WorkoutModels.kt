@@ -7,3 +7,11 @@ data class StartedWorkoutSession(
     val dayNameSnapshot: String,
     val weekNumber: Int
 )
+
+data class WorkoutPreview(
+    val routineId: Long,
+    val routineName: String,
+    val dayName: String,
+    val weekNumber: Int,
+    val exerciseCount: Int
+)

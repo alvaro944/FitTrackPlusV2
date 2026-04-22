@@ -6,6 +6,7 @@ import com.alvarocervantes.fittrackplus.data.local.dao.WorkoutDao
 import com.alvarocervantes.fittrackplus.data.local.entity.WorkoutExerciseEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.WorkoutSessionEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.WorkoutSetEntity
+import com.alvarocervantes.fittrackplus.data.local.relation.WorkoutSessionWithExercises
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDaySnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
 import javax.inject.Inject
@@ -18,6 +19,14 @@ class DefaultWorkoutRepository @Inject constructor(
 
     override fun observeSessions(): Flow<List<WorkoutSessionEntity>> {
         return workoutDao.observeSessions()
+    }
+
+    override suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises? {
+        return workoutDao.getActiveSessionWithExercises()
+    }
+
+    override suspend fun getSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises? {
+        return workoutDao.getSessionWithExercises(sessionId)
     }
 
     override suspend fun countFinishedSessionsForRoutine(routineId: Long): Int {
@@ -67,6 +76,16 @@ class DefaultWorkoutRepository @Inject constructor(
 
             sessionId
         }
+    }
+
+    override suspend fun updateSet(setId: Long, weightKg: Double, reps: Int) {
+        val set = workoutDao.getSet(setId) ?: return
+        workoutDao.updateSet(
+            set.copy(
+                weightKg = weightKg.coerceAtLeast(0.0),
+                reps = reps.coerceAtLeast(0)
+            )
+        )
     }
 
     override suspend fun finishSession(sessionId: Long, notes: String?) {

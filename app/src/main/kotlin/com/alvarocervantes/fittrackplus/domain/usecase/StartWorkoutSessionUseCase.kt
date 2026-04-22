@@ -11,6 +11,16 @@ class StartWorkoutSessionUseCase @Inject constructor(
     private val getNextRoutineDay: GetNextRoutineDayUseCase
 ) {
     suspend operator fun invoke(routineId: Long): StartedWorkoutSession? {
+        workoutRepository.getActiveSessionWithExercises()?.let { activeSession ->
+            return StartedWorkoutSession(
+                sessionId = activeSession.session.id,
+                routineId = activeSession.session.routineId ?: routineId,
+                routineNameSnapshot = activeSession.session.routineNameSnapshot,
+                dayNameSnapshot = activeSession.session.dayNameSnapshot,
+                weekNumber = activeSession.session.weekNumber
+            )
+        }
+
         val routine = routineRepository.getRoutineSnapshot(routineId) ?: return null
         val completedSessions = workoutRepository.countFinishedSessionsForRoutine(routineId)
         val nextDay = getNextRoutineDay(

@@ -33,6 +33,12 @@ Ejemplos de Fase 1:
 - build con daemon quedandose sin salida
 - error de smart cast en Kotlin por estado delegado
 
+Ejemplos de Fase 2:
+
+- una ejecucion de `test` quedo atascada y dejo archivos de resultados bloqueados
+- se paro Gradle con `.\gradlew.bat --stop` y se repitio la verificacion
+- algunos tests fallaron por comparar `Int` con `Long`; las expectations deben usar el tipo real del modelo
+
 Lo importante no es solo arreglarlo, sino guardar el patron para reconocerlo despues.
 
 ## Al Cerrar Fase

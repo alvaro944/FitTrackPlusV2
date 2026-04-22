@@ -4,13 +4,14 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 
 ## Estado Actual
 
-- Rama actual: `codex/phase-1-routines`.
+- Rama actual: `codex/phase-2-workout-logging`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
-- Commit de cierre de Fase 1: `Complete phase 1 routines`.
+- Commit de cierre de Fase 1: `9df5a44 Complete phase 1 routines`.
+- Commit de cierre de Fase 2: `Complete phase 2 workout logging`.
 - No hay remoto configurado.
 - No se ha subido nada a la nube.
-- Fase 1 completada tecnicamente.
-- Siguiente fase: `phase-2-workout-logging`.
+- Fase 2 completada tecnicamente.
+- Siguiente fase: `phase-3-history`.
 
 ## Hecho Hasta Ahora
 
@@ -50,25 +51,6 @@ Implementado:
   - `FinishWorkoutSessionUseCase`
 - Test unitario del ciclo de dias.
 
-Documentacion creada:
-
-- `README.md`
-- `AGENTS.md`
-- `docs/development-workflow.md`
-- `docs/architecture.md`
-- `docs/future-improvements.md`
-- `docs/project-plan.md`
-- `docs/project-progress.md`
-- `docs/phase-log.md`
-- `docs/work-methodology/`
-
-Git:
-
-- Se inicializo repositorio Git local.
-- Se creo commit inicial en `main`.
-- Se creo rama local `codex/phase-0-mobile-foundation`.
-- No se configuro remoto.
-
 ### Fase 1 - Rutinas
 
 Implementado:
@@ -89,13 +71,32 @@ Implementado:
 - `.kotlin/` agregado a `.gitignore` como salida local de Gradle/Kotlin.
 - Guia de metodologia creada en `docs/work-methodology/` para estudiar procedimientos, arquitectura practica, colaboracion con agente, tips y skills practicadas.
 
+### Fase 2 - Registro de entrenamiento
+
+Implementado:
+
+- Rama local `codex/phase-2-workout-logging`.
+- Pantalla real de Entrenar en Compose.
+- `WorkoutViewModel` con `UiState` y `StateFlow`.
+- Deteccion de rutina activa desde DataStore.
+- Preview del siguiente dia de la rutina activa.
+- Inicio de entrenamiento desde la rutina activa.
+- Reanudacion de una sesion abierta sin crear duplicados.
+- Creacion de sesion historica desde snapshot de rutina, dia, ejercicios y reps objetivo.
+- Registro editable de peso en kg y repeticiones por serie.
+- Persistencia de cada serie en Room.
+- Finalizacion de sesion aunque queden series parciales.
+- Ciclo de dias basado solo en sesiones finalizadas.
+- Casos de uso nuevos:
+  - `GetNextWorkoutPreviewUseCase`
+  - `UpdateWorkoutSetUseCase`
+- Tests unitarios para ciclo de inicio, reanudacion de sesion abierta y normalizacion de series.
+
 ## Verificacion Realizada
 
 Comandos ejecutados:
 
 ```powershell
-.\gradlew.bat clean test
-.\gradlew.bat build --no-daemon
 .\gradlew.bat test
 .\gradlew.bat build --no-daemon --console=plain
 ```
@@ -107,11 +108,13 @@ Resultado:
 
 Pendiente:
 
-- Prueba manual en emulador/dispositivo de Fase 1:
-  - Crear rutina Push/Pull/Legs.
-  - Editar dias y ejercicios.
-  - Seleccionar rutina activa.
-  - Cerrar y abrir la app para comprobar persistencia.
+- Prueba manual en emulador/dispositivo de Fase 2: `adb` no esta disponible en PATH.
+  - Crear o seleccionar rutina Push/Pull/Legs.
+  - Iniciar Push.
+  - Editar series y volver a Entrenar para confirmar reanudacion.
+  - Finalizar y comprobar que el siguiente dia es Pull.
+  - Completar ciclo hasta volver a Push en semana 2.
+  - Editar rutina y confirmar que el historico mantiene snapshots.
 
 ## Decisiones Importantes
 
@@ -120,15 +123,18 @@ Pendiente:
 - `app/google-services.json` queda ignorado.
 - XML legacy de `layout`, `menu` y `navigation` queda fuera del repo nuevo.
 - Algunas versiones de AndroidX/Hilt se ajustaron para ser compatibles con AGP `8.5.1`.
+- El registro de entrenamiento permite una unica sesion abierta global.
+- Una sesion abierta se reanuda desde Entrenar y bloquea nuevas sesiones hasta finalizarla.
+- Finalizar una sesion parcial es valido para el MVP.
+- Peso se guarda en `weightKg` y la UI muestra kg.
+- Firebase sigue fuera del MVP.
 - Al cerrar cada fase se actualiza tambien `docs/work-methodology/` con aprendizajes reutilizables.
 
 ## Siguiente Paso
 
-Empezar Fase 2:
+Empezar Fase 3:
 
-1. Crear rama `codex/phase-2-workout-logging`.
-2. Iniciar entrenamiento desde la rutina activa.
-3. Crear sesion usando snapshot de rutina.
-4. Registrar series con peso y repeticiones.
-5. Finalizar sesion.
-6. Verificar ciclo de dias y persistencia del historial.
+1. Crear rama `codex/phase-3-history`.
+2. Listar sesiones pasadas.
+3. Mostrar detalle historico de sesion.
+4. Confirmar que editar rutinas no altera entrenamientos antiguos.
