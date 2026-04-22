@@ -4,14 +4,15 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 
 ## Estado Actual
 
-- Rama actual: `codex/phase-2-workout-logging`.
+- Rama actual: `codex/phase-3-history`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
 - Commit de cierre de Fase 1: `9df5a44 Complete phase 1 routines`.
-- Commit de cierre de Fase 2: `Complete phase 2 workout logging`.
+- Commit de cierre de Fase 2: `7cf2c02 Complete phase 2 workout logging`.
+- Commit de cierre de Fase 3: `Complete phase 3 history`.
 - No hay remoto configurado.
 - No se ha subido nada a la nube.
-- Fase 2 completada tecnicamente.
-- Siguiente fase: `phase-3-history`.
+- Fase 3 completada tecnicamente.
+- Siguiente fase: `phase-4-statistics-mvp`.
 
 ## Hecho Hasta Ahora
 
@@ -63,19 +64,14 @@ Implementado:
 - Archivado de rutinas.
 - Seleccion de rutina activa con DataStore.
 - Limpieza de rutina activa cuando se archiva.
-- Validacion basica antes de guardar:
-  - nombre de rutina obligatorio
-  - al menos un dia
-  - al menos un ejercicio por dia
-  - nombre, series y reps obligatorios por ejercicio
+- Validacion basica antes de guardar.
 - `.kotlin/` agregado a `.gitignore` como salida local de Gradle/Kotlin.
-- Guia de metodologia creada en `docs/work-methodology/` para estudiar procedimientos, arquitectura practica, colaboracion con agente, tips y skills practicadas.
+- Guia de metodologia creada en `docs/work-methodology/`.
 
 ### Fase 2 - Registro de entrenamiento
 
 Implementado:
 
-- Rama local `codex/phase-2-workout-logging`.
 - Pantalla real de Entrenar en Compose.
 - `WorkoutViewModel` con `UiState` y `StateFlow`.
 - Deteccion de rutina activa desde DataStore.
@@ -92,12 +88,32 @@ Implementado:
   - `UpdateWorkoutSetUseCase`
 - Tests unitarios para ciclo de inicio, reanudacion de sesion abierta y normalizacion de series.
 
+### Fase 3 - Historial
+
+Implementado:
+
+- Rama local `codex/phase-3-history`.
+- Consultas Room para observar solo sesiones finalizadas.
+- Carga de detalle historico solo para sesiones finalizadas.
+- Modelos de dominio para resumen y detalle de historial.
+- Casos de uso:
+  - `ObserveWorkoutHistoryUseCase`
+  - `GetWorkoutHistoryDetailUseCase`
+- `HistoryViewModel` con `UiState`, lista de sesiones, seleccion y detalle.
+- Pantalla Compose minima de Historial:
+  - listado de sesiones finalizadas
+  - detalle de ejercicios y series
+  - vuelta simple al listado
+- Sembrado automatico de datos demo solo en builds debug cuando la base esta vacia.
+- Datos demo Push/Pull/Legs con varias sesiones finalizadas y snapshots historicos.
+- Tests unitarios para listado, detalle, orden y lectura desde snapshots.
+
 ## Verificacion Realizada
 
 Comandos ejecutados:
 
 ```powershell
-.\gradlew.bat test
+.\gradlew.bat test --no-daemon --console=plain
 .\gradlew.bat build --no-daemon --console=plain
 ```
 
@@ -108,13 +124,12 @@ Resultado:
 
 Pendiente:
 
-- Prueba manual en emulador/dispositivo de Fase 2: `adb` no esta disponible en PATH.
-  - Crear o seleccionar rutina Push/Pull/Legs.
-  - Iniciar Push.
-  - Editar series y volver a Entrenar para confirmar reanudacion.
-  - Finalizar y comprobar que el siguiente dia es Pull.
-  - Completar ciclo hasta volver a Push en semana 2.
-  - Editar rutina y confirmar que el historico mantiene snapshots.
+- Prueba manual en emulador/dispositivo: `adb` no esta disponible en PATH.
+- Flujo manual pendiente:
+  - abrir Historial
+  - ver registros demo
+  - entrar al detalle
+  - editar rutina y confirmar que el historial antiguo conserva snapshots
 
 ## Decisiones Importantes
 
@@ -122,19 +137,17 @@ Pendiente:
 - `app/src/main/java` se trata como legacy local y queda fuera del nuevo repo.
 - `app/google-services.json` queda ignorado.
 - XML legacy de `layout`, `menu` y `navigation` queda fuera del repo nuevo.
-- Algunas versiones de AndroidX/Hilt se ajustaron para ser compatibles con AGP `8.5.1`.
-- El registro de entrenamiento permite una unica sesion abierta global.
-- Una sesion abierta se reanuda desde Entrenar y bloquea nuevas sesiones hasta finalizarla.
-- Finalizar una sesion parcial es valido para el MVP.
-- Peso se guarda en `weightKg` y la UI muestra kg.
+- El historial muestra solo sesiones finalizadas.
+- El detalle de historial se lee desde snapshots guardados en Room.
+- El seed demo se ejecuta solo si la app es debuggable y la base esta vacia.
 - Firebase sigue fuera del MVP.
 - Al cerrar cada fase se actualiza tambien `docs/work-methodology/` con aprendizajes reutilizables.
 
 ## Siguiente Paso
 
-Empezar Fase 3:
+Empezar Fase 4:
 
-1. Crear rama `codex/phase-3-history`.
-2. Listar sesiones pasadas.
-3. Mostrar detalle historico de sesion.
-4. Confirmar que editar rutinas no altera entrenamientos antiguos.
+1. Definir estadisticas MVP.
+2. Calcular progreso por ejercicio desde sesiones finalizadas.
+3. Calcular volumen por sesion.
+4. Mostrar mejores marcas simples sin romper el flujo local.

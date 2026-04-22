@@ -32,7 +32,7 @@ codex/phase-2-workout-logging
 Estado actual de Git:
 
 - Repo local inicializado.
-- Rama actual: `codex/phase-1-routines`.
+- Rama actual: `codex/phase-3-history`.
 - No hay remoto configurado.
 - No se ha subido nada a la nube.
 

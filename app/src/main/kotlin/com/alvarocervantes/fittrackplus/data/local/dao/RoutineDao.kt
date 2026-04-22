@@ -29,6 +29,9 @@ interface RoutineDao {
     @Query("SELECT * FROM routines WHERE id = :routineId AND isArchived = 0")
     suspend fun getRoutineWithDays(routineId: Long): RoutineWithDays?
 
+    @Query("SELECT COUNT(*) FROM routines")
+    suspend fun countRoutines(): Int
+
     @Insert
     suspend fun insertRoutine(routine: RoutineEntity): Long
 

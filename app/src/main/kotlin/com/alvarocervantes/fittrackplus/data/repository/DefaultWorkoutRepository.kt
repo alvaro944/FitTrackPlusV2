@@ -21,6 +21,10 @@ class DefaultWorkoutRepository @Inject constructor(
         return workoutDao.observeSessions()
     }
 
+    override fun observeFinishedSessions(): Flow<List<WorkoutSessionEntity>> {
+        return workoutDao.observeFinishedSessions()
+    }
+
     override suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises? {
         return workoutDao.getActiveSessionWithExercises()
     }
@@ -29,8 +33,16 @@ class DefaultWorkoutRepository @Inject constructor(
         return workoutDao.getSessionWithExercises(sessionId)
     }
 
+    override suspend fun getFinishedSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises? {
+        return workoutDao.getFinishedSessionWithExercises(sessionId)
+    }
+
     override suspend fun countFinishedSessionsForRoutine(routineId: Long): Int {
         return workoutDao.countFinishedSessionsForRoutine(routineId)
+    }
+
+    override suspend fun countSessions(): Int {
+        return workoutDao.countSessions()
     }
 
     override suspend fun createSessionFromRoutineDay(

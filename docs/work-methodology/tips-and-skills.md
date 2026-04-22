@@ -36,6 +36,15 @@ Este documento guarda aprendizajes concretos, comandos utiles y habilidades prac
 - Usar snapshots historicos para que los entrenamientos no dependan de la rutina actual.
 - Probar reglas de dominio con repositorios fake y `runBlocking`.
 
+### Fase 3 - Historial
+
+- Crear lectura de historial sin depender de rutinas editables.
+- Mapear relaciones Room a modelos de dominio de solo lectura.
+- Ordenar datos historicos en el mapeo cuando Room no garantiza orden en relaciones.
+- Crear una UI Compose minima para verificar flujo sin pulido visual.
+- Sembrar datos demo solo en debug y solo si la base esta vacia.
+- Probar snapshots historicos con repositorios fake.
+
 ## Tips Tecnicos
 
 ### Gradle En Windows
@@ -53,6 +62,12 @@ Si queda algun daemon vivo:
 ```
 
 Si `test` falla porque no puede borrar `app/build/test-results`, suele haber un daemon o proceso Gradle anterior reteniendo archivos. Parar daemons y repetir el comando suele liberar el bloqueo.
+
+Si `test` queda sin salida hasta timeout, repetir con:
+
+```powershell
+.\gradlew.bat test --no-daemon --console=plain
+```
 
 ### Kotlin Y Compose State
 
@@ -76,6 +91,16 @@ Para campos como peso y repeticiones conviene mantener el texto que el usuario e
 - texto invalido o vacio -> `0`
 - negativos -> `0`
 - valores validos -> se guardan tal cual
+
+### Historial Y Snapshots
+
+Para mostrar entrenamientos antiguos, leer siempre desde tablas historicas:
+
+- `WorkoutSessionEntity`
+- `WorkoutExerciseEntity`
+- `WorkoutSetEntity`
+
+No consultar la rutina editable para pintar el historial, porque el usuario puede cambiar nombres, dias y ejercicios despues de entrenar.
 
 ### Git Local
 

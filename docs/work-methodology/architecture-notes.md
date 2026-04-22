@@ -75,3 +75,21 @@ Editar una rutina no debe modificar entrenamientos antiguos.
 Por eso el historico guarda snapshots de nombres, ejercicios, reps objetivo y otros datos relevantes en el momento del entrenamiento.
 
 En Fase 2 la sesion se crea desde `RoutineSnapshot`: se copian nombre de rutina, nombre de dia, nombre de ejercicio y objetivo de reps antes de registrar pesos/reps reales.
+
+En Fase 3 el historial lee esos snapshots directamente:
+
+- el listado usa solo sesiones finalizadas
+- el detalle se carga desde la relacion historica de sesion, ejercicios y series
+- el mapeo ordena ejercicios por `position` y series por `setNumber`
+- no se consulta la rutina editable para mostrar entrenamientos antiguos
+
+## Datos Demo De Desarrollo
+
+Los datos demo sirven para probar flujos sin meter dependencias externas.
+
+Regla usada en Fase 3:
+
+- sembrar solo si la app es debuggable
+- sembrar solo si la base esta vacia
+- crear snapshots historicos completos
+- dejar release sin seed automatico

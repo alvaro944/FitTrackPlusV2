@@ -33,7 +33,11 @@ git switch -c codex/phase-nombre
    - funciones de evento claras
 4. Usar repositorios para ocultar Room/DataStore.
 5. Evitar refactors no necesarios.
-6. Verificar pronto con compilacion o tests cuando aparezcan cambios relevantes.
+6. Si se necesitan datos demo, hacerlos controlados:
+   - solo debug
+   - solo base vacia
+   - sin Firebase ni sync
+7. Verificar pronto con compilacion o tests cuando aparezcan cambios relevantes.
 
 ## 3. Verificar
 

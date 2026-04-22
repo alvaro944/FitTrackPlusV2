@@ -213,3 +213,78 @@ Pendiente:
   - Finalizar y comprobar que el siguiente dia es Pull.
   - Completar ciclo hasta volver a Push en semana 2.
   - Editar rutina y confirmar que el historico mantiene snapshots.
+
+## Fase 3 - Historial
+
+Estado:
+
+- Completada tecnicamente.
+
+Rama:
+
+- `codex/phase-3-history`
+
+Commit:
+
+- `Complete phase 3 history`
+
+Objetivo:
+
+- Listar sesiones pasadas.
+- Mostrar detalle de ejercicios y series.
+- Confirmar que el historial usa snapshots y no depende de la rutina editable actual.
+- Anadir datos demo para probar el flujo.
+
+Fuera de alcance:
+
+- Estadisticas.
+- Firebase.
+- Pulido visual o efectos.
+- Refactors generales fuera de historial.
+
+Cambios principales:
+
+- Se agregaron consultas Room para observar solo sesiones finalizadas.
+- Se agrego carga de detalle historico solo para sesiones finalizadas.
+- Se agregaron modelos de dominio para resumen y detalle de historial.
+- Se agregaron `ObserveWorkoutHistoryUseCase` y `GetWorkoutHistoryDetailUseCase`.
+- Se creo `HistoryViewModel` con lista, seleccion, detalle y estados minimos.
+- Se reemplazo el placeholder de Historial por una UI Compose minima.
+- Se agrego seed demo automatico solo en builds debug cuando la base esta vacia.
+- El seed demo crea una rutina PPL y varias sesiones finalizadas con pesos y reps.
+- Se agregaron tests unitarios para listado, detalle, orden y snapshots.
+
+Problemas encontrados:
+
+- `.\gradlew.bat test` volvio a quedarse sin salida hasta timeout.
+- Se paro Gradle con `.\gradlew.bat --stop`.
+- La verificacion de tests paso al repetir con `--no-daemon --console=plain`.
+- El build paso con warnings ya conocidos de AGP/compileSdk 35 y D8/Kotlin metadata.
+- `adb` no esta disponible en PATH, asi que la prueba manual queda pendiente.
+
+Decisiones:
+
+- El historial lista solo sesiones con `finishedAt`.
+- El detalle se carga desde `WorkoutSessionWithExercises` y se mapea desde snapshots.
+- La UI de Historial queda deliberadamente simple para no invertir la fase en frontend.
+- El seed demo no se ejecuta en release y no duplica datos si ya hay rutinas o sesiones.
+- No se cambia el schema Room; se reutilizan las tablas historicas existentes.
+
+Verificacion:
+
+```powershell
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Verificacion automatica correcta.
+
+Pendiente:
+
+- Prueba manual en emulador/dispositivo cuando `adb` este disponible:
+  - Abrir Historial.
+  - Ver registros demo.
+  - Entrar al detalle.
+  - Editar rutina y confirmar que el historial antiguo conserva snapshots.

@@ -39,6 +39,12 @@ Ejemplos de Fase 2:
 - se paro Gradle con `.\gradlew.bat --stop` y se repitio la verificacion
 - algunos tests fallaron por comparar `Int` con `Long`; las expectations deben usar el tipo real del modelo
 
+Ejemplos de Fase 3:
+
+- `.\gradlew.bat test` volvio a quedarse sin salida hasta timeout
+- repetir con `--no-daemon --console=plain` dio una verificacion estable
+- conviene registrar en docs cuando una prueba manual queda bloqueada por falta de `adb`
+
 Lo importante no es solo arreglarlo, sino guardar el patron para reconocerlo despues.
 
 ## Al Cerrar Fase

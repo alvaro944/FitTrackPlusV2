@@ -16,9 +16,16 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_sessions ORDER BY startedAt DESC")
     fun observeSessions(): Flow<List<WorkoutSessionEntity>>
 
+    @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NOT NULL ORDER BY finishedAt DESC, startedAt DESC")
+    fun observeFinishedSessions(): Flow<List<WorkoutSessionEntity>>
+
     @Transaction
     @Query("SELECT * FROM workout_sessions WHERE id = :sessionId")
     suspend fun getSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises?
+
+    @Transaction
+    @Query("SELECT * FROM workout_sessions WHERE id = :sessionId AND finishedAt IS NOT NULL")
+    suspend fun getFinishedSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises?
 
     @Transaction
     @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
@@ -26,6 +33,9 @@ interface WorkoutDao {
 
     @Query("SELECT COUNT(*) FROM workout_sessions WHERE routineId = :routineId AND finishedAt IS NOT NULL")
     suspend fun countFinishedSessionsForRoutine(routineId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM workout_sessions")
+    suspend fun countSessions(): Int
 
     @Insert
     suspend fun insertSession(session: WorkoutSessionEntity): Long

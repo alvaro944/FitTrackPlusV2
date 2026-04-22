@@ -102,15 +102,18 @@ Objetivo:
 
 ### Fase 3 - Historial
 
-Estado: siguiente fase.
+Estado: completada tecnicamente.
 
 Objetivo:
 
 - Listar sesiones pasadas.
 - Mostrar detalle de ejercicios y series.
 - Confirmar que editar rutinas no altera historico.
+- Anadir datos demo automaticos solo en builds debug cuando la base esta vacia.
 
 ### Fase 4 - Estadisticas MVP
+
+Estado: siguiente fase.
 
 Objetivo:
 
