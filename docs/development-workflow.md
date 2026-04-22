@@ -10,6 +10,7 @@ FitTrackPlus v2 se desarrolla como una secuencia de fases cerradas. El objetivo 
 - Validar cada cambio con comandos.
 - Probar manualmente los flujos visibles para el usuario.
 - Actualizar documentacion cuando cambie arquitectura, comportamiento o proceso.
+- Actualizar la guia de metodologia en `docs/work-methodology/` al cerrar cada fase.
 - No llevar Firebase, estadisticas avanzadas o sync al presente si pertenecen a una fase futura.
 
 ## Ramas
@@ -31,7 +32,7 @@ codex/phase-2-workout-logging
 Estado actual de Git:
 
 - Repo local inicializado.
-- Rama actual: `codex/phase-0-mobile-foundation`.
+- Rama actual: `codex/phase-1-routines`.
 - No hay remoto configurado.
 - No se ha subido nada a la nube.
 
@@ -99,4 +100,6 @@ Antes de cerrar:
 - Actualizar README, `AGENTS.md` o docs si cambia el proceso.
 - Actualizar `docs/project-progress.md`.
 - Actualizar `docs/phase-log.md`.
+- Actualizar `docs/work-methodology/` con procedimientos, tips y aprendizajes reutilizables.
 - Guardar futuras ideas en `docs/future-improvements.md`.
+- Comentar al usuario que documentacion se actualizo y que queda pendiente.

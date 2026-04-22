@@ -65,11 +65,15 @@ Pendiente:
 
 Estado:
 
-- Pendiente.
+- Completada tecnicamente.
 
-Rama recomendada:
+Rama:
 
 - `codex/phase-1-routines`
+
+Commit:
+
+- `Complete phase 1 routines`
 
 Objetivo:
 
@@ -82,14 +86,45 @@ Fuera de alcance:
 - Estadisticas.
 - Firebase.
 
-Verificacion prevista:
+Cambios principales:
+
+- Se reemplazo el placeholder de rutinas por una pantalla Compose funcional.
+- Se creo `RoutinesViewModel` con `UiState` y `StateFlow`.
+- Se conecto la UI con `RoutineRepository` para listar, crear, editar y archivar.
+- Se conecto la seleccion de rutina activa con `UserPreferencesRepository` y DataStore.
+- Se agrego editor simple para dias y ejercicios.
+- Se agrego validacion basica de campos antes de guardar.
+- Se agrego `.kotlin/` a `.gitignore`.
+- Se creo `docs/work-methodology/` como guia de estudio y metodologia.
+- Se actualizo `docs/development-workflow.md` para incluir la guia metodologica en cada cierre de fase.
+
+Problemas encontrados:
+
+- El primer `git switch -c` fallo por permisos del sandbox; se creo la rama tras aprobacion.
+- `gradlew test` dentro del sandbox fallo porque no podia crear locks en `.gradle`; se ejecuto fuera del sandbox.
+- Kotlin no podia hacer smart cast de `state.editor` al venir de `collectAsStateWithLifecycle`; se uso una variable local explicita.
+- Un intento de `build` con daemon quedo sin salida hasta timeout; se paro el daemon y se verifico con `--no-daemon --console=plain`.
+
+Decisiones:
+
+- Mantener el flujo en una sola pantalla por ahora: lista y editor alternan dentro de `RoutinesScreen`.
+- No crear navegacion nueva para el editor hasta que el flujo crezca.
+- Seleccionar automaticamente la primera rutina creada solo si no habia rutina activa.
+- Archivar una rutina activa limpia la preferencia de rutina activa.
+- Al cerrar una fase, tambien se actualiza la guia metodologica y se informa al usuario que se anadio.
+
+Verificacion:
 
 ```powershell
 .\gradlew.bat test
-.\gradlew.bat build
+.\gradlew.bat build --no-daemon --console=plain
 ```
 
-Prueba manual prevista:
+Resultado:
+
+- Verificacion automatica correcta.
+
+Pendiente:
 
 - Crear rutina Push/Pull/Legs.
 - Editar dias y ejercicios.

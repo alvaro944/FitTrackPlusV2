@@ -4,11 +4,13 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 
 ## Estado Actual
 
-- Rama actual: `codex/phase-0-mobile-foundation`.
+- Rama actual: `codex/phase-1-routines`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
+- Commit de cierre de Fase 1: `Complete phase 1 routines`.
 - No hay remoto configurado.
 - No se ha subido nada a la nube.
-- Siguiente fase: `phase-1-routines`.
+- Fase 1 completada tecnicamente.
+- Siguiente fase: `phase-2-workout-logging`.
 
 ## Hecho Hasta Ahora
 
@@ -58,6 +60,7 @@ Documentacion creada:
 - `docs/project-plan.md`
 - `docs/project-progress.md`
 - `docs/phase-log.md`
+- `docs/work-methodology/`
 
 Git:
 
@@ -66,6 +69,26 @@ Git:
 - Se creo rama local `codex/phase-0-mobile-foundation`.
 - No se configuro remoto.
 
+### Fase 1 - Rutinas
+
+Implementado:
+
+- Pantalla real de rutinas en Compose.
+- `RoutinesViewModel` con `UiState` expuesto por `StateFlow`.
+- Listado reactivo de rutinas desde Room mediante `RoutineRepository`.
+- Creacion de rutinas con dias y ejercicios.
+- Edicion de rutinas reemplazando dias y ejercicios.
+- Archivado de rutinas.
+- Seleccion de rutina activa con DataStore.
+- Limpieza de rutina activa cuando se archiva.
+- Validacion basica antes de guardar:
+  - nombre de rutina obligatorio
+  - al menos un dia
+  - al menos un ejercicio por dia
+  - nombre, series y reps obligatorios por ejercicio
+- `.kotlin/` agregado a `.gitignore` como salida local de Gradle/Kotlin.
+- Guia de metodologia creada en `docs/work-methodology/` para estudiar procedimientos, arquitectura practica, colaboracion con agente, tips y skills practicadas.
+
 ## Verificacion Realizada
 
 Comandos ejecutados:
@@ -73,6 +96,8 @@ Comandos ejecutados:
 ```powershell
 .\gradlew.bat clean test
 .\gradlew.bat build --no-daemon
+.\gradlew.bat test
+.\gradlew.bat build --no-daemon --console=plain
 ```
 
 Resultado:
@@ -82,7 +107,11 @@ Resultado:
 
 Pendiente:
 
-- Prueba manual en emulador/dispositivo.
+- Prueba manual en emulador/dispositivo de Fase 1:
+  - Crear rutina Push/Pull/Legs.
+  - Editar dias y ejercicios.
+  - Seleccionar rutina activa.
+  - Cerrar y abrir la app para comprobar persistencia.
 
 ## Decisiones Importantes
 
@@ -91,14 +120,15 @@ Pendiente:
 - `app/google-services.json` queda ignorado.
 - XML legacy de `layout`, `menu` y `navigation` queda fuera del repo nuevo.
 - Algunas versiones de AndroidX/Hilt se ajustaron para ser compatibles con AGP `8.5.1`.
+- Al cerrar cada fase se actualiza tambien `docs/work-methodology/` con aprendizajes reutilizables.
 
 ## Siguiente Paso
 
-Empezar Fase 1:
+Empezar Fase 2:
 
-1. Crear rama `codex/phase-1-routines`.
-2. Implementar flujo real de rutinas.
-3. Crear ViewModel y estados de UI.
-4. Guardar y observar rutinas con Room.
-5. Seleccionar rutina activa con DataStore.
-6. Verificar con tests/build y prueba manual.
+1. Crear rama `codex/phase-2-workout-logging`.
+2. Iniciar entrenamiento desde la rutina activa.
+3. Crear sesion usando snapshot de rutina.
+4. Registrar series con peso y repeticiones.
+5. Finalizar sesion.
+6. Verificar ciclo de dias y persistencia del historial.

@@ -71,7 +71,7 @@ Objetivo:
 
 ### Fase 1 - Rutinas
 
-Estado: siguiente fase.
+Estado: completada tecnicamente.
 
 Objetivo:
 
@@ -89,6 +89,8 @@ Fuera de alcance:
 - Sincronizacion.
 
 ### Fase 2 - Registro de entrenamiento
+
+Estado: siguiente fase.
 
 Objetivo:
 
