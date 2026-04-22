@@ -1,0 +1,13 @@
+<resources>
+    <!-- Colores base 60-30-10 -->
+    <color name="base">#F5F5F5</color>             <!-- Fondo general (60%) -->
+    <color name="primario">#1976D2</color>         <!-- Azul funcional (30%) -->
+    <color name="acento">#FB8C00</color>           <!-- Naranja acción (10%) -->
+
+    <!-- Colores neutros -->
+    <color name="blanco">#FFFFFF</color>           <!-- Blanco puro -->
+    <color name="negro">#212121</color>            <!-- Negro suave personalizado -->
+    <color name="gris_texto">#616161</color>       <!-- Texto secundario -->
+    <color name="azul_claro">#BBDEFB</color>       <!-- Ripple color -->
+    <color name="negro_bottom_nav_bar">#212121</color>       <!-- Negro suave personalizado -->
+</resources>

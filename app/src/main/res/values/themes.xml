@@ -1,0 +1,22 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.FitTrackPlus" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/primario</item>
+        <item name="colorPrimaryVariant">@color/primario</item>
+        <item name="colorOnPrimary">@color/blanco</item>
+
+        <item name="colorSecondary">@color/acento</item>
+        <item name="colorOnSecondary">@color/blanco</item>
+
+        <item name="android:background">@color/base</item>
+        <item name="colorOnBackground">@color/negro</item>
+
+        <item name="colorSurface">@color/blanco</item>
+        <item name="colorOnSurface">@color/negro</item>
+
+        <item name="android:colorBackground">@color/base</item>
+
+        <item name="colorTopBar">@color/primario</item>
+        <item name="colorBottomBar">@color/negro</item>
+
+    </style>
+</resources>
