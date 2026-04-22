@@ -4,15 +4,16 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 
 ## Estado Actual
 
-- Rama actual: `codex/phase-3-history`.
+- Rama actual: `codex/phase-4-statistics-mvp`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
 - Commit de cierre de Fase 1: `9df5a44 Complete phase 1 routines`.
 - Commit de cierre de Fase 2: `7cf2c02 Complete phase 2 workout logging`.
-- Commit de cierre de Fase 3: `Complete phase 3 history`.
+- Commit de cierre de Fase 3: `5e84fef Complete phase 3 history`.
+- Commit de cierre de Fase 4: `Complete phase 4 statistics MVP`.
 - No hay remoto configurado.
 - No se ha subido nada a la nube.
-- Fase 3 completada tecnicamente.
-- Siguiente fase: `phase-4-statistics-mvp`.
+- Fase 4 completada tecnicamente.
+- Siguiente fase: `phase-5-ux-polish`.
 
 ## Hecho Hasta Ahora
 
@@ -108,6 +109,22 @@ Implementado:
 - Datos demo Push/Pull/Legs con varias sesiones finalizadas y snapshots historicos.
 - Tests unitarios para listado, detalle, orden y lectura desde snapshots.
 
+### Fase 4 - Estadisticas MVP
+
+Implementado:
+
+- Rama local `codex/phase-4-statistics-mvp`.
+- Lectura reactiva de sesiones finalizadas con ejercicios y series historicas.
+- Modelos de dominio para estadisticas de entrenamiento.
+- `ObserveWorkoutStatsUseCase` calculando:
+  - volumen por sesion
+  - progreso por ejercicio
+  - mejores marcas de peso, reps, volumen de set y 1RM estimado
+- Agrupacion de ejercicios por nombre snapshot normalizado para resistir reemplazos de IDs al editar rutinas.
+- `StatsViewModel` con `UiState` y `StateFlow`.
+- Pantalla Compose minima de Datos para verificar volumen, progreso y marcas.
+- Tests unitarios de estadisticas con sesiones finalizadas, sesion abierta, snapshots, orden cronologico y series con peso cero.
+
 ## Verificacion Realizada
 
 Comandos ejecutados:
@@ -126,10 +143,11 @@ Pendiente:
 
 - Prueba manual en emulador/dispositivo: `adb` no esta disponible en PATH.
 - Flujo manual pendiente:
-  - abrir Historial
-  - ver registros demo
-  - entrar al detalle
-  - editar rutina y confirmar que el historial antiguo conserva snapshots
+  - abrir Datos
+  - ver volumen por sesion
+  - revisar progreso por ejercicio
+  - revisar mejores marcas
+  - confirmar que la pantalla usa solo sesiones finalizadas
 
 ## Decisiones Importantes
 
@@ -139,15 +157,18 @@ Pendiente:
 - XML legacy de `layout`, `menu` y `navigation` queda fuera del repo nuevo.
 - El historial muestra solo sesiones finalizadas.
 - El detalle de historial se lee desde snapshots guardados en Room.
+- Las estadisticas se calculan desde sesiones finalizadas y snapshots historicos.
+- El progreso por ejercicio se agrupa por nombre snapshot normalizado.
+- Las mejores marcas incluyen maximo peso, maximo reps, volumen de set y 1RM estimado.
 - El seed demo se ejecuta solo si la app es debuggable y la base esta vacia.
 - Firebase sigue fuera del MVP.
 - Al cerrar cada fase se actualiza tambien `docs/work-methodology/` con aprendizajes reutilizables.
 
 ## Siguiente Paso
 
-Empezar Fase 4:
+Empezar Fase 5:
 
-1. Definir estadisticas MVP.
-2. Calcular progreso por ejercicio desde sesiones finalizadas.
-3. Calcular volumen por sesion.
-4. Mostrar mejores marcas simples sin romper el flujo local.
+1. Pulir estados vacios, loading y errores.
+2. Mejorar confirmaciones y accesibilidad basica.
+3. Revisar recorrido de usuario nuevo.
+4. Mantener Firebase fuera hasta cerrar el nucleo local.

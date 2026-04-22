@@ -4,8 +4,8 @@ FitTrackPlus es una aplicacion Android nativa para crear rutinas de gimnasio, re
 
 ## Estado Actual
 
-Fase actual: `phase-3-history` completada tecnicamente.
-Siguiente fase: `phase-4-statistics-mvp`.
+Fase actual: `phase-4-statistics-mvp` completada tecnicamente.
+Siguiente fase: `phase-5-ux-polish`.
 
 La app esta arrancando una base nueva en Jetpack Compose. La v2 se compila desde `app/src/main/kotlin`.
 
@@ -70,7 +70,7 @@ Cuando existan pruebas instrumentadas:
 2. Rutinas: crear, editar, archivar y seleccionar rutina activa.
 3. Registro: iniciar sesion desde rutina, registrar series y finalizar.
 4. Historial: listar sesiones y mostrar detalle historico. Completado tecnicamente.
-5. Estadisticas MVP: progreso por ejercicio, volumen y mejores marcas.
+5. Estadisticas MVP: progreso por ejercicio, volumen y mejores marcas. Completado tecnicamente.
 6. Pulido UX: estados, accesibilidad, errores y recorrido de usuario nuevo.
 7. Sync futura: evaluar Firebase cuando el nucleo local este estable.
 

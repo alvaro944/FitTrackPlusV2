@@ -25,6 +25,10 @@ class DefaultWorkoutRepository @Inject constructor(
         return workoutDao.observeFinishedSessions()
     }
 
+    override fun observeFinishedSessionsWithExercises(): Flow<List<WorkoutSessionWithExercises>> {
+        return workoutDao.observeFinishedSessionsWithExercises()
+    }
+
     override suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises? {
         return workoutDao.getActiveSessionWithExercises()
     }

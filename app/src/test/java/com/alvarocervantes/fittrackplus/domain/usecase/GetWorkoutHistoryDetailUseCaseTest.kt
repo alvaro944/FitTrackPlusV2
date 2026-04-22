@@ -131,6 +131,7 @@ private class HistoryDetailWorkoutRepository(
 ) : WorkoutRepository {
     override fun observeSessions(): Flow<List<WorkoutSessionEntity>> = flowOf(emptyList())
     override fun observeFinishedSessions(): Flow<List<WorkoutSessionEntity>> = flowOf(emptyList())
+    override fun observeFinishedSessionsWithExercises(): Flow<List<WorkoutSessionWithExercises>> = flowOf(emptyList())
     override suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises? = null
     override suspend fun getSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises? = detail
     override suspend fun getFinishedSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises? = detail

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 interface WorkoutRepository {
     fun observeSessions(): Flow<List<WorkoutSessionEntity>>
     fun observeFinishedSessions(): Flow<List<WorkoutSessionEntity>>
+    fun observeFinishedSessionsWithExercises(): Flow<List<WorkoutSessionWithExercises>>
     suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises?
     suspend fun getSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises?
     suspend fun getFinishedSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises?

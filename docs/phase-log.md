@@ -288,3 +288,81 @@ Pendiente:
   - Ver registros demo.
   - Entrar al detalle.
   - Editar rutina y confirmar que el historial antiguo conserva snapshots.
+
+## Fase 4 - Estadisticas MVP
+
+Estado:
+
+- Completada tecnicamente.
+
+Rama:
+
+- `codex/phase-4-statistics-mvp`
+
+Commit:
+
+- `Complete phase 4 statistics MVP`
+
+Objetivo:
+
+- Calcular estadisticas MVP desde sesiones finalizadas.
+- Mostrar volumen por sesion, progreso por ejercicio y mejores marcas.
+- Mantener UI minima para verificar datos sin invertir la fase en pulido visual.
+
+Fuera de alcance:
+
+- Firebase.
+- Sync.
+- Graficos avanzados.
+- Refactors generales fuera de estadisticas e historial necesario.
+
+Cambios principales:
+
+- Se agrego observacion Room de sesiones finalizadas con ejercicios y series.
+- Se extendio `WorkoutRepository` para exponer detalle historico reactivo.
+- Se agregaron modelos de dominio para estadisticas.
+- Se creo `ObserveWorkoutStatsUseCase`.
+- Se calcula volumen como `peso * reps`.
+- Se calcula progreso por ejercicio en orden cronologico.
+- Se calculan mejores marcas de peso, reps, volumen de set y 1RM estimado con formula Epley.
+- Se agrupan ejercicios por nombre snapshot normalizado, no por ID editable.
+- Se creo `StatsViewModel` con `UiState` y `StateFlow`.
+- Se reemplazo el placeholder de Datos por una UI Compose minima.
+- Se agregaron tests unitarios de estadisticas.
+
+Problemas encontrados:
+
+- El primer `.\gradlew.bat test --no-daemon --console=plain` fallo en KSP por un archivo generado incremental ausente.
+- Se ejecuto `.\gradlew.bat --stop` y al repetir el test paso correctamente.
+- Un build posterior quedo sin salida hasta timeout; se paro Gradle y al repetir paso correctamente.
+- `adb` no esta disponible en PATH, asi que la prueba manual queda pendiente.
+
+Decisiones:
+
+- No se cambia el schema Room; las estadisticas se calculan en memoria.
+- Las estadisticas usan solo sesiones finalizadas.
+- El progreso se agrupa por nombre snapshot normalizado para soportar reemplazo de IDs al editar rutinas.
+- Si un ejercicio se renombra, se considera otro ejercicio en estadisticas.
+- Las marcas con peso requieren `weightKg > 0` y `reps > 0`.
+- La marca de reps permite peso `0.0` para ejercicios de peso corporal o asistidos registrados asi.
+
+Verificacion:
+
+```powershell
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Tests pasan.
+- Build completo pasa.
+
+Pendiente:
+
+- Prueba manual en emulador/dispositivo cuando `adb` este disponible:
+  - Abrir Datos.
+  - Ver volumen por sesion.
+  - Revisar progreso por ejercicio.
+  - Revisar mejores marcas.
+  - Confirmar que una sesion abierta no aparece en estadisticas.

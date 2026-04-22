@@ -107,6 +107,8 @@ private class FakeWorkoutRepository(
 
     override fun observeFinishedSessions(): Flow<List<WorkoutSessionEntity>> = flowOf(emptyList())
 
+    override fun observeFinishedSessionsWithExercises(): Flow<List<WorkoutSessionWithExercises>> = flowOf(emptyList())
+
     override suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises? = activeSession
 
     override suspend fun getSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises? = activeSession

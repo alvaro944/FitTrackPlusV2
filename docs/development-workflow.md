@@ -91,6 +91,13 @@ Fase 3:
 - Revisar detalle de ejercicios y series.
 - Editar una rutina y confirmar que el historial antiguo no cambia.
 
+Fase 4:
+
+- Abrir Datos.
+- Confirmar que aparece volumen por sesion desde sesiones finalizadas.
+- Confirmar que progreso y marcas se calculan desde snapshots historicos.
+- Confirmar que una sesion abierta no aparece en estadisticas.
+
 ## Cierre De Fase
 
 Antes de cerrar:

@@ -45,6 +45,15 @@ Este documento guarda aprendizajes concretos, comandos utiles y habilidades prac
 - Sembrar datos demo solo en debug y solo si la base esta vacia.
 - Probar snapshots historicos con repositorios fake.
 
+### Fase 4 - Estadisticas MVP
+
+- Crear agregados de dominio desde relaciones historicas de Room.
+- Calcular volumen, progreso y marcas sin persistir tablas derivadas.
+- Agrupar datos por claves normalizadas cuando los IDs editables pueden cambiar.
+- Mantener la UI de verificacion minima para no mezclar estadisticas con pulido UX.
+- Probar reglas numericas con repositorios fake.
+- Cubrir casos de peso cero y sesiones abiertas en tests.
+
 ## Tips Tecnicos
 
 ### Gradle En Windows
@@ -68,6 +77,15 @@ Si `test` queda sin salida hasta timeout, repetir con:
 ```powershell
 .\gradlew.bat test --no-daemon --console=plain
 ```
+
+Si KSP falla por archivos generados incrementales ausentes, parar Gradle y repetir suele limpiar el estado local:
+
+```powershell
+.\gradlew.bat --stop
+.\gradlew.bat test --no-daemon --console=plain
+```
+
+El mismo patron aplica si `build --no-daemon --console=plain` queda sin salida hasta timeout: comprobar procesos Java/Gradle, parar Gradle y repetir.
 
 ### Kotlin Y Compose State
 
@@ -101,6 +119,17 @@ Para mostrar entrenamientos antiguos, leer siempre desde tablas historicas:
 - `WorkoutSetEntity`
 
 No consultar la rutina editable para pintar el historial, porque el usuario puede cambiar nombres, dias y ejercicios despues de entrenar.
+
+### Estadisticas Desde Historial
+
+Para estadisticas MVP conviene derivar desde snapshots historicos, no desde rutinas editables.
+
+Patron usado:
+
+- DAO observa sesiones finalizadas con relaciones completas.
+- Caso de uso calcula agregados y orden.
+- ViewModel transforma a `UiState`.
+- Compose solo muestra valores.
 
 ### Git Local
 

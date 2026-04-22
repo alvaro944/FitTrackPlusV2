@@ -113,15 +113,17 @@ Objetivo:
 
 ### Fase 4 - Estadisticas MVP
 
-Estado: siguiente fase.
+Estado: completada tecnicamente.
 
 Objetivo:
 
 - Progreso por ejercicio.
 - Volumen por sesion.
-- Mejores marcas simples.
+- Mejores marcas simples y 1RM estimado.
 
 ### Fase 5 - Pulido UX
+
+Estado: siguiente fase.
 
 Objetivo:
 

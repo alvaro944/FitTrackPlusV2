@@ -20,6 +20,10 @@ interface WorkoutDao {
     fun observeFinishedSessions(): Flow<List<WorkoutSessionEntity>>
 
     @Transaction
+    @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NOT NULL ORDER BY finishedAt DESC, startedAt DESC")
+    fun observeFinishedSessionsWithExercises(): Flow<List<WorkoutSessionWithExercises>>
+
+    @Transaction
     @Query("SELECT * FROM workout_sessions WHERE id = :sessionId")
     suspend fun getSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises?
 

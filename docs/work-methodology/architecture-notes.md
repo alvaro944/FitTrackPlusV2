@@ -93,3 +93,22 @@ Regla usada en Fase 3:
 - sembrar solo si la base esta vacia
 - crear snapshots historicos completos
 - dejar release sin seed automatico
+
+## Estadisticas Locales
+
+Las estadisticas de Fase 4 se calculan en memoria desde el historico, sin nuevas tablas.
+
+Reglas usadas:
+
+- observar solo sesiones finalizadas con ejercicios y series
+- mantener Room como fuente de verdad
+- calcular agregados en un caso de uso de dominio
+- agrupar progreso por nombre snapshot normalizado cuando los IDs editables pueden cambiar
+- dejar Compose como capa de lectura del `UiState`, sin formulas de negocio
+
+Para marcas simples:
+
+- volumen = `peso * reps`
+- 1RM estimado = `peso * (1 + reps / 30)`
+- marcas con peso ignoran sets con peso o reps en cero
+- marca de reps puede usar peso cero para ejercicios de peso corporal registrados asi
