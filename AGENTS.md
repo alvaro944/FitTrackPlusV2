@@ -8,8 +8,11 @@ Antes de editar codigo, revisar:
 
 1. `README.md`
 2. `docs/development-workflow.md`
-3. `docs/architecture.md`
-4. El area concreta que se va a tocar
+3. `docs/project-plan.md`
+4. `docs/project-progress.md`
+5. `docs/phase-log.md`
+6. `docs/architecture.md`
+7. El area concreta que se va a tocar
 
 ## Modo De Trabajo
 

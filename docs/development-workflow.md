@@ -28,7 +28,12 @@ codex/phase-1-routines
 codex/phase-2-workout-logging
 ```
 
-Nota actual: este workspace no contiene `.git`, asi que la rama no se puede crear desde aqui.
+Estado actual de Git:
+
+- Repo local inicializado.
+- Rama actual: `codex/phase-0-mobile-foundation`.
+- No hay remoto configurado.
+- No se ha subido nada a la nube.
 
 ## Definition Of Done
 
@@ -92,4 +97,6 @@ Antes de cerrar:
 - Revisar archivos modificados.
 - Ejecutar verificacion fresca.
 - Actualizar README, `AGENTS.md` o docs si cambia el proceso.
+- Actualizar `docs/project-progress.md`.
+- Actualizar `docs/phase-log.md`.
 - Guardar futuras ideas en `docs/future-improvements.md`.
