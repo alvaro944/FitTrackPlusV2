@@ -135,7 +135,7 @@ Objetivo:
 
 ### Fase 6 - UI visual / Front con herramienta
 
-Estado: siguiente fase.
+Estado: completada tecnicamente.
 
 Objetivo:
 
@@ -157,6 +157,16 @@ Objetivo:
 - Evaluar Firebase/Auth/Firestore o alternativa.
 - Disenar sync offline-first antes de implementar.
 - Ejecutar solo despues de cerrar el nucleo local y la fase visual.
+
+## Linea Paralela - Branding
+
+No se trata como fase funcional del producto.
+
+Objetivo:
+
+- definir identidad visual y de marca de FitTrackPlus
+- fijar personalidad, color, tipografia, logo e icono
+- dar coherencia a futuras iteraciones visuales sin mezclarlo con sync o backend
 
 ## Definition Of Done
 

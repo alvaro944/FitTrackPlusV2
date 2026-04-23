@@ -1,27 +1,30 @@
 package com.alvarocervantes.fittrackplus.feature.workout
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,17 +42,34 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alvarocervantes.fittrackplus.core.design.FitSpacing
+import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
+import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackLoadingCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
+import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
+import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
+import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
+import com.alvarocervantes.fittrackplus.core.design.primaryDark
+import com.alvarocervantes.fittrackplus.core.design.primarySoft
+import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @Composable
 fun WorkoutScreen(
+    onGoToRoutines: () -> Unit,
     viewModel: WorkoutViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -100,7 +120,8 @@ fun WorkoutScreen(
             onStartWorkout = viewModel::startWorkout,
             onFinishWorkout = { showFinishConfirmation = true },
             onSetWeightChange = viewModel::updateSetWeight,
-            onSetRepsChange = viewModel::updateSetReps
+            onSetRepsChange = viewModel::updateSetReps,
+            onGoToRoutines = onGoToRoutines
         )
     }
 }
@@ -113,27 +134,44 @@ private fun WorkoutContent(
     onStartWorkout: () -> Unit,
     onFinishWorkout: () -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
-    onSetRepsChange: (Long, String) -> Unit
+    onSetRepsChange: (Long, String) -> Unit,
+    onGoToRoutines: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(
+            start = FitSpacing.screenHorizontal,
+            top = FitSpacing.screenTop,
+            end = FitSpacing.screenHorizontal,
+            bottom = FitSpacing.screenBottom
+        ),
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.section)
     ) {
         item {
-            WorkoutHeader(
-                state = state,
-                onRefresh = onRefresh
+            FitTrackScreenHeader(
+                title = "Entrenar",
+                subtitle = when {
+                    state.activeSession != null -> "Sesion en curso"
+                    state.preview != null -> "Siguiente entrenamiento listo"
+                    state.activeRoutineId == null -> "Necesitas una rutina activa"
+                    else -> "Registro de entrenamiento"
+                },
+                trailing = {
+                    IconButton(onClick = onRefresh) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = "Actualizar entrenamiento"
+                        )
+                    }
+                }
             )
         }
 
         when {
             state.isLoading -> {
-                item {
-                    LoadingState(text = "Preparando entrenamiento...")
-                }
+                item { FitTrackLoadingCard(text = "Preparando entrenamiento...") }
             }
 
             state.activeSession != null -> {
@@ -158,7 +196,16 @@ private fun WorkoutContent(
 
             state.activeRoutineId == null -> {
                 item {
-                    NoActiveRoutineState()
+                    FitTrackEmptyState(
+                        icon = Icons.AutoMirrored.Filled.List,
+                        title = "No hay rutina activa",
+                        message = "Selecciona una rutina en Rutinas para preparar el siguiente entrenamiento.",
+                        supporting = "Primero crea o elige una rutina y marcala como activa."
+                    ) {
+                        Button(onClick = onGoToRoutines) {
+                            Text("Ir a Rutinas")
+                        }
+                    }
                 }
             }
 
@@ -174,68 +221,18 @@ private fun WorkoutContent(
 
             else -> {
                 item {
-                    EmptyWorkoutState(onRefresh = onRefresh)
+                    FitTrackEmptyState(
+                        icon = Icons.Filled.FitnessCenter,
+                        title = "No se encontro el siguiente entrenamiento",
+                        message = "Puede que la rutina activa no tenga dias o ejercicios disponibles.",
+                        supporting = "Revisa la rutina actual antes de volver a intentarlo."
+                    ) {
+                        FilledTonalButton(onClick = onRefresh) {
+                            Text("Revisar de nuevo")
+                        }
+                    }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun WorkoutHeader(
-    state: WorkoutUiState,
-    onRefresh: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Entrenar",
-                style = MaterialTheme.typography.headlineMedium
-            )
-            Text(
-                text = when {
-                    state.activeSession != null -> "Sesion en curso"
-                    state.preview != null -> "Siguiente entrenamiento listo"
-                    else -> "Registro de entrenamiento"
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        IconButton(onClick = onRefresh) {
-            Icon(
-                imageVector = Icons.Filled.Refresh,
-                contentDescription = "Actualizar entrenamiento"
-            )
-        }
-    }
-}
-
-@Composable
-private fun NoActiveRoutineState() {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "No hay rutina activa",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = "Selecciona una rutina activa en Rutinas para iniciar un entrenamiento.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "Primero crea o elige una rutina y marcala como activa.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
@@ -246,51 +243,41 @@ private fun WorkoutPreviewCard(
     isStarting: Boolean,
     onStartWorkout: () -> Unit
 ) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+    androidx.compose.material3.Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryDark),
+        border = null
+    ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = preview.routineName,
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = preview.dayName,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-                AssistChip(
-                    onClick = {},
-                    label = { Text("Semana ${preview.weekNumber}") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.FitnessCenter,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                )
-            }
-
-            Text(
-                text = "${preview.exerciseCount} ejercicios preparados",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            FitTrackBadge(
+                label = "PROXIMO ENTRENAMIENTO",
+                tone = FitTrackBadgeTone.Active
             )
-
+            Text(
+                text = preview.routineName,
+                style = MaterialTheme.typography.headlineMedium,
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = preview.dayName,
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White.copy(alpha = 0.92f)
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                HeroTag(text = "Semana ${preview.weekNumber}")
+                HeroTag(text = "${preview.exerciseCount} ejercicios")
+            }
             Button(
                 onClick = onStartWorkout,
-                enabled = !isStarting,
-                modifier = Modifier.fillMaxWidth()
+                enabled = !isStarting
             ) {
                 Icon(
                     imageVector = Icons.Filled.PlayArrow,
@@ -299,10 +286,25 @@ private fun WorkoutPreviewCard(
                 )
                 Text(
                     text = if (isStarting) "Iniciando entrenamiento" else "Iniciar entrenamiento",
-                    modifier = Modifier.padding(start = 8.dp)
+                    modifier = Modifier.padding(start = FitSpacing.sm)
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun HeroTag(text: String) {
+    Box(
+        modifier = Modifier
+            .background(Color.White.copy(alpha = 0.10f), MaterialTheme.shapes.medium)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White.copy(alpha = 0.78f)
+        )
     }
 }
 
@@ -312,60 +314,77 @@ private fun ActiveSessionSummary(
     isFinishing: Boolean,
     onFinishWorkout: () -> Unit
 ) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = session.routineName,
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = session.dayName,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        text = "Iniciada ${formatStartedAt(session.startedAt)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                AssistChip(
-                    onClick = {},
-                    label = { Text("Semana ${session.weekNumber}") }
-                )
-            }
-
-            Text(
-                text = "${session.completedSetCount}/${session.totalSetCount} series con reps",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Button(
-                onClick = onFinishWorkout,
-                enabled = !isFinishing,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
+                FitTrackBadge(
+                    label = "SESION ACTIVA",
+                    tone = FitTrackBadgeTone.Primary
                 )
                 Text(
-                    text = if (isFinishing) "Finalizando entrenamiento" else "Finalizar entrenamiento",
-                    modifier = Modifier.padding(start = 8.dp)
+                    text = session.routineName,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${session.dayName} · iniciada ${formatStartedAt(session.startedAt)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            FitTrackBadge(
+                label = "Semana ${session.weekNumber}",
+                tone = FitTrackBadgeTone.Neutral
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            FitTrackMetric(
+                value = session.completedSetCount.toString(),
+                label = "series hechas",
+                accent = FitTrackMetricAccent.Primary,
+                compact = true
+            )
+            FitTrackMetric(
+                value = session.totalSetCount.toString(),
+                label = "series totales",
+                compact = true
+            )
+        }
+
+        FitTrackProgressBar(
+            progress = if (session.totalSetCount == 0) {
+                0f
+            } else {
+                session.completedSetCount.toFloat() / session.totalSetCount.toFloat()
+            }
+        )
+
+        Button(
+            onClick = onFinishWorkout,
+            enabled = !isFinishing,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = if (isFinishing) "Finalizando entrenamiento" else "Finalizar entrenamiento",
+                modifier = Modifier.padding(start = FitSpacing.sm)
+            )
         }
     }
 }
@@ -376,21 +395,22 @@ private fun WorkoutExerciseCard(
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
         ) {
-            Column {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+            ) {
                 Text(
                     text = exercise.name,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = "Objetivo: ${exercise.targetRepsText} reps",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -412,23 +432,55 @@ private fun WorkoutSetRow(
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit
 ) {
+    val hasInput = set.weightText.isNotBlank() || set.repsText.isNotBlank()
+
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
+            .padding(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = set.setNumber.toString(),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.weight(0.35f)
-        )
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    color = if (hasInput) MaterialTheme.colorScheme.primarySoft else MaterialTheme.colorScheme.surface,
+                    shape = CircleShape
+                )
+                .semantics {
+                    contentDescription = if (hasInput) {
+                        "Serie ${set.setNumber} con datos registrados"
+                    } else {
+                        "Serie ${set.setNumber} pendiente"
+                    }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            if (hasInput) {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+            } else {
+                Text(
+                    text = set.setNumber.toString(),
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        }
         OutlinedTextField(
             value = set.weightText,
             onValueChange = { onSetWeightChange(set.id, it) },
             label = { Text("Kg") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 56.dp)
         )
         OutlinedTextField(
             value = set.repsText,
@@ -436,62 +488,13 @@ private fun WorkoutSetRow(
             label = { Text("Reps") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 56.dp)
         )
-    }
-}
-
-@Composable
-private fun EmptyWorkoutState(
-    onRefresh: () -> Unit
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "No se encontro el siguiente entrenamiento",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = "Puede que la rutina activa no tenga dias o ejercicios disponibles.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Button(onClick = onRefresh) {
-                Icon(
-                    imageVector = Icons.Filled.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "Revisar de nuevo",
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
-        }
     }
 }
 
 private fun formatStartedAt(timestamp: Long): String {
     return SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()).format(Date(timestamp))
-}
-
-@Composable
-private fun LoadingState(text: String) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
 }

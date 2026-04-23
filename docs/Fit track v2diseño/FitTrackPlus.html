@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FitTrackPlus — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; background: #2A2D2B; display: flex; align-items: center; justify-content: center; font-family: 'DM Sans', system-ui, sans-serif; }
+  ::-webkit-scrollbar { display: none; }
+  * { scrollbar-width: none; }
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  /* Tweaks panel */
+  #tweaks-panel {
+    display: none;
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    background: #FCFBF7; border-radius: 18px; padding: 20px;
+    border: 1px solid #ECEAE4;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+    width: 260px; font-family: 'DM Sans', sans-serif;
+  }
+  #tweaks-panel.open { display: block; }
+  .tweak-label { font-size: 11px; font-weight: 600; color: #8E958F; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; display: block; }
+  .tweak-row { margin-bottom: 14px; }
+  .tweak-row:last-child { margin-bottom: 0; }
+  select, .tweak-select { width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid #D8D4CA; background: white; font-size: 13.5px; font-family: 'DM Sans', sans-serif; color: #161816; outline: none; cursor: pointer; }
+  .tweak-title { font-size: 13px; font-weight: 700; color: #161816; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #ECEAE4; }
+  .tweak-swatch-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tweak-swatch { width: 28px; height: 28px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
+  .tweak-swatch:hover { transform: scale(1.1); }
+  .tweak-swatch.active { border-color: #161816; }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<!-- Design system components -->
+<script type="text/babel" src="ft-components.jsx"></script>
+<!-- All screens -->
+<script type="text/babel" src="ft-screens.jsx"></script>
+<!-- Android device frame -->
+<script type="text/babel" src="android-frame.jsx"></script>
+
+<!-- Main App -->
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "primaryColor": "#1F6B57",
+  "fontScale": "default",
+  "accentStyle": "emerald",
+  "cardStyle": "bordered"
+}/*EDITMODE-END*/;
+
+function FitTrackApp() {
+  const [activeTab, setActiveTab] = React.useState('inicio');
+  const [screenStack, setScreenStack] = React.useState([]);
+  const [routines, setRoutines] = React.useState(FT_ROUTINES);
+  const [tweaks, setTweaks] = React.useState(TWEAK_DEFAULTS);
+
+  const pushScreen = (screen, params = {}) => setScreenStack(prev => [...prev, { screen, params }]);
+  const popScreen = () => setScreenStack(prev => prev.slice(0, -1));
+
+  const handleTabChange = (tab) => {
+    setScreenStack([]);
+    setActiveTab(tab);
+  };
+
+  const handleNavigate = (screen, params = {}) => {
+    if (['inicio','rutinas','entrenar','historial','datos'].includes(screen)) {
+      handleTabChange(screen);
+    } else {
+      pushScreen(screen, params);
+    }
+  };
+
+  const currentFrame = screenStack.length > 0 ? screenStack[screenStack.length - 1] : null;
+
+  const screenTitles = {
+    inicio: 'Inicio', rutinas: 'Rutinas', entrenar: 'Entrenar',
+    historial: 'Historial', datos: 'Datos',
+  };
+
+  const renderContent = () => {
+    if (currentFrame) {
+      const { screen, params } = currentFrame;
+      if (screen === 'editorRutina') return <EditorRutinaScreen routine={params.routine} onBack={popScreen} onSave={(r) => { setRoutines(prev => params.routine ? prev.map(x=>x.id===r.id?r:x) : [...prev,r]); popScreen(); }} />;
+      if (screen === 'sesionActiva') return <SesionActivaScreen routine={params.routine} onBack={popScreen} />;
+      if (screen === 'detalleHistorial') return <DetalleHistorialScreen session={params.session} onBack={popScreen} />;
+    }
+
+    if (activeTab === 'inicio') return <InicioScreen onNavigate={handleNavigate} />;
+    if (activeTab === 'rutinas') return <RutinasScreen routines={routines} setRoutines={setRoutines} onNavigate={handleNavigate} />;
+    if (activeTab === 'entrenar') return <EntrenarScreen routines={routines} onNavigate={handleNavigate} />;
+    if (activeTab === 'historial') return <HistorialScreen onNavigate={handleNavigate} />;
+    if (activeTab === 'datos') return <DatosScreen />;
+  };
+
+  const isSecondary = !!currentFrame;
+  const tabTitle = isSecondary ? '' : screenTitles[activeTab];
+
+  return (
+    <>
+      <AndroidDevice width={390} height={844} dark={false}>
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: FT.bg, overflow: 'hidden' }}>
+          {/* Screen header — only on main tabs */}
+          {!isSecondary && (
+            <div style={{
+              padding: '14px 20px 2px',
+              background: FT.bg,
+            }}>
+              <h1 style={{
+                fontSize: 28, fontWeight: 800, color: FT.textPrimary,
+                fontFamily: FT_FONT.sans, letterSpacing: '-0.03em', lineHeight: 1,
+              }}>{tabTitle}</h1>
+            </div>
+          )}
+
+          {/* Scrollable content */}
+          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+            {renderContent()}
+          </div>
+
+          {/* Bottom nav — hidden on secondary screens */}
+          {!isSecondary && (
+            <FTBottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+          )}
+        </div>
+      </AndroidDevice>
+
+      {/* Tweaks panel */}
+      <TweaksPanel tweaks={tweaks} setTweaks={setTweaks} />
+    </>
+  );
+}
+
+function TweaksPanel({ tweaks, setTweaks }) {
+  const update = (key, val) => {
+    const next = { ...tweaks, [key]: val };
+    setTweaks(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: next }, '*');
+  };
+
+  return (
+    <div id="tweaks-panel">
+      <div className="tweak-title">⚙ Tweaks</div>
+
+      <div className="tweak-row">
+        <span className="tweak-label">Color primario</span>
+        <div className="tweak-swatch-row">
+          {[
+            { label: 'Esmeralda', val: '#1F6B57' },
+            { label: 'Pizarra', val: '#3B5068' },
+            { label: 'Grafito', val: '#3D3D3D' },
+            { label: 'Terracota', val: '#8B4234' },
+          ].map(c => (
+            <div
+              key={c.val}
+              title={c.label}
+              className={`tweak-swatch${tweaks.primaryColor === c.val ? ' active' : ''}`}
+              style={{ background: c.val }}
+              onClick={() => update('primaryColor', c.val)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="tweak-row">
+        <span className="tweak-label">Tipografía</span>
+        <select className="tweak-select" value={tweaks.fontScale} onChange={e => update('fontScale', e.target.value)}>
+          <option value="compact">Compacta</option>
+          <option value="default">Normal</option>
+          <option value="large">Grande</option>
+        </select>
+      </div>
+
+      <div className="tweak-row">
+        <span className="tweak-label">Estilo de tarjeta</span>
+        <select className="tweak-select" value={tweaks.cardStyle} onChange={e => update('cardStyle', e.target.value)}>
+          <option value="bordered">Borde fino</option>
+          <option value="elevated">Elevada</option>
+          <option value="flat">Sin borde</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+// Tweaks toggle listener
+window.addEventListener('message', e => {
+  if (e.data?.type === '__activate_edit_mode') {
+    document.getElementById('tweaks-panel').classList.add('open');
+  }
+  if (e.data?.type === '__deactivate_edit_mode') {
+    document.getElementById('tweaks-panel').classList.remove('open');
+  }
+});
+window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<FitTrackApp />);
+</script>
+</body>
+</html>

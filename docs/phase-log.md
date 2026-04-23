@@ -434,3 +434,141 @@ Pendiente:
   - Confirmar archivado de rutina.
   - Confirmar finalizacion de entrenamiento.
   - Revisar Historial y Datos con sesiones finalizadas.
+
+## Fase 6 - UI visual / Front con herramienta
+
+Estado:
+
+- Completada tecnicamente.
+
+Rama:
+
+- `codex/phase-6-ui-visual-front`
+
+Objetivo:
+
+- Aplicar el diseno visual de referencia a la app Compose real.
+- Mejorar tema, navegacion, jerarquia visual, superficies y componentes compartidos.
+- Mantener intactas las reglas de negocio y los snapshots historicos.
+
+Fuera de alcance:
+
+- Firebase.
+- Sync.
+- Cambios en Room, DataStore, repositorios o casos de uso por razones visuales.
+
+Cambios principales:
+
+- Se creo un sistema visual reutilizable en `core/design` con tokens extra, tipografia, shapes, cards, badges, metricas, headers, estados vacios, loading y progreso.
+- Se actualizo `FitTrackPlusTheme` para alinearlo con la paleta grafito + esmeralda del diseno de referencia.
+- Se redisenaron las tabs principales:
+  - Inicio
+  - Rutinas
+  - Entrenar
+  - Historial
+  - Datos
+- Inicio dejo de ser placeholder y paso a ser dashboard de entrada con accesos rapidos.
+- Rutinas gano banner de rutina activa, biblioteca mas clara y editor alineado con el nuevo sistema.
+- Entrenar gano una hero card para el siguiente entrenamiento, sesion activa mas enfocada y estados vacios con CTA.
+- Historial y detalle historico mejoraron legibilidad y jerarquia sin tocar snapshots.
+- Datos gano overview visual con resumen, progreso y records.
+- La bottom navigation se ajusto para tener seleccion, contraste y presencia visual coherentes con la fase.
+
+Problemas encontrados:
+
+- La primera verificacion fallo por errores de Compose menores:
+  - faltaba importar `dp` en la navegacion
+  - una lista de acciones en Inicio se construyo dentro del DSL de `LazyColumn` usando llamadas `@Composable`
+- Se corrigieron esos errores y la verificacion posterior paso.
+- `adb` sigue sin estar disponible en PATH, asi que la prueba manual queda pendiente.
+
+Decisiones:
+
+- Usar la referencia visual guardada en `docs/` como direccion de arte, no como replica 1:1 del HTML/JSX.
+- Traducir el diseno a componentes Compose compartidos antes de tocar pantallas para evitar duplicacion.
+- Mantener la arquitectura intacta:
+  - Compose pinta estado
+  - ViewModel conserva eventos
+  - no se mueve logica de negocio a UI
+- Mejorar navegacion util desde Inicio y estados vacios, pero sin abrir nuevas rutas ni cambiar el flujo de datos.
+
+Verificacion:
+
+```powershell
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Tests pasan.
+- Build completo pasa.
+
+Pendiente:
+
+- Prueba manual en emulador/dispositivo cuando `adb` este disponible:
+  - revisar shell y tabs con el nuevo tema
+  - recorrer Inicio, Rutinas, Entrenar, Historial y Datos
+  - confirmar archivado de rutina y finalizacion de entrenamiento
+  - validar que Historial y Datos siguen usando solo sesiones finalizadas
+  - validar que editar rutina no altera snapshots historicos previos
+
+### Iteracion de mejora post-redisenio
+
+Motivo:
+
+- Se revisaron los cambios de documentacion, `CLAUDE.md` y `docs/mejoras-claude.md` para separar backlog util de propuestas fuera de alcance.
+
+Cambios principales:
+
+- Inicio elimina metricas fijas que podian sonar a datos reales y mueve el CTA principal a `Rutinas` para evitar un callejon sin salida al primer uso.
+- Rutinas simplifica el copy repetido por tarjeta y deja la explicacion de snapshots en un unico bloque de contexto.
+- Entrenar muestra mejor feedback visual en cada serie registrada y eleva el tamano minimo tactil de los inputs.
+- Se creo `core/design/Spacing.kt` como primera base de tokens de espaciado para seguir normalizando la capa visual.
+- `docs/work-methodology/` ahora deja mas claro el trabajo multiagente, la prioridad de `CLAUDE.md` como regla operativa y la diferencia entre propuesta y decision.
+
+Decisiones:
+
+- Solo se implementan mejoras de bajo riesgo y puramente visuales/UX en esta pasada.
+- Se evita abrir cambios de dominio, nuevos casos de uso o lectura de datos adicionales solo para decorar Home.
+- El backlog de Claude sigue siendo backlog: no todo entra automaticamente en Fase 6.
+
+Verificacion:
+
+```powershell
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Tests pasan.
+- Build completo pasa.
+
+Pendiente:
+
+- Prueba manual en emulador/dispositivo cuando `adb` este disponible.
+
+### Cierre tecnico y apertura de branding
+
+Estado:
+
+- Fase 6 se considera cerrada tecnicamente.
+
+Cambios principales:
+
+- Se crea `docs/branding/` como linea de trabajo separada del roadmap funcional.
+- La carpeta de branding arranca con estructura inicial para:
+  - base de marca
+  - cuestionario
+  - color
+  - tipografia
+  - direccion de logo
+  - direccion de icono
+  - prompt para siguiente chat
+- Se deja documentado que branding no sustituye a Fase 7 ni la adelanta.
+
+Pendiente:
+
+- Validacion manual de Fase 6 en movil.
+- Definir personalidad de marca antes de explorar logo final o imagen generada.

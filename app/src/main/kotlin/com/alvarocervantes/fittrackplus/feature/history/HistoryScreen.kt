@@ -1,7 +1,9 @@
 package com.alvarocervantes.fittrackplus.feature.history
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,12 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +35,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
+import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackLoadingCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
+import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
+import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
+import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
+import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -76,26 +86,50 @@ private fun HistoryContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            HistoryHeader(
-                showingDetail = state.selectedDetail != null || state.isDetailLoading,
-                onBackToList = onBackToList
+            FitTrackScreenHeader(
+                title = "Historial",
+                subtitle = if (state.selectedDetail == null && !state.isDetailLoading) {
+                    "Sesiones finalizadas"
+                } else {
+                    "Detalle historico"
+                },
+                trailing = {
+                    if (state.selectedDetail != null || state.isDetailLoading) {
+                        IconButton(onClick = onBackToList) {
+                            Icon(
+                                imageVector = Icons.Filled.ArrowBack,
+                                contentDescription = "Volver al listado de historial"
+                            )
+                        }
+                    }
+                }
             )
         }
 
         when {
             state.isLoading -> {
-                item { LoadingState(text = "Cargando sesiones finalizadas...") }
+                item { FitTrackLoadingCard(text = "Cargando sesiones finalizadas...") }
             }
 
             state.sessions.isEmpty() -> {
-                item { EmptyHistoryState() }
+                item {
+                    FitTrackEmptyState(
+                        icon = Icons.Filled.History,
+                        title = "Sin sesiones finalizadas",
+                        message = "Finaliza un entrenamiento para verlo aqui.",
+                        supporting = "El historial usa snapshots, asi que los cambios futuros en rutinas no modificaran estas sesiones."
+                    )
+                }
             }
 
             state.selectedSessionId == null -> {
+                item {
+                    FitTrackSectionLabel(label = "Sesiones")
+                }
                 items(
                     items = state.sessions,
                     key = { session -> session.sessionId }
@@ -108,12 +142,15 @@ private fun HistoryContent(
             }
 
             state.isDetailLoading -> {
-                item { LoadingState(text = "Cargando detalle historico...") }
+                item { FitTrackLoadingCard(text = "Cargando detalle historico...") }
             }
 
             state.selectedDetail != null -> {
                 item {
                     HistoryDetailSummary(detail = state.selectedDetail)
+                }
+                item {
+                    FitTrackSectionLabel(label = "Ejercicios")
                 }
                 items(
                     items = state.selectedDetail.exercises,
@@ -127,106 +164,48 @@ private fun HistoryContent(
 }
 
 @Composable
-private fun HistoryHeader(
-    showingDetail: Boolean,
-    onBackToList: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Historial",
-                style = MaterialTheme.typography.headlineMedium
-            )
-            Text(
-                text = if (showingDetail) "Detalle historico" else "Sesiones finalizadas",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        if (showingDetail) {
-            IconButton(onClick = onBackToList) {
-                Icon(
-                    imageVector = Icons.Filled.ArrowBack,
-                    contentDescription = "Volver al listado de historial"
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmptyHistoryState() {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "Sin sesiones finalizadas",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = "Finaliza un entrenamiento para verlo aqui.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "El historial usa snapshots, asi que los cambios futuros en rutinas no modificaran estas sesiones.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
 private fun HistorySessionCard(
     session: HistorySessionUiState,
     onClick: () -> Unit
 ) {
-    ElevatedCard(
+    FitTrackCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(
-                onClickLabel = "Ver detalle de la sesion",
                 role = Role.Button,
+                onClickLabel = "Ver detalle de la sesion",
                 onClick = onClick
             )
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = session.routineName,
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = session.dayName,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-                AssistChip(
-                    onClick = onClick,
-                    label = { Text("Semana ${session.weekNumber}") }
+                Text(
+                    text = session.routineName,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = session.dayName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = formatDate(session.finishedAt),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                text = formatDate(session.finishedAt),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            FitTrackBadge(
+                label = "Semana ${session.weekNumber}",
+                tone = FitTrackBadgeTone.Neutral
             )
         }
     }
@@ -234,52 +213,60 @@ private fun HistorySessionCard(
 
 @Composable
 private fun HistoryDetailSummary(detail: HistoryDetailUiState) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = detail.routineName,
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = detail.dayName,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Text(
-                text = detail.routineName,
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+            FitTrackMetric(
+                value = detail.exercises.size.toString(),
+                label = "ejercicios",
+                accent = FitTrackMetricAccent.Primary,
+                compact = true
             )
-            Text(
-                text = detail.dayName,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = "Finalizada ${formatDate(detail.finishedAt)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "${detail.exercises.size} ejercicios - ${detail.totalSetCount} series",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            FitTrackMetric(
+                value = detail.totalSetCount.toString(),
+                label = "series",
+                compact = true
             )
         }
+        Text(
+            text = "Finalizada ${formatDate(detail.finishedAt)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
 @Composable
 private fun HistoryExerciseCard(exercise: HistoryExerciseUiState) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     text = exercise.name,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = "Objetivo: ${exercise.targetRepsText} reps",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -293,15 +280,24 @@ private fun HistoryExerciseCard(exercise: HistoryExerciseUiState) {
 @Composable
 private fun HistorySetRow(set: HistorySetUiState) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
+            .padding(10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = set.setNumber.toString(),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.weight(0.35f)
-        )
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .background(MaterialTheme.colorScheme.surface, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = set.setNumber.toString(),
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
         Text(
             text = "${set.weightKg.toDisplayText()} kg",
             style = MaterialTheme.typography.bodyMedium,
@@ -319,28 +315,10 @@ private fun formatDate(timestamp: Long): String {
     return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(timestamp))
 }
 
-@Composable
-private fun LoadingState(text: String) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
 private fun Double.toDisplayText(): String {
     return if (this % 1.0 == 0.0) {
         toInt().toString()
     } else {
-        toString()
+        String.format(Locale.getDefault(), "%.1f", this)
     }
 }

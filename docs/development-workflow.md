@@ -7,6 +7,7 @@ FitTrackPlus v2 se desarrolla como una secuencia de fases cerradas. El objetivo 
 - Trabajar en cambios pequenos e incrementales.
 - Usar una rama por fase o tarea cuando exista git.
 - Mantener una responsabilidad clara por rama.
+- Si se usan varias plataformas o editores, dejar una sola como ejecutora del cambio en cada iteracion.
 - Validar cada cambio con comandos.
 - Probar manualmente los flujos visibles para el usuario.
 - Actualizar documentacion cuando cambie arquitectura, comportamiento o proceso.
@@ -105,6 +106,14 @@ Fase 5:
 - Confirmar que finalizar un entrenamiento pide confirmacion.
 - Confirmar que los textos orientan al siguiente paso sin introducir redisenio visual.
 - Confirmar que Historial y Datos siguen usando solo sesiones finalizadas.
+
+Fase 6:
+
+- Abrir app y revisar el tema visual completo en Inicio, Rutinas, Entrenar, Historial y Datos.
+- Confirmar que la bottom navigation mantiene seleccion y navegacion correctas.
+- Confirmar que Inicio sirve como dashboard de entrada y enlaza bien a las tabs principales.
+- Confirmar que Rutinas, Entrenar, Historial y Datos mejoran visualmente sin cambiar su comportamiento funcional.
+- Confirmar que editar rutinas no altera snapshots historicos ya guardados.
 
 ## Cierre De Fase
 

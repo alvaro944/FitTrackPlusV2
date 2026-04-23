@@ -63,6 +63,24 @@ Este documento guarda aprendizajes concretos, comandos utiles y habilidades prac
 - Revisar `contentDescription` de iconos accionables y dejar `null` en iconos decorativos.
 - Usar etiquetas semanticas en filas clicables cuando una card completa abre detalle.
 
+### Fase 6 - UI visual / Front con herramienta
+
+- Traducir una referencia HTML/JSX a un sistema visual Compose sin copiarla ciegamente.
+- Crear tokens extra fuera del `ColorScheme` base cuando el diseno necesita superficies, acentos y bordes propios.
+- Construir componentes compartidos antes de tocar pantallas para evitar estilos duplicados.
+- Rehacer navegacion y pantallas manteniendo ViewModels y datos intactos.
+- Mejorar una pantalla placeholder convirtiendola en dashboard util sin introducir logica nueva de negocio.
+- Verificar el redisenio con `test` y `build` antes de tocar documentacion de cierre.
+- Hacer una segunda pasada de UX despues del redisenio para quitar fricciones reales en vez de seguir decorando.
+
+### Coordinacion multiagente
+
+- Separar siempre backlog detectado por otro agente de decisiones ya aceptadas por el usuario.
+- Si varias herramientas escriben notas, usar la documentacion viva del proyecto como referencia canonica y no una sola propuesta externa.
+- Conviene que un solo agente ejecute codigo en cada iteracion para evitar solapes y lecturas incompletas del estado real.
+- Si aparece un `CLAUDE.md` o equivalente, tratarlo como regla operativa y no como simple nota auxiliar.
+- Si se alternan dos editores o plataformas, el relevo debe pasar por `git status`, lectura de docs vivas y reapertura del area exacta que se va a tocar.
+
 ## Tips Tecnicos
 
 ### Gradle En Windows
@@ -155,6 +173,24 @@ Conviene evitar:
 - rehacer layouts completos
 - agregar animaciones o graficos
 - tocar reglas de negocio para justificar un ajuste visual
+
+### Redisenio Visual Con Alcance Controlado
+
+En una fase visual conviene priorizar:
+
+- tema y tipografia
+- surfaces y componentes base
+- navegacion y jerarquia de tabs
+- estados vacios, loading y resumenes
+- coherencia entre pantallas principales y secundarias
+- una segunda iteracion corta para corregir CTA engañosos, ruido repetido y targets tactiles pobres
+
+Conviene evitar:
+
+- replicar 1:1 un prototipo externo aunque no encaje con los datos reales
+- cambiar modelos, ViewModels o reglas para que la UI se vea mejor
+- mezclar redisenio visual con sync o backend
+- tocar archivos legacy de `app/src/main/java`
 
 ### Git Local
 

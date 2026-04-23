@@ -1,5 +1,6 @@
 package com.alvarocervantes.fittrackplus.feature.stats
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -7,23 +8,33 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
+import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackLoadingCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
+import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
+import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
+import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
+import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
+import com.alvarocervantes.fittrackplus.core.design.accentSoft
+import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -51,26 +62,55 @@ private fun StatsContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { StatsHeader() }
+        item {
+            FitTrackScreenHeader(
+                title = "Datos",
+                subtitle = "Estadisticas desde sesiones finalizadas"
+            )
+        }
 
         when {
             state.isLoading -> {
-                item { LoadingState(text = "Calculando datos desde sesiones finalizadas...") }
+                item { FitTrackLoadingCard(text = "Calculando datos desde sesiones finalizadas...") }
             }
 
             state.message != null -> {
-                item { ErrorState(message = state.message) }
+                item {
+                    FitTrackCard {
+                        Text(
+                            text = "No se pudieron cargar los datos",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = state.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
             state.isEmpty -> {
-                item { EmptyStatsState() }
+                item {
+                    FitTrackEmptyState(
+                        icon = Icons.Filled.BarChart,
+                        title = "Sin estadisticas",
+                        message = "Finaliza entrenamientos para calcular volumen, progreso y marcas.",
+                        supporting = "Solo cuentan sesiones finalizadas; una sesion abierta no aparece aqui."
+                    )
+                }
             }
 
             else -> {
-                item { SectionTitle("Volumen por sesion") }
+                item {
+                    SummaryGrid(state = state)
+                }
+
+                item { FitTrackSectionLabel(label = "Volumen por sesion") }
                 items(
                     items = state.sessionVolumes,
                     key = { session -> session.sessionId }
@@ -78,7 +118,7 @@ private fun StatsContent(
                     SessionVolumeCard(session = session)
                 }
 
-                item { SectionTitle("Progreso por ejercicio") }
+                item { FitTrackSectionLabel(label = "Progreso por ejercicio") }
                 items(
                     items = state.exerciseProgress,
                     key = { progress -> progress.exerciseKey }
@@ -86,7 +126,7 @@ private fun StatsContent(
                     ExerciseProgressCard(progress = progress)
                 }
 
-                item { SectionTitle("Mejores marcas") }
+                item { FitTrackSectionLabel(label = "Mejores marcas") }
                 items(
                     items = state.exerciseRecords,
                     key = { records -> records.exerciseKey }
@@ -99,126 +139,71 @@ private fun StatsContent(
 }
 
 @Composable
-private fun StatsHeader() {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = "Datos",
-            style = MaterialTheme.typography.headlineMedium
-        )
-        Text(
-            text = "Estadisticas desde sesiones finalizadas",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun LoadingState(text: String) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+private fun SummaryGrid(state: StatsUiState) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        FitTrackCard(modifier = Modifier.weight(1f)) {
+            FitTrackMetric(
+                value = state.sessionVolumes.size.toString(),
+                label = "sesiones",
+                accent = FitTrackMetricAccent.Primary,
+                compact = true
+            )
+        }
+        FitTrackCard(modifier = Modifier.weight(1f)) {
+            FitTrackMetric(
+                value = state.exerciseProgress.size.toString(),
+                label = "ejercicios",
+                compact = true
+            )
+        }
+        FitTrackCard(modifier = Modifier.weight(1f)) {
+            FitTrackMetric(
+                value = state.exerciseRecords.size.toString(),
+                label = "records",
+                accent = FitTrackMetricAccent.Warm,
+                compact = true
             )
         }
     }
-}
-
-@Composable
-private fun ErrorState(message: String) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "No se pudieron cargar los datos",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.error
-            )
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun EmptyStatsState() {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "Sin estadisticas",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = "Finaliza entrenamientos para calcular volumen, progreso y marcas.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "Solo cuentan sesiones finalizadas; una sesion abierta no aparece aqui.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleLarge,
-        modifier = Modifier.padding(top = 8.dp)
-    )
 }
 
 @Composable
 private fun SessionVolumeCard(session: SessionVolumeUiState) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = session.routineName,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = session.dayName,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
                 Text(
-                    text = "${session.totalVolumeKg.toDisplayText()} kg",
-                    style = MaterialTheme.typography.titleMedium
+                    text = session.routineName,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = session.dayName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = formatDate(session.finishedAt),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                text = formatDate(session.finishedAt),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            FitTrackMetric(
+                value = session.totalVolumeKg.toDisplayText(),
+                unit = "kg",
+                label = "volumen",
+                accent = FitTrackMetricAccent.Primary,
+                compact = true
             )
         }
     }
@@ -226,57 +211,92 @@ private fun SessionVolumeCard(session: SessionVolumeUiState) {
 
 @Composable
 private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    val latest = progress.entries.lastOrNull()
+    val maxWeight = progress.entries.maxOfOrNull { it.maxWeightKg } ?: 0.0
+
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = progress.exerciseName,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            progress.entries.forEach { entry ->
-                ProgressEntryRow(entry = entry)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = progress.exerciseName,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (latest != null) {
+                    Text(
+                        text = "Ultima sesion: ${formatDate(latest.finishedAt)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (latest != null) {
+                FitTrackBadge(
+                    label = "1RM ${latest.estimatedOneRepMaxKg.toDisplayText()}",
+                    tone = FitTrackBadgeTone.Primary
+                )
             }
         }
-    }
-}
 
-@Composable
-private fun ProgressEntryRow(entry: ExerciseProgressEntryUiState) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            text = formatDate(entry.finishedAt),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = "Volumen ${entry.volumeKg.toDisplayText()} kg - max ${entry.maxWeightKg.toDisplayText()} kg - reps ${entry.totalReps} - 1RM ${entry.estimatedOneRepMaxKg.toDisplayText()} kg",
-            style = MaterialTheme.typography.bodyMedium
-        )
+        if (latest != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                FitTrackMetric(
+                    value = latest.maxWeightKg.toDisplayText(),
+                    unit = "kg",
+                    label = "peso max",
+                    accent = FitTrackMetricAccent.Primary,
+                    compact = true
+                )
+                FitTrackMetric(
+                    value = latest.totalReps.toString(),
+                    label = "reps",
+                    compact = true
+                )
+            }
+            FitTrackProgressBar(
+                progress = if (maxWeight == 0.0) 0f else (latest.maxWeightKg / maxWeight).toFloat()
+            )
+            Text(
+                text = "Volumen ${latest.volumeKg.toDisplayText()} kg · mejor peso registrado ${maxWeight.toDisplayText()} kg",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
 @Composable
 private fun ExerciseRecordsCard(records: ExerciseRecordsUiState) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            FitTrackBadge(
+                label = "PR",
+                tone = FitTrackBadgeTone.Warm
+            )
             Text(
                 text = records.exerciseName,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            RecordRow("Peso max", records.maxWeight?.let { "${it.weightKg.toDisplayText()} kg x ${it.reps}" })
-            RecordRow("Reps max", records.maxReps?.let { "${it.reps} reps con ${it.weightKg.toDisplayText()} kg" })
-            RecordRow("Volumen set", records.bestSetVolume?.let { "${it.setVolumeKg.toDisplayText()} kg" })
-            RecordRow("1RM estimado", records.bestEstimatedOneRepMax?.let { "${it.estimatedOneRepMaxKg.toDisplayText()} kg" })
         }
+
+        RecordRow("Peso max", records.maxWeight?.let { "${it.weightKg.toDisplayText()} kg x ${it.reps}" })
+        RecordRow("Reps max", records.maxReps?.let { "${it.reps} reps con ${it.weightKg.toDisplayText()} kg" })
+        RecordRow("Volumen set", records.bestSetVolume?.let { "${it.setVolumeKg.toDisplayText()} kg" })
+        RecordRow("1RM estimado", records.bestEstimatedOneRepMax?.let { "${it.estimatedOneRepMaxKg.toDisplayText()} kg" })
     }
 }
 
@@ -286,9 +306,11 @@ private fun RecordRow(
     value: String?
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.accentSoft, MaterialTheme.shapes.large)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
             text = label,
@@ -297,7 +319,8 @@ private fun RecordRow(
         )
         Text(
             text = value ?: "-",
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.accentWarm
         )
     }
 }

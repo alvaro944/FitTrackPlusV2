@@ -4,8 +4,10 @@ FitTrackPlus es una aplicacion Android nativa para crear rutinas de gimnasio, re
 
 ## Estado Actual
 
-Fase actual: `phase-5-ux-polish` completada tecnicamente.
-Siguiente fase: `phase-6-ui-visual-front`.
+Fase actual: `phase-6-ui-visual-front` completada tecnicamente.
+Validacion manual pendiente: prueba en movil cuando sea posible.
+Siguiente trabajo inmediato: definicion de branding en `docs/branding/`.
+Siguiente fase funcional: `phase-7-sync-futura`.
 
 La app esta arrancando una base nueva en Jetpack Compose. La v2 se compila desde `app/src/main/kotlin`.
 
@@ -72,7 +74,7 @@ Cuando existan pruebas instrumentadas:
 4. Fase 3 - Historial: listar sesiones y mostrar detalle historico. Completada tecnicamente.
 5. Fase 4 - Estadisticas MVP: progreso por ejercicio, volumen y mejores marcas. Completada tecnicamente.
 6. Fase 5 - Pulido UX funcional: estados, accesibilidad, errores y recorrido de usuario nuevo. Completada tecnicamente.
-7. Fase 6 - UI visual / Front con herramienta: definir y aplicar diseno visual a Compose sin cambiar reglas de negocio.
+7. Fase 6 - UI visual / Front con herramienta: sistema visual, navegacion y pantallas Compose redisenadas sin cambiar reglas de negocio. Completada tecnicamente.
 8. Fase 7 - Sync futura: evaluar Firebase/Auth/Firestore o alternativa cuando el nucleo local y visual este estable.
 
 ## Metodologia

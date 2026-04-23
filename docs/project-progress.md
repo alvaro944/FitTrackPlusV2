@@ -4,7 +4,7 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 
 ## Estado Actual
 
-- Rama actual: `codex/phase-5-ux-polish`.
+- Rama actual: `codex/phase-6-ui-visual-front`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
 - Commit de cierre de Fase 1: `9df5a44 Complete phase 1 routines`.
 - Commit de cierre de Fase 2: `7cf2c02 Complete phase 2 workout logging`.
@@ -13,8 +13,10 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 - Commit de cierre de Fase 5: `Complete phase 5 UX polish`.
 - No hay remoto configurado.
 - No se ha subido nada a la nube.
-- Fase 5 completada tecnicamente.
-- Siguiente fase: `phase-6-ui-visual-front`.
+- Fase 6 cerrada tecnicamente.
+- Validacion manual de Fase 6 pendiente en movil.
+- Siguiente trabajo inmediato: branding en `docs/branding/`.
+- Siguiente fase funcional: `phase-7-sync-futura`.
 
 ## Hecho Hasta Ahora
 
@@ -144,6 +146,28 @@ Implementado:
 - Fila de historial marcada como accion clicable con etiqueta semantica.
 - Roadmap actualizado para insertar Fase 6 visual antes de Firebase/sync.
 
+### Fase 6 - UI visual / Front con herramienta
+
+Implementado:
+
+- Rama local `codex/phase-6-ui-visual-front`.
+- Diseno de referencia cargado desde la carpeta visual de `docs/`.
+- Tema visual renovado en Compose con nueva paleta, tipografia, shapes y tokens extra para superficies y acentos.
+- Sistema visual compartido en `core/design` para cards, metricas, badges, headers, empty states, loading y barras de progreso.
+- Bottom navigation redisenada con seleccion mas clara y mejor jerarquia visual.
+- Inicio convertido de placeholder a dashboard de entrada con accesos rapidos y recorrido guiado.
+- Rutinas redisenada con banner de rutina activa, cards mas limpias, FAB y editor visualmente alineado.
+- Entrenar redisenada para preview, sesion activa, estados vacios y bloques de series con mejor foco visual.
+- Historial redisenado para listado y detalle con mejor legibilidad y estructura.
+- Datos redisenada con overview, bloques resumen, progreso y records usando el mismo lenguaje visual.
+- Navegacion rapida anadida desde Inicio a las tabs principales y desde Entrenar vacio a Rutinas.
+- Iteracion posterior de Fase 6 aplicada tras revisar `docs/mejoras-claude.md`:
+  - Inicio deja de mostrar metricas engañosas y reorienta el CTA principal a preparar rutina.
+  - Rutinas reduce ruido repetido sobre snapshots y centraliza ese contexto en un solo bloque.
+  - Entrenar mejora el feedback visual por serie y garantiza mejor tamano tactil en inputs.
+  - Se anaden tokens iniciales de espaciado para empezar a sacar `dp` hardcodeados del sistema visual.
+  - `docs/work-methodology/` refleja mejor la coordinacion multiagente con `Codex` como ejecutor principal.
+
 ## Verificacion Realizada
 
 Comandos ejecutados:
@@ -162,11 +186,12 @@ Pendiente:
 
 - Prueba manual en emulador/dispositivo: `adb` no esta disponible en PATH.
 - Flujo manual pendiente:
-  - abrir app como usuario nuevo y revisar estados de Inicio, Rutinas, Entrenar, Historial y Datos
+  - abrir app y revisar shell, tema, navegacion inferior y jerarquia visual de Inicio, Rutinas, Entrenar, Historial y Datos
   - crear/seleccionar rutina activa
   - confirmar que archivar rutina pide confirmacion
   - iniciar entrenamiento y confirmar que finalizar pide confirmacion
   - revisar que Historial y Datos siguen usando sesiones finalizadas
+  - confirmar que editar rutina no altera snapshots historicos previos
 
 ## Decisiones Importantes
 
@@ -181,15 +206,16 @@ Pendiente:
 - Las mejores marcas incluyen maximo peso, maximo reps, volumen de set y 1RM estimado.
 - El seed demo se ejecuta solo si la app es debuggable y la base esta vacia.
 - El pulido UX de Fase 5 no cambia reglas de negocio ni schema local.
-- La Fase 6 se reserva para UI visual / Front con herramienta externa antes de sync.
+- La Fase 6 usa una referencia externa de diseno pero aterriza en componentes Compose reutilizables.
+- El redisenio visual de Fase 6 no cambia ViewModels, repositorios, Room ni DataStore.
+- Inicio gana navegacion util hacia tabs, pero sin crear nuevas reglas de negocio.
 - Firebase sigue fuera del MVP.
 - Al cerrar cada fase se actualiza tambien `docs/work-methodology/` con aprendizajes reutilizables.
 
 ## Siguiente Paso
 
-Empezar Fase 6:
+Cerrar validacion manual de Fase 6 y abrir branding:
 
-1. Definir diseno visual con herramienta externa.
-2. Aplicar el diseno a Compose.
-3. Revisar tema, navegacion, jerarquia visual, espaciados y componentes.
-4. Mantener reglas de negocio, snapshots historicos y Firebase fuera de la fase visual.
+1. Confirmar manualmente la fase visual en movil o dispositivo cuando sea posible.
+2. Definir base de marca en `docs/branding/` antes de iterar logo o icono.
+3. Mantener Fase 7 fuera hasta cerrar bien identidad visual y validacion manual.
