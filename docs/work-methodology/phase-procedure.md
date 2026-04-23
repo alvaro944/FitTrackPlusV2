@@ -37,7 +37,10 @@ git switch -c codex/phase-nombre
    - solo debug
    - solo base vacia
    - sin Firebase ni sync
-7. Verificar pronto con compilacion o tests cuando aparezcan cambios relevantes.
+7. En fases de UX funcional, separar pulido minimo de redisenio visual:
+   - mejorar textos, estados, confirmaciones y accesibilidad basica
+   - no rehacer tema, navegacion ni componentes si pertenecen a una fase visual
+8. Verificar pronto con compilacion o tests cuando aparezcan cambios relevantes.
 
 ## 3. Verificar
 

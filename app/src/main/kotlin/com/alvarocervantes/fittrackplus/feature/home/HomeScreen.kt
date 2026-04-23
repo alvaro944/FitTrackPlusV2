@@ -7,12 +7,12 @@ import com.alvarocervantes.fittrackplus.core.design.PlaceholderScaffold
 fun HomeScreen() {
     PlaceholderScaffold(
         title = "FitTrackPlus",
-        summary = "Base v2 lista para crecer por fases.",
+        summary = "Gestiona rutinas, registra entrenamientos y consulta tu historial local.",
         items = listOf(
-            "Arquitectura Compose local-first",
-            "Room preparado para rutinas e historico",
-            "DataStore preparado para preferencias",
-            "Firebase reservado para una fase futura"
+            "1. Crea una rutina en Rutinas y marcala como activa.",
+            "2. Entra en Entrenar para iniciar el siguiente dia preparado.",
+            "3. Finaliza sesiones para verlas en Historial y Datos.",
+            "Los datos del MVP siguen siendo locales. Sync queda para una fase futura."
         )
     )
 }

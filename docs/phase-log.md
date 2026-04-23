@@ -366,3 +366,71 @@ Pendiente:
   - Revisar progreso por ejercicio.
   - Revisar mejores marcas.
   - Confirmar que una sesion abierta no aparece en estadisticas.
+
+## Fase 5 - Pulido UX funcional
+
+Estado:
+
+- Completada tecnicamente.
+
+Rama:
+
+- `codex/phase-5-ux-polish`
+
+Commit:
+
+- `Complete phase 5 UX polish`
+
+Objetivo:
+
+- Mejorar claridad, estados, confirmaciones y accesibilidad basica sin redisenar la app.
+
+Fuera de alcance:
+
+- Firebase.
+- Sync.
+- Redisenio visual avanzado.
+- Animaciones, graficos o cambios de reglas de negocio.
+
+Cambios principales:
+
+- Se agregaron estados de carga con texto contextual en Rutinas, Entrenar, Historial y Datos.
+- Se mejoraron estados vacios para orientar a un usuario nuevo.
+- Se agrego confirmacion antes de archivar una rutina.
+- Se agrego confirmacion antes de finalizar un entrenamiento.
+- Se ajusto Inicio para explicar el recorrido minimo de uso.
+- Se mejoraron `contentDescription` en acciones de Rutinas, Entrenar e Historial.
+- Se marco cada sesion de Historial como accion clicable con etiqueta semantica.
+- Se actualizo el roadmap para insertar Fase 6 visual antes de sync.
+
+Problemas encontrados:
+
+- `adb` sigue sin estar disponible en PATH, asi que la prueba manual queda pendiente.
+
+Decisiones:
+
+- Las confirmaciones viven en estado local de Compose porque no cambian reglas de negocio.
+- No se agregaron dependencias nuevas.
+- No se modifico Room, DataStore, repositorios ni casos de uso.
+- La fase visual queda separada como Fase 6 para no mezclar pulido funcional con redisenio.
+- Firebase/sync pasa a Fase 7.
+
+Verificacion:
+
+```powershell
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Tests pasan.
+- Build completo pasa.
+
+Pendiente:
+
+- Prueba manual en emulador/dispositivo cuando `adb` este disponible:
+  - Revisar estados de usuario nuevo.
+  - Confirmar archivado de rutina.
+  - Confirmar finalizacion de entrenamiento.
+  - Revisar Historial y Datos con sesiones finalizadas.

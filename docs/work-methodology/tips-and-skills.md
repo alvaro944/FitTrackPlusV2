@@ -54,6 +54,15 @@ Este documento guarda aprendizajes concretos, comandos utiles y habilidades prac
 - Probar reglas numericas con repositorios fake.
 - Cubrir casos de peso cero y sesiones abiertas en tests.
 
+### Fase 5 - Pulido UX funcional
+
+- Mejorar estados vacios sin convertir la fase en redisenio visual.
+- Agregar confirmaciones locales en Compose para acciones de riesgo bajo/medio.
+- Usar `AlertDialog` para acciones que cambian datos, como archivar o finalizar.
+- Dar texto contextual a estados de carga para que no parezcan pantallas bloqueadas.
+- Revisar `contentDescription` de iconos accionables y dejar `null` en iconos decorativos.
+- Usar etiquetas semanticas en filas clicables cuando una card completa abre detalle.
+
 ## Tips Tecnicos
 
 ### Gradle En Windows
@@ -130,6 +139,22 @@ Patron usado:
 - Caso de uso calcula agregados y orden.
 - ViewModel transforma a `UiState`.
 - Compose solo muestra valores.
+
+### Pulido UX Sin Redisenio
+
+En una fase de UX funcional conviene priorizar:
+
+- estados claros: cargando, vacio, error y guardando
+- confirmaciones en acciones que cambian o cierran informacion
+- textos orientados al siguiente paso del usuario
+- accesibilidad basica en acciones tocables
+
+Conviene evitar:
+
+- cambiar tema global
+- rehacer layouts completos
+- agregar animaciones o graficos
+- tocar reglas de negocio para justificar un ajuste visual
 
 ### Git Local
 

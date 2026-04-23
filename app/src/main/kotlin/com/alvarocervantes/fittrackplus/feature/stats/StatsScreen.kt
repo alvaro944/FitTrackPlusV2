@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
@@ -53,11 +54,15 @@ private fun StatsContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item { StatsHeader(message = state.message) }
+        item { StatsHeader() }
 
         when {
             state.isLoading -> {
-                item { CircularProgressIndicator() }
+                item { LoadingState(text = "Calculando datos desde sesiones finalizadas...") }
+            }
+
+            state.message != null -> {
+                item { ErrorState(message = state.message) }
             }
 
             state.isEmpty -> {
@@ -94,7 +99,7 @@ private fun StatsContent(
 }
 
 @Composable
-private fun StatsHeader(message: String?) {
+private fun StatsHeader() {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = "Datos",
@@ -105,11 +110,43 @@ private fun StatsHeader(message: String?) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        if (message != null) {
+    }
+}
+
+@Composable
+private fun LoadingState(text: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun ErrorState(message: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "No se pudieron cargar los datos",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.error
+            )
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -129,6 +166,11 @@ private fun EmptyStatsState() {
             Text(
                 text = "Finaliza entrenamientos para calcular volumen, progreso y marcas.",
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Solo cuentan sesiones finalizadas; una sesion abierta no aparece aqui.",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

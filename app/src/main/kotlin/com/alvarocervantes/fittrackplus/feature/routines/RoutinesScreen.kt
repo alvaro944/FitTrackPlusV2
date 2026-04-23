@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -37,10 +38,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -55,12 +59,40 @@ fun RoutinesScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var routinePendingArchive by remember { mutableStateOf<RoutineListItemUiState?>(null) }
 
     state.message?.let { message ->
         LaunchedEffect(message) {
             snackbarHostState.showSnackbar(message)
             viewModel.clearMessage()
         }
+    }
+
+    routinePendingArchive?.let { routine ->
+        AlertDialog(
+            onDismissRequest = { routinePendingArchive = null },
+            title = { Text("Archivar rutina") },
+            text = {
+                Text(
+                    text = "La rutina \"${routine.name}\" dejara de aparecer en la lista principal. Los entrenamientos antiguos no cambiaran."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        routinePendingArchive = null
+                        viewModel.archiveRoutine(routine.id)
+                    }
+                ) {
+                    Text("Archivar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { routinePendingArchive = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -73,7 +105,7 @@ fun RoutinesScreen(
                 contentPadding = padding,
                 onCreateRoutine = viewModel::startCreateRoutine,
                 onEditRoutine = viewModel::startEditRoutine,
-                onArchiveRoutine = viewModel::archiveRoutine,
+                onArchiveRoutine = { routine -> routinePendingArchive = routine },
                 onSetActiveRoutine = viewModel::setActiveRoutine
             )
         } else {
@@ -104,7 +136,7 @@ private fun RoutineListContent(
     contentPadding: PaddingValues,
     onCreateRoutine: () -> Unit,
     onEditRoutine: (Long) -> Unit,
-    onArchiveRoutine: (Long) -> Unit,
+    onArchiveRoutine: (RoutineListItemUiState) -> Unit,
     onSetActiveRoutine: (Long) -> Unit
 ) {
     LazyColumn(
@@ -147,7 +179,7 @@ private fun RoutineListContent(
 
         if (state.isLoading) {
             item {
-                CircularProgressIndicator()
+                LoadingState(text = "Cargando rutinas guardadas...")
             }
         } else if (state.routines.isEmpty()) {
             item {
@@ -178,9 +210,14 @@ private fun EmptyRoutinesState(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+    Text(
+        text = "Aun no hay rutinas",
+        style = MaterialTheme.typography.titleMedium
+    )
             Text(
-                text = "Aun no hay rutinas",
-                style = MaterialTheme.typography.titleMedium
+                text = "Crea una rutina con dias y ejercicios. Despues podras marcarla como activa para entrenar.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Button(onClick = onCreateRoutine) {
                 Icon(
@@ -201,7 +238,7 @@ private fun EmptyRoutinesState(
 private fun RoutineListItem(
     routine: RoutineListItemUiState,
     onEditRoutine: (Long) -> Unit,
-    onArchiveRoutine: (Long) -> Unit,
+    onArchiveRoutine: (RoutineListItemUiState) -> Unit,
     onSetActiveRoutine: (Long) -> Unit
 ) {
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
@@ -256,19 +293,19 @@ private fun RoutineListItem(
                         } else {
                             Icons.Filled.Check
                         },
-                        contentDescription = "Seleccionar activa"
+                        contentDescription = "Marcar ${routine.name} como rutina activa"
                     )
                 }
                 IconButton(onClick = { onEditRoutine(routine.id) }) {
                     Icon(
                         imageVector = Icons.Filled.Edit,
-                        contentDescription = "Editar"
+                        contentDescription = "Editar ${routine.name}"
                     )
                 }
-                IconButton(onClick = { onArchiveRoutine(routine.id) }) {
+                IconButton(onClick = { onArchiveRoutine(routine) }) {
                     Icon(
                         imageVector = Icons.Filled.Archive,
-                        contentDescription = "Archivar"
+                        contentDescription = "Archivar ${routine.name}"
                     )
                 }
             }
@@ -315,7 +352,7 @@ private fun RoutineEditorContent(
                 IconButton(onClick = onClose) {
                     Icon(
                         imageVector = Icons.Filled.Close,
-                        contentDescription = "Cerrar"
+                        contentDescription = "Cerrar editor de rutina"
                     )
                 }
             }
@@ -386,7 +423,7 @@ private fun RoutineEditorContent(
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        text = "Guardar",
+                        text = if (state.isSaving) "Guardando" else "Guardar",
                         modifier = Modifier.padding(start = 8.dp)
                     )
                 }
@@ -432,7 +469,7 @@ private fun RoutineDayEditor(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Delete,
-                        contentDescription = "Eliminar dia"
+                        contentDescription = "Quitar dia ${dayIndex + 1} del borrador"
                     )
                 }
             }
@@ -503,7 +540,7 @@ private fun RoutineExerciseEditor(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Delete,
-                    contentDescription = "Eliminar ejercicio"
+                    contentDescription = "Quitar ejercicio ${exerciseIndex + 1} del borrador"
                 )
             }
         }
@@ -539,5 +576,23 @@ private fun RoutineExerciseEditor(
         )
 
         Spacer(modifier = Modifier.height(4.dp))
+    }
+}
+
+@Composable
+private fun LoadingState(text: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }

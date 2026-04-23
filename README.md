@@ -4,8 +4,8 @@ FitTrackPlus es una aplicacion Android nativa para crear rutinas de gimnasio, re
 
 ## Estado Actual
 
-Fase actual: `phase-4-statistics-mvp` completada tecnicamente.
-Siguiente fase: `phase-5-ux-polish`.
+Fase actual: `phase-5-ux-polish` completada tecnicamente.
+Siguiente fase: `phase-6-ui-visual-front`.
 
 La app esta arrancando una base nueva en Jetpack Compose. La v2 se compila desde `app/src/main/kotlin`.
 
@@ -66,13 +66,14 @@ Cuando existan pruebas instrumentadas:
 
 ## Roadmap
 
-1. Base movil seria: Compose, Hilt, Room, DataStore, Navigation y docs.
-2. Rutinas: crear, editar, archivar y seleccionar rutina activa.
-3. Registro: iniciar sesion desde rutina, registrar series y finalizar.
-4. Historial: listar sesiones y mostrar detalle historico. Completado tecnicamente.
-5. Estadisticas MVP: progreso por ejercicio, volumen y mejores marcas. Completado tecnicamente.
-6. Pulido UX: estados, accesibilidad, errores y recorrido de usuario nuevo.
-7. Sync futura: evaluar Firebase cuando el nucleo local este estable.
+1. Fase 0 - Base movil seria: Compose, Hilt, Room, DataStore, Navigation y docs. Completada tecnicamente.
+2. Fase 1 - Rutinas: crear, editar, archivar y seleccionar rutina activa. Completada tecnicamente.
+3. Fase 2 - Registro: iniciar sesion desde rutina, registrar series y finalizar. Completada tecnicamente.
+4. Fase 3 - Historial: listar sesiones y mostrar detalle historico. Completada tecnicamente.
+5. Fase 4 - Estadisticas MVP: progreso por ejercicio, volumen y mejores marcas. Completada tecnicamente.
+6. Fase 5 - Pulido UX funcional: estados, accesibilidad, errores y recorrido de usuario nuevo. Completada tecnicamente.
+7. Fase 6 - UI visual / Front con herramienta: definir y aplicar diseno visual a Compose sin cambiar reglas de negocio.
+8. Fase 7 - Sync futura: evaluar Firebase/Auth/Firestore o alternativa cuando el nucleo local y visual este estable.
 
 ## Metodologia
 

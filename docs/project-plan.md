@@ -123,7 +123,7 @@ Objetivo:
 
 ### Fase 5 - Pulido UX
 
-Estado: siguiente fase.
+Estado: completada tecnicamente.
 
 Objetivo:
 
@@ -133,12 +133,30 @@ Objetivo:
 - Accesibilidad basica.
 - Recorrido de usuario nuevo.
 
-### Fase 6 - Sync futura
+### Fase 6 - UI visual / Front con herramienta
+
+Estado: siguiente fase.
+
+Objetivo:
+
+- Definir diseno visual con una herramienta externa.
+- Aplicar el diseno a Compose.
+- Revisar tema, navegacion, jerarquia visual, espaciados y componentes.
+- Mejorar pantallas principales sin cambiar reglas de negocio.
+
+Fuera de alcance:
+
+- Firebase.
+- Sync.
+- Cambios en snapshots historicos.
+
+### Fase 7 - Sync futura
 
 Objetivo:
 
 - Evaluar Firebase/Auth/Firestore o alternativa.
 - Disenar sync offline-first antes de implementar.
+- Ejecutar solo despues de cerrar el nucleo local y la fase visual.
 
 ## Definition Of Done
 

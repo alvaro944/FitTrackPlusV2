@@ -112,3 +112,13 @@ Para marcas simples:
 - 1RM estimado = `peso * (1 + reps / 30)`
 - marcas con peso ignoran sets con peso o reps en cero
 - marca de reps puede usar peso cero para ejercicios de peso corporal registrados asi
+
+## UX Funcional En Compose
+
+En Fase 5 las confirmaciones de acciones simples se mantuvieron como estado local de Compose porque no cambian reglas de negocio:
+
+- mostrar dialogo antes de archivar una rutina
+- mostrar dialogo antes de finalizar un entrenamiento
+- ejecutar el evento del ViewModel solo al confirmar
+
+Este patron mantiene el ViewModel centrado en estado de datos y eventos de dominio. Si una confirmacion empieza a depender de reglas complejas, permisos, validaciones persistentes o recuperacion de errores, entonces debe moverse al `UiState` o a un flujo mas explicito.

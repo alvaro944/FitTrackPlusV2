@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -29,10 +30,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,12 +54,40 @@ fun WorkoutScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showFinishConfirmation by remember { mutableStateOf(false) }
 
     state.message?.let { message ->
         LaunchedEffect(message) {
             snackbarHostState.showSnackbar(message)
             viewModel.clearMessage()
         }
+    }
+
+    if (showFinishConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showFinishConfirmation = false },
+            title = { Text("Finalizar entrenamiento") },
+            text = {
+                Text(
+                    text = "Se guardara la sesion en el historial con las series registradas hasta ahora."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showFinishConfirmation = false
+                        viewModel.finishWorkout()
+                    }
+                ) {
+                    Text("Finalizar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFinishConfirmation = false }) {
+                    Text("Seguir entrenando")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -66,7 +98,7 @@ fun WorkoutScreen(
             contentPadding = padding,
             onRefresh = viewModel::refresh,
             onStartWorkout = viewModel::startWorkout,
-            onFinishWorkout = viewModel::finishWorkout,
+            onFinishWorkout = { showFinishConfirmation = true },
             onSetWeightChange = viewModel::updateSetWeight,
             onSetRepsChange = viewModel::updateSetReps
         )
@@ -100,7 +132,7 @@ private fun WorkoutContent(
         when {
             state.isLoading -> {
                 item {
-                    CircularProgressIndicator()
+                    LoadingState(text = "Preparando entrenamiento...")
                 }
             }
 
@@ -177,7 +209,7 @@ private fun WorkoutHeader(
         IconButton(onClick = onRefresh) {
             Icon(
                 imageVector = Icons.Filled.Refresh,
-                contentDescription = "Actualizar"
+                contentDescription = "Actualizar entrenamiento"
             )
         }
     }
@@ -197,6 +229,11 @@ private fun NoActiveRoutineState() {
             Text(
                 text = "Selecciona una rutina activa en Rutinas para iniciar un entrenamiento.",
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Primero crea o elige una rutina y marcala como activa.",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -261,7 +298,7 @@ private fun WorkoutPreviewCard(
                     modifier = Modifier.size(18.dp)
                 )
                 Text(
-                    text = "Iniciar entrenamiento",
+                    text = if (isStarting) "Iniciando entrenamiento" else "Iniciar entrenamiento",
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }
@@ -325,7 +362,7 @@ private fun ActiveSessionSummary(
                     modifier = Modifier.size(18.dp)
                 )
                 Text(
-                    text = "Finalizar entrenamiento",
+                    text = if (isFinishing) "Finalizando entrenamiento" else "Finalizar entrenamiento",
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }
@@ -417,6 +454,11 @@ private fun EmptyWorkoutState(
                 text = "No se encontro el siguiente entrenamiento",
                 style = MaterialTheme.typography.titleMedium
             )
+            Text(
+                text = "Puede que la rutina activa no tenga dias o ejercicios disponibles.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Button(onClick = onRefresh) {
                 Icon(
                     imageVector = Icons.Filled.Refresh,
@@ -434,4 +476,22 @@ private fun EmptyWorkoutState(
 
 private fun formatStartedAt(timestamp: Long): String {
     return SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()).format(Date(timestamp))
+}
+
+@Composable
+private fun LoadingState(text: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }

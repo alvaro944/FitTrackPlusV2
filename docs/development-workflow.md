@@ -32,7 +32,7 @@ codex/phase-2-workout-logging
 Estado actual de Git:
 
 - Repo local inicializado.
-- Rama actual: `codex/phase-3-history`.
+- Rama actual: `codex/phase-5-ux-polish`.
 - No hay remoto configurado.
 - No se ha subido nada a la nube.
 
@@ -97,6 +97,14 @@ Fase 4:
 - Confirmar que aparece volumen por sesion desde sesiones finalizadas.
 - Confirmar que progreso y marcas se calculan desde snapshots historicos.
 - Confirmar que una sesion abierta no aparece en estadisticas.
+
+Fase 5:
+
+- Abrir app como usuario nuevo y revisar estados de Inicio, Rutinas, Entrenar, Historial y Datos.
+- Confirmar que archivar una rutina pide confirmacion.
+- Confirmar que finalizar un entrenamiento pide confirmacion.
+- Confirmar que los textos orientan al siguiente paso sin introducir redisenio visual.
+- Confirmar que Historial y Datos siguen usando solo sesiones finalizadas.
 
 ## Cierre De Fase
 

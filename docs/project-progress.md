@@ -4,16 +4,17 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 
 ## Estado Actual
 
-- Rama actual: `codex/phase-4-statistics-mvp`.
+- Rama actual: `codex/phase-5-ux-polish`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
 - Commit de cierre de Fase 1: `9df5a44 Complete phase 1 routines`.
 - Commit de cierre de Fase 2: `7cf2c02 Complete phase 2 workout logging`.
 - Commit de cierre de Fase 3: `5e84fef Complete phase 3 history`.
 - Commit de cierre de Fase 4: `Complete phase 4 statistics MVP`.
+- Commit de cierre de Fase 5: `Complete phase 5 UX polish`.
 - No hay remoto configurado.
 - No se ha subido nada a la nube.
-- Fase 4 completada tecnicamente.
-- Siguiente fase: `phase-5-ux-polish`.
+- Fase 5 completada tecnicamente.
+- Siguiente fase: `phase-6-ui-visual-front`.
 
 ## Hecho Hasta Ahora
 
@@ -125,6 +126,24 @@ Implementado:
 - Pantalla Compose minima de Datos para verificar volumen, progreso y marcas.
 - Tests unitarios de estadisticas con sesiones finalizadas, sesion abierta, snapshots, orden cronologico y series con peso cero.
 
+### Fase 5 - Pulido UX funcional
+
+Implementado:
+
+- Rama local `codex/phase-5-ux-polish`.
+- Estados de carga con texto contextual en Rutinas, Entrenar, Historial y Datos.
+- Estados vacios mas claros para usuario nuevo.
+- Confirmacion antes de archivar una rutina.
+- Confirmacion antes de finalizar un entrenamiento.
+- Textos de Inicio orientados al recorrido basico:
+  - crear rutina
+  - marcar rutina activa
+  - entrenar
+  - finalizar para alimentar Historial y Datos
+- Content descriptions mas especificos en acciones de Rutinas, Entrenar e Historial.
+- Fila de historial marcada como accion clicable con etiqueta semantica.
+- Roadmap actualizado para insertar Fase 6 visual antes de Firebase/sync.
+
 ## Verificacion Realizada
 
 Comandos ejecutados:
@@ -143,11 +162,11 @@ Pendiente:
 
 - Prueba manual en emulador/dispositivo: `adb` no esta disponible en PATH.
 - Flujo manual pendiente:
-  - abrir Datos
-  - ver volumen por sesion
-  - revisar progreso por ejercicio
-  - revisar mejores marcas
-  - confirmar que la pantalla usa solo sesiones finalizadas
+  - abrir app como usuario nuevo y revisar estados de Inicio, Rutinas, Entrenar, Historial y Datos
+  - crear/seleccionar rutina activa
+  - confirmar que archivar rutina pide confirmacion
+  - iniciar entrenamiento y confirmar que finalizar pide confirmacion
+  - revisar que Historial y Datos siguen usando sesiones finalizadas
 
 ## Decisiones Importantes
 
@@ -161,14 +180,16 @@ Pendiente:
 - El progreso por ejercicio se agrupa por nombre snapshot normalizado.
 - Las mejores marcas incluyen maximo peso, maximo reps, volumen de set y 1RM estimado.
 - El seed demo se ejecuta solo si la app es debuggable y la base esta vacia.
+- El pulido UX de Fase 5 no cambia reglas de negocio ni schema local.
+- La Fase 6 se reserva para UI visual / Front con herramienta externa antes de sync.
 - Firebase sigue fuera del MVP.
 - Al cerrar cada fase se actualiza tambien `docs/work-methodology/` con aprendizajes reutilizables.
 
 ## Siguiente Paso
 
-Empezar Fase 5:
+Empezar Fase 6:
 
-1. Pulir estados vacios, loading y errores.
-2. Mejorar confirmaciones y accesibilidad basica.
-3. Revisar recorrido de usuario nuevo.
-4. Mantener Firebase fuera hasta cerrar el nucleo local.
+1. Definir diseno visual con herramienta externa.
+2. Aplicar el diseno a Compose.
+3. Revisar tema, navegacion, jerarquia visual, espaciados y componentes.
+4. Mantener reglas de negocio, snapshots historicos y Firebase fuera de la fase visual.

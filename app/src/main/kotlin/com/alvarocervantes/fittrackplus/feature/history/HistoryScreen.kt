@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -29,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -86,7 +88,7 @@ private fun HistoryContent(
 
         when {
             state.isLoading -> {
-                item { CircularProgressIndicator() }
+                item { LoadingState(text = "Cargando sesiones finalizadas...") }
             }
 
             state.sessions.isEmpty() -> {
@@ -106,7 +108,7 @@ private fun HistoryContent(
             }
 
             state.isDetailLoading -> {
-                item { CircularProgressIndicator() }
+                item { LoadingState(text = "Cargando detalle historico...") }
             }
 
             state.selectedDetail != null -> {
@@ -149,7 +151,7 @@ private fun HistoryHeader(
             IconButton(onClick = onBackToList) {
                 Icon(
                     imageVector = Icons.Filled.ArrowBack,
-                    contentDescription = "Volver al listado"
+                    contentDescription = "Volver al listado de historial"
                 )
             }
         }
@@ -172,6 +174,11 @@ private fun EmptyHistoryState() {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Text(
+                text = "El historial usa snapshots, asi que los cambios futuros en rutinas no modificaran estas sesiones.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -184,7 +191,11 @@ private fun HistorySessionCard(
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(
+                onClickLabel = "Ver detalle de la sesion",
+                role = Role.Button,
+                onClick = onClick
+            )
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -306,6 +317,24 @@ private fun HistorySetRow(set: HistorySetUiState) {
 
 private fun formatDate(timestamp: Long): String {
     return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(timestamp))
+}
+
+@Composable
+private fun LoadingState(text: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
 private fun Double.toDisplayText(): String {
