@@ -23,9 +23,11 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -107,7 +109,7 @@ fun RoutinesScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            if (state.editor == null) {
+            if (state.editor == null && !state.showArchived) {
                 FloatingActionButton(
                     onClick = viewModel::startCreateRoutine
                 ) {
@@ -127,14 +129,30 @@ fun RoutinesScreen(
                 onCreateRoutine = viewModel::startCreateRoutine,
                 onEditRoutine = viewModel::startEditRoutine,
                 onArchiveRoutine = { routine -> routinePendingArchive = routine },
-                onSetActiveRoutine = viewModel::setActiveRoutine
+                onSetActiveRoutine = viewModel::setActiveRoutine,
+                onSetShowArchived = viewModel::setShowArchived,
+                onRestoreRoutine = viewModel::restoreRoutine,
+                onDismissSnapshotInfo = viewModel::dismissSnapshotInfo
             )
         } else {
+            if (editor.showCloseConfirmation) {
+                AlertDialog(
+                    onDismissRequest = viewModel::dismissCloseConfirmation,
+                    title = { Text("Descartar cambios") },
+                    text = { Text("Los cambios sin guardar se perderan. Quieres cerrar el editor?") },
+                    confirmButton = {
+                        TextButton(onClick = viewModel::closeEditor) { Text("Descartar") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = viewModel::dismissCloseConfirmation) { Text("Seguir editando") }
+                    }
+                )
+            }
             RoutineEditorContent(
                 state = state,
                 editor = editor,
                 contentPadding = padding,
-                onClose = viewModel::closeEditor,
+                onClose = viewModel::requestCloseEditor,
                 onSave = viewModel::saveEditor,
                 onRoutineNameChange = viewModel::updateRoutineName,
                 onAddDay = viewModel::addDay,
@@ -158,7 +176,10 @@ private fun RoutineListContent(
     onCreateRoutine: () -> Unit,
     onEditRoutine: (Long) -> Unit,
     onArchiveRoutine: (RoutineListItemUiState) -> Unit,
-    onSetActiveRoutine: (Long) -> Unit
+    onSetActiveRoutine: (Long) -> Unit,
+    onSetShowArchived: (Boolean) -> Unit,
+    onRestoreRoutine: (Long) -> Unit,
+    onDismissSnapshotInfo: () -> Unit
 ) {
     val activeRoutine = state.routines.firstOrNull { it.isActive }
 
@@ -177,100 +198,164 @@ private fun RoutineListContent(
         item {
             FitTrackScreenHeader(
                 title = "Rutinas",
-                subtitle = "${state.routines.size} guardadas"
+                subtitle = if (state.showArchived) {
+                    "${state.archivedRoutines.size} archivadas"
+                } else {
+                    "${state.routines.size} guardadas"
+                }
             )
         }
 
-        if (activeRoutine != null) {
-            item {
-                FitTrackCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.primarySoft
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
-                        verticalAlignment = Alignment.CenterVertically
+        item {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+            ) {
+                FilterChip(
+                    selected = !state.showArchived,
+                    onClick = { onSetShowArchived(false) },
+                    label = { Text("Activas") }
+                )
+                FilterChip(
+                    selected = state.showArchived,
+                    onClick = { onSetShowArchived(true) },
+                    label = { Text("Archivadas") }
+                )
+            }
+        }
+
+        if (!state.showArchived) {
+            if (activeRoutine != null) {
+                item {
+                    FitTrackCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = MaterialTheme.colorScheme.primarySoft
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Filled.Check,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-                        ) {
-                            Text(
-                                text = "Rutina activa",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = activeRoutine.name,
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                            Text(
-                                text = "Entrenar usara esta rutina para preparar la siguiente sesion.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+                            ) {
+                                Text(
+                                    text = "Rutina activa",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = activeRoutine.name,
+                                    style = MaterialTheme.typography.titleLarge
+                                )
+                                Text(
+                                    text = "Entrenar usara esta rutina para preparar la siguiente sesion.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
 
-        item {
-            FitTrackSectionLabel(label = "Biblioteca")
-        }
-
-        if (state.routines.isNotEmpty()) {
             item {
-                FitTrackCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.surfaceAlt
-                ) {
-                    Text(
-                        text = "Editar o archivar una rutina no modifica sesiones antiguas: el historial sigue leyendo snapshots.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                FitTrackSectionLabel(label = "Biblioteca")
+            }
+
+            if (state.routines.isNotEmpty() && !state.hasSeenSnapshotInfo) {
+                item {
+                    FitTrackCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = MaterialTheme.colorScheme.surfaceAlt
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Text(
+                                text = "Editar o archivar una rutina no modifica sesiones antiguas: el historial sigue leyendo snapshots.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = onDismissSnapshotInfo,
+                                modifier = Modifier.minimumInteractiveComponentSize()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Close,
+                                    contentDescription = "Cerrar aviso de snapshots",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (state.isLoading) {
+                item { FitTrackLoadingCard(text = "Cargando rutinas guardadas...") }
+            } else if (state.routines.isEmpty()) {
+                item {
+                    FitTrackEmptyState(
+                        icon = Icons.AutoMirrored.Filled.List,
+                        title = "Aun no hay rutinas",
+                        message = "Crea una rutina con dias y ejercicios. Despues podras marcarla como activa para entrenar.",
+                        supporting = "La fase visual cambia el aspecto, no las reglas del flujo."
+                    ) {
+                        Button(onClick = onCreateRoutine) {
+                            Text("Crear rutina")
+                        }
+                    }
+                }
+            } else {
+                items(
+                    items = state.routines,
+                    key = { routine -> routine.id }
+                ) { routine ->
+                    RoutineListItem(
+                        routine = routine,
+                        onEditRoutine = onEditRoutine,
+                        onArchiveRoutine = onArchiveRoutine,
+                        onSetActiveRoutine = onSetActiveRoutine
                     )
                 }
             }
-        }
-
-        if (state.isLoading) {
-            item { FitTrackLoadingCard(text = "Cargando rutinas guardadas...") }
-        } else if (state.routines.isEmpty()) {
-            item {
-                FitTrackEmptyState(
-                    icon = Icons.AutoMirrored.Filled.List,
-                    title = "Aun no hay rutinas",
-                    message = "Crea una rutina con dias y ejercicios. Despues podras marcarla como activa para entrenar.",
-                    supporting = "La fase visual cambia el aspecto, no las reglas del flujo."
-                ) {
-                    Button(onClick = onCreateRoutine) {
-                        Text("Crear rutina")
-                    }
-                }
-            }
         } else {
-            items(
-                items = state.routines,
-                key = { routine -> routine.id }
-            ) { routine ->
-                RoutineListItem(
-                    routine = routine,
-                    onEditRoutine = onEditRoutine,
-                    onArchiveRoutine = onArchiveRoutine,
-                    onSetActiveRoutine = onSetActiveRoutine
-                )
+            item {
+                FitTrackSectionLabel(label = "Archivadas")
+            }
+
+            if (state.archivedRoutines.isEmpty()) {
+                item {
+                    FitTrackEmptyState(
+                        icon = Icons.Filled.Archive,
+                        title = "Sin rutinas archivadas",
+                        message = "Las rutinas que archives apareceran aqui. Puedes restaurarlas en cualquier momento."
+                    )
+                }
+            } else {
+                items(
+                    items = state.archivedRoutines,
+                    key = { routine -> "archived_${routine.id}" }
+                ) { routine ->
+                    ArchivedRoutineListItem(
+                        routine = routine,
+                        onRestoreRoutine = onRestoreRoutine
+                    )
+                }
             }
         }
     }
@@ -369,6 +454,59 @@ private fun RoutineListItem(
                         modifier = Modifier.padding(start = FitSpacing.sm)
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ArchivedRoutineListItem(
+    routine: RoutineListItemUiState,
+    onRestoreRoutine: (Long) -> Unit
+) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = routine.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${routine.dayCount} dias · archivada",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                FitTrackBadge(
+                    label = "ARCHIVADA",
+                    tone = FitTrackBadgeTone.Neutral
+                )
+            }
+            FilledTonalButton(
+                onClick = { onRestoreRoutine(routine.id) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Unarchive,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Restaurar",
+                    modifier = Modifier.padding(start = FitSpacing.sm)
+                )
             }
         }
     }

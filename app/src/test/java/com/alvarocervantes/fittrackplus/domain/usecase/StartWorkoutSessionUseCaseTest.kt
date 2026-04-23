@@ -91,10 +91,12 @@ private class FakeRoutineRepository(
     private val routine: RoutineSnapshot?
 ) : RoutineRepository {
     override fun observeRoutines(): Flow<List<RoutineSummary>> = flowOf(emptyList())
+    override fun observeArchivedRoutines(): Flow<List<RoutineSummary>> = flowOf(emptyList())
     override suspend fun getRoutineSnapshot(routineId: Long): RoutineSnapshot? = routine
     override suspend fun createRoutine(draft: RoutineDraft): Long = error("Not used")
     override suspend fun replaceRoutine(routineId: Long, draft: RoutineDraft) = error("Not used")
     override suspend fun archiveRoutine(routineId: Long) = error("Not used")
+    override suspend fun restoreRoutine(routineId: Long) = error("Not used")
 }
 
 private class FakeWorkoutRepository(

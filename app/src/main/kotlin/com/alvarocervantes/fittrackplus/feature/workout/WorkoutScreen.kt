@@ -19,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
@@ -433,6 +435,7 @@ private fun WorkoutSetRow(
     onSetRepsChange: (Long, String) -> Unit
 ) {
     val hasInput = set.weightText.isNotBlank() || set.repsText.isNotBlank()
+    val haptic = LocalHapticFeedback.current
 
     Row(
         modifier = Modifier
@@ -474,7 +477,12 @@ private fun WorkoutSetRow(
         }
         OutlinedTextField(
             value = set.weightText,
-            onValueChange = { onSetWeightChange(set.id, it) },
+            onValueChange = { value ->
+                if (!hasInput && value.isNotBlank()) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                }
+                onSetWeightChange(set.id, value)
+            },
             label = { Text("Kg") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -484,7 +492,12 @@ private fun WorkoutSetRow(
         )
         OutlinedTextField(
             value = set.repsText,
-            onValueChange = { onSetRepsChange(set.id, it) },
+            onValueChange = { value ->
+                if (!hasInput && value.isNotBlank()) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                }
+                onSetRepsChange(set.id, value)
+            },
             label = { Text("Reps") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

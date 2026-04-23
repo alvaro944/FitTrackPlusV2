@@ -2,6 +2,7 @@ package com.alvarocervantes.fittrackplus.data.preferences
 
 import android.content.Context
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -28,6 +29,10 @@ class UserPreferencesRepository @Inject constructor(
         preferences[Keys.WEIGHT_UNIT] ?: "kg"
     }
 
+    val hasSeenSnapshotInfo: Flow<Boolean> = context.userPreferencesDataStore.data.map { preferences ->
+        preferences[Keys.HAS_SEEN_SNAPSHOT_INFO] ?: false
+    }
+
     suspend fun setActiveRoutineId(routineId: Long?) {
         context.userPreferencesDataStore.edit { preferences ->
             if (routineId == null) {
@@ -44,8 +49,15 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    suspend fun dismissSnapshotInfo() {
+        context.userPreferencesDataStore.edit { preferences ->
+            preferences[Keys.HAS_SEEN_SNAPSHOT_INFO] = true
+        }
+    }
+
     private object Keys {
         val ACTIVE_ROUTINE_ID: Preferences.Key<Long> = longPreferencesKey("active_routine_id")
         val WEIGHT_UNIT: Preferences.Key<String> = stringPreferencesKey("weight_unit")
+        val HAS_SEEN_SNAPSHOT_INFO: Preferences.Key<Boolean> = booleanPreferencesKey("has_seen_snapshot_info")
     }
 }

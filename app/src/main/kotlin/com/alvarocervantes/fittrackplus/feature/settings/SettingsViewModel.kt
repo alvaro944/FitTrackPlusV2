@@ -1,0 +1,27 @@
+package com.alvarocervantes.fittrackplus.feature.settings
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
+    private val userPreferencesRepository: UserPreferencesRepository
+) : ViewModel() {
+
+    val weightUnit: StateFlow<String> = userPreferencesRepository.weightUnit
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "kg")
+
+    fun setWeightUnit(unit: String) {
+        viewModelScope.launch {
+            userPreferencesRepository.setWeightUnit(unit)
+        }
+    }
+}

@@ -32,23 +32,34 @@ class RoutinesViewModel @Inject constructor(
     init {
         combine(
             routineRepository.observeRoutines(),
+            routineRepository.observeArchivedRoutines(),
             userPreferencesRepository.activeRoutineId
-        ) { routines, activeRoutineId ->
+        ) { routines, archivedRoutines, activeRoutineId ->
             val activeId = activeRoutineId?.takeIf { id -> routines.any { it.id == id } }
-            routines.map { routine ->
+            val activeItems = routines.map { routine ->
                 RoutineListItemUiState(
                     id = routine.id,
                     name = routine.name,
                     dayCount = routine.dayCount,
                     isActive = routine.id == activeId
                 )
-            } to activeId
+            }
+            val archivedItems = archivedRoutines.map { routine ->
+                RoutineListItemUiState(
+                    id = routine.id,
+                    name = routine.name,
+                    dayCount = routine.dayCount,
+                    isActive = false
+                )
+            }
+            Triple(activeItems, archivedItems, activeId)
         }
-            .onEach { (routines, activeRoutineId) ->
+            .onEach { (routines, archivedRoutines, activeRoutineId) ->
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
                         routines = routines,
+                        archivedRoutines = archivedRoutines,
                         activeRoutineId = activeRoutineId
                     )
                 }
@@ -60,6 +71,12 @@ class RoutinesViewModel @Inject constructor(
                         message = throwable.message ?: "No se pudieron cargar las rutinas."
                     )
                 }
+            }
+            .launchIn(viewModelScope)
+
+        userPreferencesRepository.hasSeenSnapshotInfo
+            .onEach { seen ->
+                _uiState.update { state -> state.copy(hasSeenSnapshotInfo = seen) }
             }
             .launchIn(viewModelScope)
     }
@@ -77,6 +94,19 @@ class RoutinesViewModel @Inject constructor(
                 state.copy(editor = snapshot.toEditorState())
             }
         }
+    }
+
+    fun requestCloseEditor() {
+        val editor = _uiState.value.editor ?: return
+        if (editor.isDirty) {
+            _uiState.update { state -> state.copy(editor = editor.copy(showCloseConfirmation = true)) }
+        } else {
+            closeEditor()
+        }
+    }
+
+    fun dismissCloseConfirmation() {
+        updateEditor { editor -> editor.copy(showCloseConfirmation = false) }
     }
 
     fun closeEditor() {
@@ -187,6 +217,22 @@ class RoutinesViewModel @Inject constructor(
         }
     }
 
+    fun setShowArchived(show: Boolean) {
+        _uiState.update { state -> state.copy(showArchived = show) }
+    }
+
+    fun dismissSnapshotInfo() {
+        viewModelScope.launch {
+            userPreferencesRepository.dismissSnapshotInfo()
+        }
+    }
+
+    fun restoreRoutine(routineId: Long) {
+        viewModelScope.launch {
+            routineRepository.restoreRoutine(routineId)
+        }
+    }
+
     fun clearMessage() {
         _uiState.update { state -> state.copy(message = null) }
     }
@@ -208,7 +254,7 @@ class RoutinesViewModel @Inject constructor(
     private fun updateEditor(transform: (RoutineEditorUiState) -> RoutineEditorUiState) {
         _uiState.update { state ->
             val editor = state.editor ?: return@update state
-            state.copy(editor = transform(editor))
+            state.copy(editor = transform(editor).copy(isDirty = true))
         }
     }
 }
@@ -217,9 +263,12 @@ data class RoutinesUiState(
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val routines: List<RoutineListItemUiState> = emptyList(),
+    val archivedRoutines: List<RoutineListItemUiState> = emptyList(),
     val activeRoutineId: Long? = null,
     val editor: RoutineEditorUiState? = null,
-    val message: String? = null
+    val message: String? = null,
+    val showArchived: Boolean = false,
+    val hasSeenSnapshotInfo: Boolean = false
 )
 
 data class RoutineListItemUiState(
@@ -232,7 +281,9 @@ data class RoutineListItemUiState(
 data class RoutineEditorUiState(
     val routineId: Long? = null,
     val name: String = "",
-    val days: List<RoutineDayEditorUiState> = listOf(RoutineDayEditorUiState())
+    val days: List<RoutineDayEditorUiState> = listOf(RoutineDayEditorUiState()),
+    val isDirty: Boolean = false,
+    val showCloseConfirmation: Boolean = false
 ) {
     val title: String = if (routineId == null) "Nueva rutina" else "Editar rutina"
     val canSave: Boolean

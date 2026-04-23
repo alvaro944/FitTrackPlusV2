@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +29,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
@@ -46,8 +49,13 @@ fun HomeScreen(
     onGoToRoutines: () -> Unit,
     onGoToWorkout: () -> Unit,
     onGoToHistory: () -> Unit,
-    onGoToStats: () -> Unit
+    onGoToStats: () -> Unit,
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val hasActiveRoutine = uiState.activeRoutineId != null
+
     val quickActions = listOf(
         HomeQuickAction(
             title = "Preparar rutinas",
@@ -129,27 +137,44 @@ fun HomeScreen(
                         style = MaterialTheme.typography.headlineLarge,
                         color = Color.White
                     )
-                    Text(
-                        text = "Empieza por una rutina clara, activala y registra sesiones sin reescribir el pasado.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.72f)
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-                    ) {
-                        MiniHeroTag("Crea rutina")
-                        MiniHeroTag("Activa una")
-                        MiniHeroTag("Guarda sesiones")
+
+                    if (!uiState.isLoading) {
+                        if (uiState.totalSessions > 0) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                                MiniHeroTag(
+                                    if (uiState.sessionsThisWeek == 0) "Sin sesiones esta semana"
+                                    else "${uiState.sessionsThisWeek} sesion${if (uiState.sessionsThisWeek > 1) "es" else ""} esta semana"
+                                )
+                                MiniHeroTag("${uiState.totalSessions} en total")
+                            }
+                        } else {
+                            Text(
+                                text = "Crea una rutina, activala y empieza a registrar sesiones.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.72f)
+                            )
+                        }
                     }
-                    Button(onClick = onGoToRoutines) {
+
+                    Button(
+                        onClick = if (hasActiveRoutine) onGoToWorkout else onGoToRoutines
+                    ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.List,
+                            imageVector = if (hasActiveRoutine) Icons.Filled.PlayArrow else Icons.AutoMirrored.Filled.List,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "Preparar rutina",
+                            text = if (hasActiveRoutine) "Ir a entrenar" else "Preparar rutina",
                             modifier = Modifier.padding(start = FitSpacing.sm)
+                        )
+                    }
+
+                    if (!hasActiveRoutine && !uiState.isLoading) {
+                        Text(
+                            text = "Crea tu primera rutina y activala para empezar a entrenar.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.55f)
                         )
                     }
                 }

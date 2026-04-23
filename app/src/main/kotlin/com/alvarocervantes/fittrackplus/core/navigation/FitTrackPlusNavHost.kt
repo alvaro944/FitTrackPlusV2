@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -31,6 +32,7 @@ import com.alvarocervantes.fittrackplus.core.design.borderLight
 import com.alvarocervantes.fittrackplus.feature.history.HistoryScreen
 import com.alvarocervantes.fittrackplus.feature.home.HomeScreen
 import com.alvarocervantes.fittrackplus.feature.routines.RoutinesScreen
+import com.alvarocervantes.fittrackplus.feature.settings.SettingsScreen
 import com.alvarocervantes.fittrackplus.feature.stats.StatsScreen
 import com.alvarocervantes.fittrackplus.feature.workout.WorkoutScreen
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +48,8 @@ private val bottomDestinations = listOf(
     BottomDestination(AppRoute.Routines, "Rutinas", Icons.Filled.List),
     BottomDestination(AppRoute.Workout, "Entrenar", Icons.Filled.FitnessCenter),
     BottomDestination(AppRoute.History, "Historial", Icons.Filled.History),
-    BottomDestination(AppRoute.Stats, "Datos", Icons.Filled.BarChart)
+    BottomDestination(AppRoute.Stats, "Datos", Icons.Filled.BarChart),
+    BottomDestination(AppRoute.Settings, "Ajustes", Icons.Filled.Settings)
 )
 
 @Composable
@@ -131,6 +134,7 @@ private fun AppNavGraph(
         }
         composable(AppRoute.History.route) { HistoryScreen() }
         composable(AppRoute.Stats.route) { StatsScreen() }
+        composable(AppRoute.Settings.route) { SettingsScreen() }
     }
 }
 

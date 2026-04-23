@@ -7,8 +7,10 @@ import kotlinx.coroutines.flow.Flow
 
 interface RoutineRepository {
     fun observeRoutines(): Flow<List<RoutineSummary>>
+    fun observeArchivedRoutines(): Flow<List<RoutineSummary>>
     suspend fun getRoutineSnapshot(routineId: Long): RoutineSnapshot?
     suspend fun createRoutine(draft: RoutineDraft): Long
     suspend fun replaceRoutine(routineId: Long, draft: RoutineDraft)
     suspend fun archiveRoutine(routineId: Long)
+    suspend fun restoreRoutine(routineId: Long)
 }
