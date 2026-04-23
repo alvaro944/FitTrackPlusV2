@@ -2,6 +2,11 @@
 
 Este documento define la direccion tipografica de la marca.
 
+## Estado
+
+- Estado actual: direccion elegida, implementacion pendiente
+- Ultima decision valida: 2026-04-24 — opcion C seleccionada
+
 ## Objetivo
 
 La tipografia debe apoyar esta mezcla:
@@ -11,40 +16,34 @@ La tipografia debe apoyar esta mezcla:
 - sobriedad
 - ritmo editorial ligero
 
-## Preguntas
+## Opcion Elegida: C — Sans principal + mono de apoyo para metricas
 
-- Queremos una sans sobria y funcional o una sans con mas caracter?
-- La app debe sonar mas tecnica o mas humana?
-- Hace falta una segunda familia para datos, metricas o acentos?
+**Sans principal**: una sans con caracter pero alta legibilidad en movil.
+Candidatas: DM Sans, Plus Jakarta Sans, Inter.
+Sirve para: titulos, etiquetas, navegacion, textos de interfaz.
 
-## Lineas Posibles
+**Mono de apoyo**: para numeros de series, pesos, repeticiones y datos de entrenamiento.
+Candidatas: JetBrains Mono, Fira Code, Roboto Mono.
+Sirve para: `80 kg`, `3x10`, marcas, progreso numerico.
 
-### Opcion A - Sans funcional con peso
+**Razon de la eleccion**:
+- Los datos numericos del entrenamiento tienen mas personalidad y precision con mono.
+- La sans principal da claridad y madurez sin ser enterprise generica.
+- La combinacion sans + mono es coherente con el tono tecnico-editorial de la marca.
 
-Sirve si queremos:
+## Estado De Implementacion
 
-- orden
-- legibilidad
-- madurez
+La app usa actualmente Material3 typography con la fuente del sistema.
+Esto es valido para el MVP — el sistema tipografico es correcto en escala y jerarquia.
 
-### Opcion B - Sans editorial contenida
+Cuando se decida integrar una fuente custom:
+- Sans principal: importar via `res/font/` + declarar en `Typeface` dentro de `Theme.kt`.
+- Mono: importar via `res/font/` + aplicar en los composables de metricas y datos.
+- Candidatos concretos a evaluar en ese momento: DM Sans + JetBrains Mono.
 
-Sirve si queremos:
+## Criterios Confirmados
 
-- algo mas distintivo
-- tono premium
-- menos look de producto generico
-
-### Opcion C - Sans principal + mono de apoyo
-
-Sirve si queremos:
-
-- datos y metricas con mas personalidad
-- continuidad con el lenguaje actual de la UI
-
-## Criterios De Eleccion
-
-- buena lectura en movil
-- buen rendimiento en titulos y cifras
-- no parecer una app enterprise generica
-- no sacrificar claridad por personalidad
+- buena lectura en movil — prioritario
+- buen rendimiento en titulos y cifras — cubierto por mono en datos
+- no parecer una app enterprise generica — cubierto por sans con caracter
+- no sacrificar claridad por personalidad — regla de oro al elegir la fuente final

@@ -4,20 +4,22 @@ Este documento recoge la direccion cromatica de la marca y como baja a UI.
 
 ## Estado
 
-- Estado actual: base provisional
+- Estado actual: cerrado
+- Ultima decision valida: 2026-04-24 — paleta confirmada, roles definidos
 
-## Direccion Inicial
+## Direccion
 
-Punto de partida actual de la app:
+El logo confirma la paleta: verde esmeralda como senal principal, grafito como base,
+cobre/dorado como acento calido puntual. La paleta ya implementada en Fase 6 es correcta.
 
-- grafito
-- esmeralda
-- neutros minerales
-- acento calido muy controlado
+## Preguntas Resueltas
 
-No es necesariamente la paleta final de marca, pero ya marca una direccion valida.
+- El verde es la seña principal — es el color de accion primaria y el color del diamante del logo.
+- El acento calido (#C47A49 cobre) es real — aparece en el contorno del diamante. Se usa de forma muy puntual.
+- La marca es mineral y editorial, no deportiva ni tecnica-fria.
+- Paleta estable y atemporal — sin tendencias cromaticas de temporada.
 
-## Paleta Base A Evaluar
+## Paleta Base
 
 - Fondo: `#F4F4F1`
 - Superficie: `#FCFBF7`
@@ -31,14 +33,7 @@ No es necesariamente la paleta final de marca, pero ya marca una direccion valid
 - Acento suave: `#F1E2D6`
 - Error: `#B15249`
 
-## Preguntas A Resolver
-
-- El verde debe ser la seña principal o solo un apoyo?
-- Necesitamos un acento calido real o basta con el sistema verde + neutros?
-- La marca debe sentirse mas mineral y editorial o mas deportiva y tecnica?
-- Queremos una paleta muy estable y atemporal o un punto mas distintivo?
-
-## Reglas Deseadas
+## Reglas De Uso
 
 - contraste alto para uso real en movil
 - nada de neones
@@ -48,13 +43,17 @@ No es necesariamente la paleta final de marca, pero ya marca una direccion valid
 
 ## Aterrizaje A UI
 
-Definir despues:
+Roles definitivos del sistema de color:
 
-- color de marca principal
-- color de accion primaria
-- color de exito
-- color de error
-- color de informacion
-- color de fondos
-- color de superficies
-- color de bordes
+- **Color de marca principal**: `#1F6B57`
+- **Color de accion primaria**: `#1F6B57` (light) / `#7FCDB7` (dark)
+- **Color de exito**: `#1F6B57` (mismo que primario)
+- **Color de error**: `#B15249`
+- **Color de informacion**: pendiente de definir si se necesita
+- **Fondos**: `#F4F4F1` (light) / `#161816` (dark aprox)
+- **Superficies**: `#FCFBF7` (light) / superficie oscura equivalente
+- **Bordes**: `#E8E5DD` (light) / suavizado oscuro
+- **Acento calido**: `#C47A49` — uso muy puntual (detalles del logo, iconos decorativos, acentos de calidad)
+
+Esta paleta ya esta implementada en `core/design/Theme.kt` con extensiones semanticas
+(primarySoft, primaryDark, accentWarm, surfaceCard, borderLight, textTertiary, errorSoft).

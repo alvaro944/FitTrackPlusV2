@@ -4,8 +4,8 @@ Este documento fija la idea principal de marca antes de dibujar logo o icono.
 
 ## Estado
 
-- Estado actual: borrador inicial
-- Ultima decision valida: ninguna cerrada todavia
+- Estado actual: cerrado
+- Ultima decision valida: 2026-04-24 — simbolo abstracto + atributos fijados
 
 ## Que Es FitTrackPlus
 
@@ -29,12 +29,12 @@ Evitar:
 - look hardcore de culturismo
 - estetica gaming
 - SaaS generico sin personalidad
-- visual “AI slop”
+- visual "AI slop"
 - branding demasiado agresivo o adolescente
 
 ## Direccion Inicial
 
-Hipotesis de trabajo inicial:
+Hipotesis de trabajo inicial, confirmada por el logo elegido:
 
 - atletica sobria
 - premium contenida
@@ -44,43 +44,37 @@ Hipotesis de trabajo inicial:
 
 ## Atributos De Marca
 
-Marcar luego los definitivos:
+Atributos definitivos derivados del logo (flechas ascendentes + diamante verde + contorno cobre):
 
-- [ ] disciplinada
-- [ ] clara
-- [ ] fuerte
-- [ ] elegante
-- [ ] cercana
-- [ ] tecnica
-- [ ] calmada
-- [ ] precisa
-- [ ] premium
-- [ ] minimal
+- [x] disciplinada
+- [x] clara
+- [x] fuerte
+- [x] elegante
+- [ ] cercana — no es el eje central de la marca
+- [x] tecnica
+- [x] calmada
+- [x] precisa
+- [x] premium
+- [x] minimal
 
-## Tensiones A Resolver
+## Tensiones Resueltas
 
-Estas parejas ayudan a definir el caracter:
-
-- deportiva vs editorial
-- tecnica vs emocional
-- sobria vs expresiva
-- premium vs utilitaria
-- moderna vs atemporal
+- deportiva vs editorial → **editorial contenida** (el diamante y las columnas dan tono editorial, no deportivo literal)
+- tecnica vs emocional → **tecnica con calidez** (el cobre/dorado del diamante añade calidez al grafito)
+- sobria vs expresiva → **sobria** (ningun elemento decorativo extra, todo tiene funcion)
+- premium vs utilitaria → **premium contenida** (acabado cuidado pero sin recarga visual)
+- moderna vs atemporal → **atemporal** (formas geometricas clasicas, sin tendencias de temporada)
 
 ## Publico Y Contexto
 
-Preguntas clave:
+- uso propio primero, portfolio despues
+- usuario intermedio (sabe lo que entrena, no necesita guia paso a paso)
+- mas "seguimiento de progreso" que "entreno diario casual"
+- producto presentable pero nacido como herramienta personal
 
-- uso propio primero, portfolio despues o al reves
-- usuario novel, intermedio o mixto
-- mas “entreno diario” o mas “seguimiento de progreso”
-- mas “herramienta personal” o mas “producto presentable”
+## Resultado
 
-## Resultado Esperado
-
-Al cerrar este documento deberia quedar claro:
-
-- que personalidad tiene FitTrackPlus
-- que tono visual debe tener
-- que referencias encajan
-- que referencias debemos descartar
+- **Personalidad**: tecnica, disciplinada, calmada
+- **Tono visual**: sobrio, mineral, con acento verde como senal de accion y acento cobre como detalle de calidad
+- **Referencias que encajan**: Things, Craft, Strava (sin los feeds sociales), Bear
+- **Referencias a descartar**: apps de culturismo, look SaaS azul corporativo, neon fitness, gradientes por defecto

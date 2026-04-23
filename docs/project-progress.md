@@ -11,11 +11,11 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 - Commit de cierre de Fase 3: `5e84fef Complete phase 3 history`.
 - Commit de cierre de Fase 4: `Complete phase 4 statistics MVP`.
 - Commit de cierre de Fase 5: `Complete phase 5 UX polish`.
-- No hay remoto configurado.
-- No se ha subido nada a la nube.
+- Remoto configurado: `https://github.com/alvaro944/FitTrackPlusV2.git`.
 - Fase 6 cerrada tecnicamente.
 - Validacion manual de Fase 6 pendiente en movil.
-- Siguiente trabajo inmediato: branding en `docs/branding/`.
+- Branding cerrado: docs de marca, logo decidido, app icon generado con fondo crema.
+- Siguiente trabajo: mejoras UX alta prioridad (items 18-23 de `docs/mejoras-claude.md`).
 - Siguiente fase funcional: `phase-7-sync-futura`.
 
 ## Hecho Hasta Ahora
@@ -212,10 +212,24 @@ Pendiente:
 - Firebase sigue fuera del MVP.
 - Al cerrar cada fase se actualiza tambien `docs/work-methodology/` con aprendizajes reutilizables.
 
+### Branding
+
+Implementado:
+
+- Logo decidido: simbolo abstracto (flechas ascendentes + diamante verde + contorno cobre).
+- Logo con fondo: `docs/branding/resources/Logo.png`.
+- Logo sin fondo: `docs/branding/resources/Logo sin fondo.png`.
+- App icon generado en Android Studio: fondo crema `#F4F4F1`, simbolo centrado.
+- Todos los tamaños de mipmap generados (mdpi a xxxhdpi) + ic_launcher-playstore.png.
+- `ic_launcher_background.xml` con fondo crema `#F4F4F1`.
+- Docs de marca cerrados: brand-foundation, logo-direction, color-system, typography, brand-questionnaire.
+
 ## Siguiente Paso
 
-Cerrar validacion manual de Fase 6 y abrir branding:
+Mejoras UX de alta prioridad (Bloque 3 del roadmap):
 
-1. Confirmar manualmente la fase visual en movil o dispositivo cuando sea posible.
-2. Definir base de marca en `docs/branding/` antes de iterar logo o icono.
-3. Mantener Fase 7 fuera hasta cerrar bien identidad visual y validacion manual.
+1. Validacion manual en dispositivo/emulador via Android Studio (antes de iterar mas).
+2. Settings funcional: unidad de peso + placeholder de exportar historial + version.
+3. HomeViewModel + metricas reales + CTA dinamica (items 18-19).
+4. Feedback en Workout y touch targets (items 20-21).
+5. Proteccion editor de rutinas + archivadas visibles (items 22-23-35).
