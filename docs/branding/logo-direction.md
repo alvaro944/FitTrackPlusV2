@@ -53,6 +53,10 @@ Descartado. Las iniciales FT o FTP no aportan suficiente diferenciacion ni lectu
 
 ## Cosas A Evitar
 
+Nota adicional:
+
+La intro de inicio puede acompanar el simbolo con wordmark y copy breve, pero ese uso no cambia la decision de marca principal: el logo sigue siendo el simbolo.
+
 - mancuernas genericas
 - rayos, llamas o signos de agresividad
 - simbolos demasiado tech sin relacion con entreno

@@ -61,4 +61,16 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM workout_sets WHERE id = :setId")
     suspend fun getSet(setId: Long): WorkoutSetEntity?
+
+    @Query("""
+        SELECT ws.weightKg FROM workout_sets ws
+        INNER JOIN workout_exercises we ON ws.workoutExerciseId = we.id
+        INNER JOIN workout_sessions sess ON we.sessionId = sess.id
+        WHERE we.exerciseNameSnapshot = :exerciseName
+        AND sess.finishedAt IS NOT NULL
+        AND ws.setNumber = :setNumber
+        ORDER BY sess.startedAt DESC
+        LIMIT 1
+    """)
+    suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double?
 }

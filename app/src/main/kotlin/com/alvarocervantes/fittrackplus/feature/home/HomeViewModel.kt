@@ -9,6 +9,7 @@ import java.util.Calendar
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
@@ -16,7 +17,8 @@ data class HomeUiState(
     val activeRoutineId: Long? = null,
     val sessionsThisWeek: Int = 0,
     val totalSessions: Int = 0,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val message: String? = null
 )
 
 @HiltViewModel
@@ -36,6 +38,8 @@ class HomeViewModel @Inject constructor(
             totalSessions = sessions.size,
             isLoading = false
         )
+    }.catch { throwable ->
+        emit(HomeUiState(isLoading = false, message = throwable.message ?: "No se pudo cargar el inicio."))
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),

@@ -6,8 +6,10 @@ FitTrackPlus es una aplicacion Android nativa para crear rutinas de gimnasio, re
 
 Fase actual: `phase-6-ui-visual-front` completada tecnicamente.
 Validacion manual pendiente: prueba en movil cuando sea posible.
-Siguiente trabajo inmediato: definicion de branding en `docs/branding/`.
-Siguiente fase funcional: `phase-7-sync-futura`.
+Branding base cerrado: docs de marca, logo e icono adaptativo ya definidos.
+Bloque 3 UX implementado en local: Ajustes funcionales, Inicio dinamico, feedback haptico, editor protegido y archivadas visibles.
+Trabajo visual actual: integrar la intro de arranque clara desde `docs/branding/Pantalla incio fondo claro/`.
+Siguiente fase funcional: Bloque 4 (export de historial, peso anterior y mejora de stats). `phase-7-sync-futura` sigue fuera de foco.
 
 La app esta arrancando una base nueva en Jetpack Compose. La v2 se compila desde `app/src/main/kotlin`.
 
@@ -17,8 +19,8 @@ Para no perder contexto entre sesiones:
 - Progreso actual: `docs/project-progress.md`
 - Bitacora por fases: `docs/phase-log.md`
 - Arquitectura: `docs/architecture.md`
-- Workflow: `docs/development-workflow.md`
-- Guia de metodologia y estudio: `docs/work-methodology/`
+- Starter pack metodologico reusable: `docs/project-methodology/`
+- Aprendizajes y notas del repo: `docs/work-methodology/`
 
 ## Decisiones Base
 
@@ -75,7 +77,9 @@ Cuando existan pruebas instrumentadas:
 5. Fase 4 - Estadisticas MVP: progreso por ejercicio, volumen y mejores marcas. Completada tecnicamente.
 6. Fase 5 - Pulido UX funcional: estados, accesibilidad, errores y recorrido de usuario nuevo. Completada tecnicamente.
 7. Fase 6 - UI visual / Front con herramienta: sistema visual, navegacion y pantallas Compose redisenadas sin cambiar reglas de negocio. Completada tecnicamente.
-8. Fase 7 - Sync futura: evaluar Firebase/Auth/Firestore o alternativa cuando el nucleo local y visual este estable.
+8. Bloque 3 UX - Ajustes, Inicio dinamico, feedback de entrenamiento, editor seguro y archivadas. Implementado en local, pendiente de validacion manual y push.
+9. Bloque 4 - Funcionalidad nueva de valor: export de historial, referencia de peso anterior y graficos de progreso.
+10. Fase 7 - Sync futura: evaluar Firebase/Auth/Firestore o alternativa cuando el nucleo local y visual este estable.
 
 ## Metodologia
 

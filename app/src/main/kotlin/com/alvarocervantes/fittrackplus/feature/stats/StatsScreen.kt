@@ -7,22 +7,32 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alvarocervantes.fittrackplus.core.design.components.LineChart
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
@@ -48,7 +58,8 @@ fun StatsScreen(
     Scaffold { padding ->
         StatsContent(
             state = state,
-            contentPadding = padding
+            contentPadding = padding,
+            onSelectExercise = viewModel::selectExercise
         )
     }
 }
@@ -56,7 +67,8 @@ fun StatsScreen(
 @Composable
 private fun StatsContent(
     state: StatsUiState,
-    contentPadding: PaddingValues
+    contentPadding: PaddingValues,
+    onSelectExercise: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -108,6 +120,17 @@ private fun StatsContent(
             else -> {
                 item {
                     SummaryGrid(state = state)
+                }
+
+                if (state.exerciseProgress.isNotEmpty()) {
+                    item {
+                        ProgressChartCard(
+                            exerciseNames = state.exerciseProgress.map { it.exerciseName },
+                            selectedExerciseName = state.selectedExerciseName,
+                            progressPoints = state.progressPoints,
+                            onSelectExercise = onSelectExercise
+                        )
+                    }
                 }
 
                 item { FitTrackSectionLabel(label = "Volumen por sesion") }
@@ -322,6 +345,80 @@ private fun RecordRow(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.accentWarm
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProgressChartCard(
+    exerciseNames: List<String>,
+    selectedExerciseName: String?,
+    progressPoints: List<Pair<Long, Float>>,
+    onSelectExercise: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Progreso visual",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
+        ) {
+            OutlinedTextField(
+                value = selectedExerciseName ?: "Selecciona un ejercicio",
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                exerciseNames.forEach { name ->
+                    DropdownMenuItem(
+                        text = { Text(name) },
+                        onClick = {
+                            onSelectExercise(name)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        when {
+            selectedExerciseName == null -> {
+                Text(
+                    text = "Selecciona un ejercicio para ver la evolucion de su peso maximo.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            progressPoints.size < 2 -> {
+                Text(
+                    text = "Se necesitan al menos 2 sesiones de '${selectedExerciseName}' para mostrar el grafico.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            else -> {
+                LineChart(
+                    points = progressPoints,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .padding(top = 4.dp)
+                )
+            }
+        }
     }
 }
 

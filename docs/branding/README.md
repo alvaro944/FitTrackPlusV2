@@ -51,3 +51,12 @@ Luego se explora:
 - variantes
 - icono
 - posibles imagenes generadas
+
+## Estado Actual
+
+- Base de marca cerrada
+- Logo decidido
+- Icono adaptativo de app generado
+- Nueva referencia oficial de arranque en `Pantalla incio fondo claro/`
+
+La carpeta `Pantalla incio fondo claro/` ya no actua como exploracion abstracta. Ahora sirve como referencia directa para aterrizar la intro de arranque en Compose nativo dentro de la app.

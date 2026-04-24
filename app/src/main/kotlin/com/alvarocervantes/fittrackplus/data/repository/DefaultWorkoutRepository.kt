@@ -113,4 +113,8 @@ class DefaultWorkoutRepository @Inject constructor(
             )
         )
     }
+
+    override suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double? {
+        return workoutDao.getLastWeightKgForExerciseSet(exerciseName, setNumber)
+    }
 }

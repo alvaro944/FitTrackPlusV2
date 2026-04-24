@@ -475,21 +475,31 @@ private fun WorkoutSetRow(
                 )
             }
         }
-        OutlinedTextField(
-            value = set.weightText,
-            onValueChange = { value ->
-                if (!hasInput && value.isNotBlank()) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                }
-                onSetWeightChange(set.id, value)
-            },
-            label = { Text("Kg") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 56.dp)
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            OutlinedTextField(
+                value = set.weightText,
+                onValueChange = { value ->
+                    if (!hasInput && value.isNotBlank()) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+                    onSetWeightChange(set.id, value)
+                },
+                label = { Text("Kg") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+            )
+            if (set.previousWeight != null) {
+                Text(
+                    text = "Ultima vez: ${set.previousWeight} kg",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                )
+            }
+        }
         OutlinedTextField(
             value = set.repsText,
             onValueChange = { value ->

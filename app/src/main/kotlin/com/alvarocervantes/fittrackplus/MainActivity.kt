@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPlusTheme
-import com.alvarocervantes.fittrackplus.core.navigation.FitTrackPlusNavHost
+import com.alvarocervantes.fittrackplus.feature.launch.FitTrackPlusAppRoot
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             FitTrackPlusTheme {
-                FitTrackPlusNavHost()
+                FitTrackPlusAppRoot()
             }
         }
     }

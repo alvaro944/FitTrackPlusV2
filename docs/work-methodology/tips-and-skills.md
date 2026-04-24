@@ -1,213 +1,123 @@
-# Tips Y Skills Practicadas
+# Patrones, Tips Y Skills
 
-Este documento guarda aprendizajes concretos, comandos utiles y habilidades practicadas durante el desarrollo.
+Este documento guarda patrones reutilizables de trabajo tecnico. No intenta describir todas las fases del proyecto, sino dejar bases que sirvan tambien en proyectos futuros.
 
-## Skills Practicadas
+## 1. Patrones De Coordinacion
 
-### Fase 0 - Mobile foundation
+### Una sola fuente de ejecucion
 
-- Crear base Android moderna desde un proyecto existente.
-- Separar codigo nuevo en `app/src/main/kotlin`.
-- Configurar Compose, Hilt, Room, DataStore y KSP.
-- Preparar documentacion viva del proyecto.
-- Definir un flujo por fases.
+- varias herramientas pueden analizar o proponer
+- una sola debe ejecutar cambios sobre el repo en cada iteracion
+- el cierre y la verificacion conviene que los haga la misma herramienta ejecutora
 
-### Fase 1 - Rutinas
+### Relevo entre herramientas
 
-- Crear una pantalla Compose conectada a datos reales.
-- Modelar `UiState` para una feature.
-- Usar `StateFlow` con `collectAsStateWithLifecycle`.
-- Combinar datos de Room y DataStore en el ViewModel.
-- Separar eventos de UI en funciones del ViewModel.
-- Crear un editor simple de listas anidadas:
-  - rutina
-  - dias
-  - ejercicios
-- Validar formularios sin meter logica en Compose.
-- Archivar datos sin borrarlos fisicamente.
-- Mantener una preferencia activa coherente al archivar.
+- no retomar desde memoria conversacional
+- releer estado, docs y area tocada
+- revisar `git status`
+- distinguir cambios propios, ajenos y no verificados
 
-### Fase 2 - Registro de entrenamiento
+### Propuesta != decision
 
-- Crear una feature Compose con estados de preview, vacio, loading y edicion activa.
-- Reanudar una sesion abierta antes de crear una nueva.
-- Persistir ediciones de formularios en Room desde eventos de ViewModel.
-- Separar el texto editable de UI de los valores normalizados que se guardan.
-- Usar snapshots historicos para que los entrenamientos no dependan de la rutina actual.
-- Probar reglas de dominio con repositorios fake y `runBlocking`.
+- un backlog o comentario externo no obliga a implementar nada
+- la decision se fija cuando el usuario la valida y el repo la recoge
+- la documentacion viva debe reflejar la decision final, no solo la conversacion
 
-### Fase 3 - Historial
+## 2. Patrones De Implementacion
 
-- Crear lectura de historial sin depender de rutinas editables.
-- Mapear relaciones Room a modelos de dominio de solo lectura.
-- Ordenar datos historicos en el mapeo cuando Room no garantiza orden en relaciones.
-- Crear una UI Compose minima para verificar flujo sin pulido visual.
-- Sembrar datos demo solo en debug y solo si la base esta vacia.
-- Probar snapshots historicos con repositorios fake.
+### Crecer por capas, no por impulso
 
-### Fase 4 - Estadisticas MVP
+- la UI pinta estado y emite eventos
+- la coordinacion vive fuera de la UI
+- la persistencia queda encapsulada
+- las reglas de negocio o calculos importantes no se reparten por varias capas
 
-- Crear agregados de dominio desde relaciones historicas de Room.
-- Calcular volumen, progreso y marcas sin persistir tablas derivadas.
-- Agrupar datos por claves normalizadas cuando los IDs editables pueden cambiar.
-- Mantener la UI de verificacion minima para no mezclar estadisticas con pulido UX.
-- Probar reglas numericas con repositorios fake.
-- Cubrir casos de peso cero y sesiones abiertas en tests.
+### Separar pulido de cambio estructural
 
-### Fase 5 - Pulido UX funcional
+- una iteracion de UX no deberia reescribir arquitectura
+- una iteracion visual no deberia justificar cambios de dominio sin necesidad
+- una iteracion de deuda no deberia mezclar features nuevas
 
-- Mejorar estados vacios sin convertir la fase en redisenio visual.
-- Agregar confirmaciones locales en Compose para acciones de riesgo bajo/medio.
-- Usar `AlertDialog` para acciones que cambian datos, como archivar o finalizar.
-- Dar texto contextual a estados de carga para que no parezcan pantallas bloqueadas.
-- Revisar `contentDescription` de iconos accionables y dejar `null` en iconos decorativos.
-- Usar etiquetas semanticas en filas clicables cuando una card completa abre detalle.
+### Prototipo externo -> implementacion real
 
-### Fase 6 - UI visual / Front con herramienta
+- usar el prototipo para entender composicion, ritmo, capas y prioridades
+- no perseguir fidelidad ciega si rompe mantenibilidad
+- adaptar la idea al runtime real del producto
 
-- Traducir una referencia HTML/JSX a un sistema visual Compose sin copiarla ciegamente.
-- Crear tokens extra fuera del `ColorScheme` base cuando el diseno necesita superficies, acentos y bordes propios.
-- Construir componentes compartidos antes de tocar pantallas para evitar estilos duplicados.
-- Rehacer navegacion y pantallas manteniendo ViewModels y datos intactos.
-- Mejorar una pantalla placeholder convirtiendola en dashboard util sin introducir logica nueva de negocio.
-- Verificar el redisenio con `test` y `build` antes de tocar documentacion de cierre.
-- Hacer una segunda pasada de UX despues del redisenio para quitar fricciones reales en vez de seguir decorando.
+### Assets de documentacion -> runtime
 
-### Coordinacion multiagente
+- los assets de `docs/` sirven como referencia o fuente visual
+- si un asset pasa a producto, debe copiarse al arbol operativo de la app o proyecto
+- no dejar dependencias de runtime apuntando a carpetas documentales
 
-- Separar siempre backlog detectado por otro agente de decisiones ya aceptadas por el usuario.
-- Si varias herramientas escriben notas, usar la documentacion viva del proyecto como referencia canonica y no una sola propuesta externa.
-- Conviene que un solo agente ejecute codigo en cada iteracion para evitar solapes y lecturas incompletas del estado real.
-- Si aparece un `CLAUDE.md` o equivalente, tratarlo como regla operativa y no como simple nota auxiliar.
-- Si se alternan dos editores o plataformas, el relevo debe pasar por `git status`, lectura de docs vivas y reapertura del area exacta que se va a tocar.
+## 3. Patrones De Verificacion
 
-## Tips Tecnicos
+### Verificacion proporcional
+
+- cambio pequeno de docs: revisar consistencia
+- cambio de codigo: tests + build
+- cambio visible o de flujo: verificacion manual cuando sea posible
+- cambio de proceso: comprobar que la documentacion no se contradiga
+
+### Tooling fragil
+
+Si una toolchain falla de forma intermitente:
+
+- documentar el comando estable
+- documentar el patron de recuperacion
+- evitar combinaciones peligrosas si ya se ha visto que rompen caches o daemons
+
+### Verificacion secuencial
+
+Cuando un proyecto tenga herramientas con caches sensibles:
+
+- ejecutar checks pesados en secuencia
+- no paralelizar por sistema
+- registrar cuando el problema es de tooling y no del cambio funcional
+
+## 4. Tips Tecnicos
 
 ### Gradle En Windows
 
-Comando estable para build de cierre:
+Comandos estables usados aqui:
 
 ```powershell
+.\gradlew.bat test --no-daemon --console=plain
 .\gradlew.bat build --no-daemon --console=plain
 ```
 
-Si queda algun daemon vivo:
+Si hace falta limpiar estado:
 
 ```powershell
 .\gradlew.bat --stop
 ```
 
-Si `test` falla porque no puede borrar `app/build/test-results`, suele haber un daemon o proceso Gradle anterior reteniendo archivos. Parar daemons y repetir el comando suele liberar el bloqueo.
+### Kotlin Y Estado De UI
 
-Si `test` queda sin salida hasta timeout, repetir con:
+Si el estado delegado impide smart cast, conviene asignar primero a una variable local clara antes de bifurcar la UI.
 
-```powershell
-.\gradlew.bat test --no-daemon --console=plain
-```
+### Datos Derivados
 
-Si KSP falla por archivos generados incrementales ausentes, parar Gradle y repetir suele limpiar el estado local:
+Si un dato mostrado depende de varias fuentes o formulas, suele ser mejor:
 
-```powershell
-.\gradlew.bat --stop
-.\gradlew.bat test --no-daemon --console=plain
-```
+- leer datos crudos desde la capa adecuada
+- derivar el agregado en una capa de dominio o coordinacion
+- exponer a UI un estado ya preparado
 
-El mismo patron aplica si `build --no-daemon --console=plain` queda sin salida hasta timeout: comprobar procesos Java/Gradle, parar Gradle y repetir.
+## 5. Cosas A Evitar
 
-### Kotlin Y Compose State
+- declarar cerrado algo sin verificacion reciente
+- abrir varias lineas de trabajo grandes en una misma iteracion
+- ejecutar propuestas externas sin contraste con el repo
+- usar la conversacion como sustituto del estado real del proyecto
+- mezclar backlog, decision y cierre como si fueran lo mismo
 
-Si un valor viene de `val state by collectAsStateWithLifecycle()`, Kotlin puede no hacer smart cast sobre propiedades nullable.
+## 6. Skills Practicadas
 
-Solucion simple:
+Hasta ahora, las habilidades mas utiles que merece la pena repetir han sido:
 
-```kotlin
-val editor = state.editor
-if (editor == null) {
-    // lista
-} else {
-    // editor ya no es nullable aqui
-}
-```
-
-### Inputs Numericos
-
-Para campos como peso y repeticiones conviene mantener el texto que el usuario escribe en el `UiState` y normalizar solo al persistir:
-
-- texto invalido o vacio -> `0`
-- negativos -> `0`
-- valores validos -> se guardan tal cual
-
-### Historial Y Snapshots
-
-Para mostrar entrenamientos antiguos, leer siempre desde tablas historicas:
-
-- `WorkoutSessionEntity`
-- `WorkoutExerciseEntity`
-- `WorkoutSetEntity`
-
-No consultar la rutina editable para pintar el historial, porque el usuario puede cambiar nombres, dias y ejercicios despues de entrenar.
-
-### Estadisticas Desde Historial
-
-Para estadisticas MVP conviene derivar desde snapshots historicos, no desde rutinas editables.
-
-Patron usado:
-
-- DAO observa sesiones finalizadas con relaciones completas.
-- Caso de uso calcula agregados y orden.
-- ViewModel transforma a `UiState`.
-- Compose solo muestra valores.
-
-### Pulido UX Sin Redisenio
-
-En una fase de UX funcional conviene priorizar:
-
-- estados claros: cargando, vacio, error y guardando
-- confirmaciones en acciones que cambian o cierran informacion
-- textos orientados al siguiente paso del usuario
-- accesibilidad basica en acciones tocables
-
-Conviene evitar:
-
-- cambiar tema global
-- rehacer layouts completos
-- agregar animaciones o graficos
-- tocar reglas de negocio para justificar un ajuste visual
-
-### Redisenio Visual Con Alcance Controlado
-
-En una fase visual conviene priorizar:
-
-- tema y tipografia
-- surfaces y componentes base
-- navegacion y jerarquia de tabs
-- estados vacios, loading y resumenes
-- coherencia entre pantallas principales y secundarias
-- una segunda iteracion corta para corregir CTA engañosos, ruido repetido y targets tactiles pobres
-
-Conviene evitar:
-
-- replicar 1:1 un prototipo externo aunque no encaje con los datos reales
-- cambiar modelos, ViewModels o reglas para que la UI se vea mejor
-- mezclar redisenio visual con sync o backend
-- tocar archivos legacy de `app/src/main/java`
-
-### Git Local
-
-Este proyecto trabaja sin remoto por ahora.
-
-Ritmo recomendado:
-
-1. rama por fase
-2. cambios acotados
-3. verificacion
-4. docs
-5. commit local
-
-## Cosas A Evitar
-
-- Meter Firebase antes de cerrar el flujo local.
-- Crear abstracciones por si acaso.
-- Hacer navegacion compleja antes de que el flujo lo pida.
-- Dejar documentos de progreso sin actualizar.
-- Decir que una fase esta cerrada sin test/build reciente.
+- leer estado real antes de tocar codigo
+- traducir referencias visuales externas a implementacion nativa mantenible
+- separar propuesta, decision e implementacion
+- actualizar metodologia cada vez que aparece un patron reusable
+- documentar no solo que fallo, sino como se recupero el flujo de trabajo

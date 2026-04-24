@@ -7,7 +7,7 @@ Estas reglas mantienen el proyecto coherente en sesiones futuras con IA.
 Antes de editar codigo, revisar:
 
 1. `README.md`
-2. `docs/development-workflow.md`
+2. `docs/project-methodology/README.md`
 3. `docs/project-plan.md`
 4. `docs/project-progress.md`
 5. `docs/phase-log.md`
@@ -24,7 +24,7 @@ Antes de editar codigo, revisar:
 - `app/src/main/java` es legacy local y no forma parte del nuevo repo.
 - Mantener Firebase fuera del MVP hasta que el flujo local este cerrado.
 - Verificar antes de afirmar que algo esta terminado.
-- Al cerrar cada fase, actualizar tambien `docs/work-methodology/`.
+- Al cerrar cada fase, actualizar `docs/project-methodology/` solo si aparece una regla general reusable; los aprendizajes especificos van a `docs/work-methodology/`.
 - Al cerrar cada fase, comentar al usuario que avances, docs y aprendizajes se han anotado.
 
 ## Arquitectura
@@ -54,5 +54,6 @@ Antes de cerrar una fase:
 - Ejecutar verificacion minima.
 - Actualizar `docs/project-progress.md`.
 - Actualizar `docs/phase-log.md`.
-- Actualizar `docs/work-methodology/` con procedimientos, tips, skills practicadas y aprendizajes.
+- Actualizar `docs/project-methodology/` si aparece una regla reusable.
+- Actualizar `docs/work-methodology/` si aparece un aprendizaje especifico de este repo.
 - Informar al usuario que se hizo, que se verifico y que queda pendiente.

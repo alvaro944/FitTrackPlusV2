@@ -1,6 +1,16 @@
 # Notas De Arquitectura Aprendidas
 
-Estas notas explican patrones que estamos usando en la app y por que ayudan.
+Estas notas recogen patrones de arquitectura que nacen en este proyecto, pero que conviene conservar como heuristicas reutilizables para proyectos futuros.
+
+La idea no es fijar una arquitectura universal, sino guardar reglas que han demostrado ser utiles.
+
+## Heuristicas Portables
+
+- separar UI, coordinacion, reglas y persistencia ayuda mas que adoptar una arquitectura pesada por defecto
+- la fuente de verdad debe estar clara desde el principio
+- los datos derivados conviene calcularlos cerca del dominio, no repartir formulas por la UI
+- la persistencia y la presentacion no deben acoplarse directamente
+- la complejidad arquitectonica debe crecer solo cuando el problema la justifica
 
 ## Capas
 

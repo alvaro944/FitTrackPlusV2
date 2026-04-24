@@ -133,4 +133,6 @@ private class FakeWorkoutRepository(
     override suspend fun updateSet(setId: Long, weightKg: Double, reps: Int) = Unit
 
     override suspend fun finishSession(sessionId: Long, notes: String?) = Unit
+
+    override suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double? = null
 }

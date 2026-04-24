@@ -30,8 +30,13 @@ class StatsViewModel @Inject constructor(
     init {
         observeWorkoutStats()
             .onEach { stats ->
-                _uiState.update {
-                    stats.toUiState().copy(isLoading = false)
+                _uiState.update { currentState ->
+                    stats.toUiState()
+                        .copy(
+                            isLoading = false,
+                            selectedExerciseName = currentState.selectedExerciseName
+                        )
+                        .withProgressPoints()
                 }
             }
             .catch { throwable ->
@@ -44,6 +49,12 @@ class StatsViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
     }
+
+    fun selectExercise(name: String) {
+        _uiState.update { state ->
+            state.copy(selectedExerciseName = name).withProgressPoints()
+        }
+    }
 }
 
 data class StatsUiState(
@@ -51,6 +62,8 @@ data class StatsUiState(
     val sessionVolumes: List<SessionVolumeUiState> = emptyList(),
     val exerciseProgress: List<ExerciseProgressUiState> = emptyList(),
     val exerciseRecords: List<ExerciseRecordsUiState> = emptyList(),
+    val selectedExerciseName: String? = null,
+    val progressPoints: List<Pair<Long, Float>> = emptyList(),
     val message: String? = null
 ) {
     val isEmpty: Boolean = sessionVolumes.isEmpty() &&
@@ -156,4 +169,14 @@ private fun ExerciseSetRecord.toUiState(): ExerciseSetRecordUiState {
         setVolumeKg = setVolumeKg,
         estimatedOneRepMaxKg = estimatedOneRepMaxKg
     )
+}
+
+private fun StatsUiState.withProgressPoints(): StatsUiState {
+    val name = selectedExerciseName ?: return copy(progressPoints = emptyList())
+    val exercise = exerciseProgress.firstOrNull { it.exerciseName == name }
+    val points = exercise?.entries
+        ?.sortedBy { it.finishedAt }
+        ?.map { Pair(it.finishedAt, it.maxWeightKg.toFloat()) }
+        ?: emptyList()
+    return copy(progressPoints = points)
 }

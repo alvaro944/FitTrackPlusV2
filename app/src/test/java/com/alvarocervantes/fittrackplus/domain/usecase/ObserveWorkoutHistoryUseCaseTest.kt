@@ -96,4 +96,5 @@ private class HistoryListWorkoutRepository(
 
     override suspend fun updateSet(setId: Long, weightKg: Double, reps: Int) = error("Not used")
     override suspend fun finishSession(sessionId: Long, notes: String?) = error("Not used")
+    override suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double? = null
 }

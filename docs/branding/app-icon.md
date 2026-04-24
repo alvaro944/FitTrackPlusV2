@@ -1,37 +1,52 @@
 # Icono De App
 
-El icono debe derivar de la marca, no ir por libre.
+## Estado
 
-## Objetivo
+- Estado actual: cerrado
+- Ultima decision valida: 2026-04-24 — adaptive icon generado en Android Studio
 
-Que FitTrackPlus se vea:
+## Decision
 
-- clara
-- seria
-- propia
-- legible a tamano pequeno
+El icono de FitTrackPlus deriva directamente del simbolo principal de marca.
 
-## Reglas
+- Simbolo base: flechas/columnas ascendentes + diamante verde con detalle cobre
+- Fondo del launcher: `#F4F4F1`
+- Tipo de icono: adaptive icon de Android
+- Uso principal: launcher, app switcher y recurso `ic_launcher-playstore.png`
 
-- forma simple
-- contraste claro
-- sin exceso de detalle
-- que funcione en launcher y mockups
-- que pueda existir con fondo claro y oscuro
+## Relacion Entre Marca, Icono E Intro
 
-## Caminos Posibles
+- **Logo principal**: el simbolo abstracto sigue siendo la marca principal.
+- **Icono de app**: usa ese simbolo en formato compacto y legible para launcher.
+- **Pantalla de inicio**: puede acompanar el simbolo con wordmark o copy breve, pero eso no convierte el wordmark en logo principal.
 
-- monograma simplificado
-- simbolo abstracto de progreso o estructura
-- forma geometrica fuerte con acento verde
+La regla es clara: el icono y la intro parten del mismo ADN visual, pero no cumplen la misma funcion.
+
+## Criterios Cerrados
+
+- debe leerse bien a tamano pequeno
+- debe mantener la silueta del simbolo sin sobrecarga
+- debe usar fondo claro mineral para reforzar consistencia de marca
+- debe poder convivir con la UI grafito + esmeralda sin parecer un elemento ajeno
+- no necesita efectos atmosfericos ni detalles de presentacion
+
+## Diferencia Entre Icono E Intro
+
+El icono de app debe ser mas estricto que la intro:
+
+- el icono prioriza legibilidad y recognoscibilidad
+- la intro puede usar glow suave, wordmark y un poco mas de presencia visual
+- los assets de intro no sustituyen ni contaminan el launcher
+
+## Assets Reales
+
+- Launcher foreground/background generados en Android Studio
+- `app/src/main/ic_launcher-playstore.png` actualizado
+- Fondo crema del launcher en `ic_launcher_background.xml`
 
 ## Evitar
 
-- iconos saturados
-- look fitness generico
-- detalles finos que se pierdan
-- demasiados colores
-
-## Nota
-
-Si usamos generacion de imagen despues, el prompt debe salir de una direccion ya decidida aqui, no al reves.
+- usar el logo con fondo completo como icono
+- mezclar icono de launcher con piezas promocionales
+- introducir mas detalle del que sobrevive en 48-192 px
+- tratar la intro como si fuera el icono de app

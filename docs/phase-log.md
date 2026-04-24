@@ -572,3 +572,272 @@ Pendiente:
 
 - Validacion manual de Fase 6 en movil.
 - Definir personalidad de marca antes de explorar logo final o imagen generada.
+
+## Branding base + Bloque 3 UX + intro clara
+
+Estado:
+
+- Branding base cerrado.
+- Bloque 3 UX completado en local.
+- Intro de arranque clara implementada en Compose.
+
+Rama:
+
+- `codex/phase-6-ui-visual-front`
+
+Commits de referencia:
+
+- Branding base e icono: commit local previo de cierre de branding
+- Bloque 3 UX: `ef954ac`
+
+Objetivo:
+
+- Cerrar docs de marca y dejar icono de app coherente con el logo elegido.
+- Completar el bloque UX funcional posterior al redisenio.
+- Sustituir la exploracion de arranque previa por una intro clara real integrada en la app.
+
+Cambios principales:
+
+- Se cerraron los docs de branding:
+  - `brand-foundation.md`
+  - `brand-questionnaire.md`
+  - `color-system.md`
+  - `typography.md`
+  - `logo-direction.md`
+  - `app-icon.md`
+- Se definio el logo final como simbolo abstracto y se genero el adaptive icon con fondo crema `#F4F4F1`.
+- Se implemento el Bloque 3 UX:
+  - Ajustes reales con selector `kg/lb`
+  - Inicio con metricas reales y CTA dinamica
+  - feedback haptico en entrenamiento
+  - proteccion `isDirty` en editor de rutinas
+  - tabs `Activas / Archivadas` con `Restaurar`
+  - banner dismissible de snapshots persistido en DataStore
+- Se toma `docs/branding/Pantalla incio fondo claro/` como nueva referencia visual oficial para el arranque.
+- Esa referencia se aterriza a Compose nativo:
+  - sin WebView
+  - sin HTML embebido
+  - sin video
+- Se crea `FitTrackPlusAppRoot` para mostrar una intro breve antes del `NavHost`.
+- Se copia el asset usado por la intro al modulo de app para no depender de `docs/` en runtime.
+
+Problemas encontrados:
+
+- La referencia visual nueva venia en HTML/CSS con efectos mas complejos de los que conviene mantener en movil real.
+- Se simplificaron los efectos a una solucion mantenible en Compose: fondo mineral, glow muy leve, reveal del logo, wordmark y loader corto.
+- Una primera verificacion en paralelo (`test` + `build`) provoco un conflicto de caches de KSP.
+- La verificacion estable se hizo en secuencia: corregir fallo de compilacion pequeno, parar Gradle si hacia falta y ejecutar `test` y `build` por separado.
+- La validacion manual sigue pendiente porque no se ha pasado aun por dispositivo/emulador en esta iteracion.
+
+Decisiones:
+
+- El simbolo sigue siendo el logo principal.
+- El wordmark en la intro es solo acompanamiento de producto en arranque.
+- Los assets de `docs/branding/` no se usan directamente en runtime; se copian al modulo `app` si forman parte de la experiencia real.
+- La intro clara sustituye la direccion previa mas oscura como referencia de arranque.
+- La siguiente fase funcional sigue siendo Bloque 4, no Firebase/sync.
+
+Verificacion:
+
+```powershell
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- `.\gradlew.bat test --no-daemon --console=plain` pasa.
+- `.\gradlew.bat build --no-daemon --console=plain` pasa.
+
+Pendiente:
+
+- `git push` de los commits locales pendientes.
+- Validacion manual completa en dispositivo/emulador.
+- Revisar timing real y legibilidad de la intro en movil.
+
+## Consolidacion del starter pack metodologico
+
+Estado:
+
+- completado a nivel documental
+
+Objetivo:
+
+- separar metodologia reusable entre proyectos de los aprendizajes especificos del repo
+- dejar una carpeta unica y canonica para reglas generales de trabajo
+- reducir dependencia de docs dispersas o demasiado atadas al stack actual
+
+Cambios principales:
+
+- se consolida la base reusable en `docs/project-methodology/`
+- se anaden documentos generales sobre:
+  - principios operativos
+  - jerarquia de decision
+  - modelo multiagente
+  - ciclo de iteraciones
+  - sistema de documentacion
+  - verificacion
+  - adaptacion a proyectos nuevos
+  - blueprints de ficheros
+- `docs/development-workflow.md` pasa a actuar como puente corto hacia la carpeta nueva
+- `docs/work-methodology/` queda como espacio de aprendizajes historicos y especificos del repo
+- `AGENTS.md` y `README.md` se actualizan para apuntar primero a `docs/project-methodology/`
+
+Decisiones:
+
+- la metodologia general no debe vivir mezclada con detalles de Android, Java o Compose
+- el starter pack debe servir para crear despues `AGENTS.md`, roadmap, progreso y bitacora de proyectos nuevos con solo anadir stack, restricciones y plan
+- la carpeta canonica de metodologia pasa a ser `docs/project-methodology/`
+
+Verificacion:
+
+- revision manual de consistencia documental
+
+Pendiente:
+
+- seguir iterando el starter pack conforme aparezcan patrones nuevos en proyectos futuros
+
+### Segunda pasada de afinado
+
+Objetivo:
+
+- hacer el starter pack mas practico para colaboracion multiagente
+- evitar que la metodologia general se actualice por rutina
+- eliminar restos especificos de stack dentro de `docs/project-methodology/`
+
+Cambios principales:
+
+- Se anaden documentos operativos:
+  - `agent-operating-model.md`
+  - `handoff-protocol.md`
+  - `collaboration-modes.md`
+  - `anti-patterns.md`
+  - `methodology-maintenance.md`
+- Se ajustan `README.md`, `multi-agent-model.md`, `iteration-model.md`, `documentation-system.md` y `file-blueprints.md`.
+- Se convierten archivos antiguos de `docs/project-methodology/` en puentes neutrales hacia la nueva estructura.
+- `AGENTS.md` queda alineado con la regla: la metodologia general solo cambia si aparece una regla reusable.
+
+Decisiones:
+
+- Codex queda como ejecutor principal por defecto.
+- Claude u otros agentes pueden asistir o ejecutar tareas acotadas con ownership claro.
+- Todo relevo entre herramientas debe dejar handoff.
+- `docs/project-methodology/` cambia poco y no guarda detalles especificos de stack.
+- `docs/work-methodology/` queda como memoria de aprendizajes concretos del repo.
+
+Verificacion:
+
+- Revision documental completada.
+- Busqueda de referencias especificas de stack en `docs/project-methodology/` sin resultados.
+- No se ejecutan `test` ni `build` porque solo se modifico documentacion.
+
+### Tercera pasada de calidad metodologica
+
+Objetivo:
+
+- revisar claridad, duplicaciones, conflictos y practicidad del starter pack reusable
+- reforzar handoff entre Codex y Claude
+- aclarar cuando usar modo ligero y cuando modo fase
+- hacer mas directa la derivacion de `AGENTS.md` para proyectos nuevos
+
+Cambios principales:
+
+- Se ajusta la regla de ejecucion: no se prohibe colaborar en paralelo, se prohibe ownership ambiguo y solape sobre la misma zona.
+- `multi-agent-model.md` explicita integrador principal, ejecutores acotados y relevo Codex/Claude.
+- `collaboration-modes.md` gana criterios para elegir modo y reglas para cambiar de modo.
+- `handoff-protocol.md` exige origen, destino, rol, ownership y datos especificos para relevos Codex/Claude.
+- `iteration-model.md` distingue mejor modo ligero, modo fase y cuando escalar de uno a otro.
+- `methodology-maintenance.md` anade una prueba rapida para decidir si una regla merece entrar en metodologia general.
+- `project-adaptation.md` y `file-blueprints.md` explican mejor como derivar un `AGENTS.md` concreto.
+- `quality-and-verification.md` anade comprobacion de neutralidad del starter pack para cambios de proceso.
+
+Decisiones:
+
+- La metodologia general sigue neutral al stack y no debe actualizarse en cierres ordinarios.
+- `docs/work-methodology/` se mantiene como memoria local del repo, no como fuente canonica.
+- Codex sigue como ejecutor principal por defecto, con Claude u otros agentes en roles acotados salvo decision explicita.
+
+Verificacion:
+
+- Revision documental completada.
+- Busqueda de referencias especificas de stack en `docs/project-methodology/` sin resultados.
+- No se ejecutan `test` ni `build` porque solo se modifico documentacion.
+
+### Aclaracion de kickoff metodologico
+
+Objetivo:
+
+- dejar explicito que la metodologia reusable se usa al arrancar o reajustar un proyecto, no como manual diario de cada tarea
+- aclarar que `AGENTS.md` mezcla reglas generales y reglas concretas del repo
+- reforzar que tras el kickoff se trabaja desde `AGENTS.md` y docs vivos del proyecto
+
+Cambios principales:
+
+- Se crea `project-kickoff.md` para describir la pasada inicial antes del desarrollo tecnico.
+- `README.md` incorpora `project-kickoff.md` al mapa y al orden de lectura.
+- `project-adaptation.md` explica la mezcla correcta dentro de `AGENTS.md`.
+- `file-blueprints.md` separa reglas obligatorias, contexto del proyecto, modos de trabajo y handoff.
+
+Decisiones:
+
+- `docs/project-methodology/` sirve para configurar el sistema de trabajo.
+- `AGENTS.md` es el documento operativo diario dentro de cada repo.
+- No se debe copiar toda la metodologia general dentro de `AGENTS.md`; solo las reglas ejecutables.
+
+Verificacion:
+
+- Revision documental completada.
+- No se ejecutan `test` ni `build` porque solo se modifico documentacion.
+
+### Fichero compartido de coordinacion
+
+Objetivo:
+
+- asegurar que Codex, Claude y otras plataformas tengan un lugar comun dentro del repo para comunicarse
+- evitar que el relevo dependa solo de chats separados
+- documentar ownership activo, propuestas pendientes, handoffs y verificaciones de relevo
+
+Cambios principales:
+
+- `cross-platform-collaboration.md` define `docs/coordination-log.md` como nombre recomendado.
+- `handoff-protocol.md` exige volcar handoffs relevantes al fichero compartido cuando colaboran varias plataformas.
+- `project-kickoff.md` incluye crear o definir el fichero compartido durante el arranque.
+- `file-blueprints.md` anade blueprint para `coordination-log.md`.
+
+Decisiones:
+
+- El fichero compartido es operativo y corto; no sustituye a `AGENTS.md`, progreso, bitacora ni arquitectura.
+- El nombre recomendado es `docs/coordination-log.md`, pero cada proyecto puede usar equivalente si lo declara.
+- El chat ayuda, pero no es suficiente como memoria comun entre plataformas.
+
+Verificacion:
+
+- Revision documental completada.
+- No se ejecutan `test` ni `build` porque solo se modifico documentacion.
+
+### Colaboracion entre plataformas
+
+Objetivo:
+
+- convertir la coordinacion entre Codex, Claude y otras herramientas en una pieza central de la metodologia
+- evitar que varias plataformas compitan por la verdad del repo
+- dejar flujos concretos para planificacion, ejecucion, revision, diseno e integracion
+
+Cambios principales:
+
+- Se crea `cross-platform-collaboration.md`.
+- `README.md` incorpora el nuevo documento al mapa y orden de lectura.
+- `multi-agent-model.md` enlaza a los flujos concretos entre plataformas.
+- `project-kickoff.md` exige definir un mapa de plataformas antes de empezar desarrollo tecnico.
+- `file-blueprints.md` anade secciones para plataformas, roles e integrador dentro de `AGENTS.md`.
+
+Decisiones:
+
+- Codex sigue como ejecutor principal por defecto si no se indica otra cosa.
+- Claude y otras plataformas pueden planificar, revisar, asistir o ejecutar tareas acotadas con ownership claro.
+- El repo, las docs vivas y la verificacion mandan por encima de cualquier conversacion o prototipo.
+
+Verificacion:
+
+- Revision documental completada.
+- No se ejecutan `test` ni `build` porque solo se modifico documentacion.

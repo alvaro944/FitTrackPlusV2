@@ -1,5 +1,6 @@
 package com.alvarocervantes.fittrackplus.feature.workout
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alvarocervantes.fittrackplus.data.local.relation.WorkoutSessionWithExercises
@@ -24,6 +25,7 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class WorkoutViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val workoutRepository: WorkoutRepository,
     private val getNextWorkoutPreview: GetNextWorkoutPreviewUseCase,
@@ -31,6 +33,10 @@ class WorkoutViewModel @Inject constructor(
     private val finishWorkoutSession: FinishWorkoutSessionUseCase,
     private val updateWorkoutSet: UpdateWorkoutSetUseCase
 ) : ViewModel() {
+
+    companion object {
+        private const val SESSION_KEY = "active_session_id"
+    }
 
     private val _uiState = MutableStateFlow(WorkoutUiState())
     val uiState: StateFlow<WorkoutUiState> = _uiState.asStateFlow()
@@ -70,40 +76,40 @@ class WorkoutViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { state -> state.copy(isStarting = true) }
 
-            runCatching {
-                startWorkoutSession(routineId)
-            }.onSuccess { startedSession ->
-                if (startedSession == null) {
-                    _uiState.update { state ->
-                        state.copy(
-                            isStarting = false,
-                            message = "No se pudo iniciar el entrenamiento."
-                        )
-                    }
-                } else {
-                    val activeSession = workoutRepository
-                        .getSessionWithExercises(startedSession.sessionId)
-                        ?.toUiState()
-                    _uiState.update { state ->
-                        state.copy(
-                            isStarting = false,
-                            preview = null,
-                            activeSession = activeSession,
-                            message = if (activeSession == null) {
-                                "No se pudo cargar la sesion iniciada."
-                            } else {
-                                null
-                            }
-                        )
-                    }
-                }
-            }.onFailure { throwable ->
+            val result = runCatching { startWorkoutSession(routineId) }
+
+            result.onFailure { throwable ->
                 _uiState.update { state ->
                     state.copy(
                         isStarting = false,
                         message = throwable.message ?: "No se pudo iniciar el entrenamiento."
                     )
                 }
+            }
+            if (result.isFailure) return@launch
+
+            val startedSession = result.getOrNull()
+            if (startedSession == null) {
+                _uiState.update { state ->
+                    state.copy(isStarting = false, message = "No se pudo iniciar el entrenamiento.")
+                }
+                return@launch
+            }
+
+            savedStateHandle[SESSION_KEY] = startedSession.sessionId
+
+            val activeSession = workoutRepository
+                .getSessionWithExercises(startedSession.sessionId)
+                ?.toUiState()
+                ?.let { enrichWithPreviousWeights(it) }
+
+            _uiState.update { state ->
+                state.copy(
+                    isStarting = false,
+                    preview = null,
+                    activeSession = activeSession,
+                    message = if (activeSession == null) "No se pudo cargar la sesion iniciada." else null
+                )
             }
         }
     }
@@ -137,6 +143,7 @@ class WorkoutViewModel @Inject constructor(
             runCatching {
                 finishWorkoutSession(sessionId)
             }.onSuccess {
+                savedStateHandle.remove<Long>(SESSION_KEY)
                 val activeRoutineId = _uiState.value.activeRoutineId
                 val nextPreview = activeRoutineId?.let { getNextWorkoutPreview(it) }
                 _uiState.update { state ->
@@ -187,7 +194,19 @@ class WorkoutViewModel @Inject constructor(
             )
         }
 
-        val activeSession = workoutRepository.getActiveSessionWithExercises()?.toUiState()
+        val savedSessionId = savedStateHandle.get<Long>(SESSION_KEY)
+        val activeSession = if (savedSessionId != null) {
+            val session = workoutRepository.getSessionWithExercises(savedSessionId)
+                ?.takeIf { it.session.finishedAt == null }
+                ?.toUiState()
+                ?.let { enrichWithPreviousWeights(it) }
+            if (session == null) savedStateHandle.remove<Long>(SESSION_KEY)
+            session
+        } else {
+            workoutRepository.getActiveSessionWithExercises()
+                ?.toUiState()
+                ?.let { enrichWithPreviousWeights(it) }
+        }
         val preview = if (activeSession == null && activeRoutineId != null) {
             getNextWorkoutPreview(activeRoutineId)?.toUiState()
         } else {
@@ -201,6 +220,24 @@ class WorkoutViewModel @Inject constructor(
                 preview = preview
             )
         }
+    }
+
+    private suspend fun enrichWithPreviousWeights(
+        session: ActiveWorkoutSessionUiState
+    ): ActiveWorkoutSessionUiState {
+        return session.copy(
+            exercises = session.exercises.map { exercise ->
+                exercise.copy(
+                    sets = exercise.sets.map { set ->
+                        val prevKg = workoutRepository.getLastWeightKgForExerciseSet(
+                            exerciseName = exercise.name,
+                            setNumber = set.setNumber
+                        )
+                        set.copy(previousWeight = prevKg?.toInputText())
+                    }
+                )
+            }
+        )
     }
 
     private fun updateSetState(
@@ -266,7 +303,8 @@ data class WorkoutSetUiState(
     val id: Long,
     val setNumber: Int,
     val weightText: String,
-    val repsText: String
+    val repsText: String,
+    val previousWeight: String? = null
 )
 
 private fun WorkoutPreview.toUiState(): WorkoutPreviewUiState {

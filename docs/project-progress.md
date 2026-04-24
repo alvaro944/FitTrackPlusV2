@@ -12,11 +12,19 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 - Commit de cierre de Fase 4: `Complete phase 4 statistics MVP`.
 - Commit de cierre de Fase 5: `Complete phase 5 UX polish`.
 - Remoto configurado: `https://github.com/alvaro944/FitTrackPlusV2.git`.
+- Rama local por delante de `origin/main` con commits pendientes de push.
 - Fase 6 cerrada tecnicamente.
 - Validacion manual de Fase 6 pendiente en movil.
 - Branding cerrado: docs de marca, logo decidido, app icon generado con fondo crema.
-- Siguiente trabajo: mejoras UX alta prioridad (items 18-23 de `docs/mejoras-claude.md`).
-- Siguiente fase funcional: `phase-7-sync-futura`.
+- Bloque 3 UX implementado en local: Ajustes, Inicio dinamico, feedback haptico, editor protegido y archivadas.
+- Trabajo visual actual: intro de arranque clara en Compose basada en `docs/branding/Pantalla incio fondo claro/`.
+- Starter pack metodologico reusable consolidado y afinado en `docs/project-methodology/`.
+- Tercera pasada metodologica aplicada: ownership multiagente, handoff Codex/Claude, modos ligero/fase y derivacion de `AGENTS.md` quedan mas operativos.
+- Kickoff metodologico documentado: la metodologia se usa para configurar el proyecto y `AGENTS.md` queda como referencia operativa diaria.
+- Colaboracion entre plataformas formalizada: Codex, Claude, herramientas visuales y revisores tienen roles, ownership y handoff definidos.
+- Fichero compartido de coordinacion definido como pieza reusable para que varias plataformas se comuniquen dentro del repo.
+- Siguiente trabajo: validacion manual + intro de arranque clara + Bloque 4 funcional.
+- Siguiente fase funcional: Bloque 4 (export, referencia de peso anterior y mejora de stats).
 
 ## Hecho Hasta Ahora
 
@@ -168,6 +176,42 @@ Implementado:
   - Se anaden tokens iniciales de espaciado para empezar a sacar `dp` hardcodeados del sistema visual.
   - `docs/work-methodology/` refleja mejor la coordinacion multiagente con `Codex` como ejecutor principal.
 
+### Bloque 3 - UX alta prioridad
+
+Implementado en local:
+
+- `SettingsScreen` y `SettingsViewModel` reales con selector `kg/lb`, version y sexta tab operativa.
+- `HomeViewModel` + metricas reales de sesiones de la semana y total + CTA dinamica segun rutina activa.
+- Feedback haptico en `WorkoutSetRow` al registrar el primer dato de una serie.
+- Editor de rutinas protegido con `isDirty` y dialogo de descarte al cerrar sin guardar.
+- Filtro `Activas / Archivadas` con accion `Restaurar` para rutinas archivadas.
+- Banner dismissible de snapshots persistido en DataStore (`hasSeenSnapshotInfo`).
+- `buildConfig = true` para exponer `BuildConfig.VERSION_NAME`.
+
+Pendiente:
+
+- `git push` de los commits locales pendientes al remoto.
+- Validacion manual del flujo completo en dispositivo/emulador.
+
+### Intro de arranque clara
+
+Implementado en workspace:
+
+- Nueva referencia visual oficial en `docs/branding/Pantalla incio fondo claro/`.
+- Intro de arranque aterrizada de HTML/CSS a Compose nativo, sin WebView ni video.
+- Asset del logo limpio copiado a `app/src/main/res/drawable-nodpi/launch_logo.png`.
+- `MainActivity` ahora arranca a traves de un `FitTrackPlusAppRoot` con una intro breve antes del `NavHost`.
+- La intro usa:
+  - fondo mineral claro
+  - glow esmeralda y cobre muy sutil
+  - reveal del simbolo
+  - wordmark de producto
+  - loader breve
+
+Pendiente:
+
+- Validacion manual de timing, legibilidad y convivencia con dark mode.
+
 ## Verificacion Realizada
 
 Comandos ejecutados:
@@ -223,13 +267,14 @@ Implementado:
 - Todos los tamaños de mipmap generados (mdpi a xxxhdpi) + ic_launcher-playstore.png.
 - `ic_launcher_background.xml` con fondo crema `#F4F4F1`.
 - Docs de marca cerrados: brand-foundation, logo-direction, color-system, typography, brand-questionnaire.
+- Nueva referencia oficial de arranque: `docs/branding/Pantalla incio fondo claro/`, aterrizada a Compose nativo.
 
 ## Siguiente Paso
 
-Mejoras UX de alta prioridad (Bloque 3 del roadmap):
-
-1. Validacion manual en dispositivo/emulador via Android Studio (antes de iterar mas).
-2. Settings funcional: unidad de peso + placeholder de exportar historial + version.
-3. HomeViewModel + metricas reales + CTA dinamica (items 18-19).
-4. Feedback en Workout y touch targets (items 20-21).
-5. Proteccion editor de rutinas + archivadas visibles (items 22-23-35).
+1. Hacer `git push` de los commits locales pendientes.
+2. Validacion manual en dispositivo/emulador via Android Studio, incluyendo launcher, Bloque 3 y dark mode.
+3. Revisar la intro de arranque clara en movil real y ajustar timing o copy si hace falta.
+4. Abrir Bloque 4 del roadmap:
+   - export de historial a JSON
+   - peso anterior como referencia en Entrenar
+   - graficos de progreso en Datos

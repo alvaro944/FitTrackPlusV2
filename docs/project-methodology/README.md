@@ -1,62 +1,87 @@
-# Project Methodology
+# Project Methodology Starter Pack
 
-This folder documents the working methodology used across the whole `retail-order-management-api` project.
+Esta carpeta es la base metodologica reusable para proyectos futuros.
 
-The goal is not only to explain what was built, but how the project was executed:
+No define el stack, el roadmap ni la arquitectura concreta de este repo. Define **como organizar el trabajo** para que luego sea facil aterrizarlo a un proyecto especifico con muy pocos datos extra.
 
-- how the work was split into phases
-- how branches and worktrees were used
-- how architecture decisions were kept consistent
-- how AI skills and session rules were used productively
-- how validation and documentation were treated as part of the work
-- how the project was kept portfolio-ready while still evolving
+## Para Que Sirve
 
-This folder is meant to be reusable for future projects, especially as a reference for:
+Usa esta carpeta cuando quieras crear o ajustar:
 
-- serious solo project execution
-- AI-assisted engineering workflow
-- backend-first modular development
-- portfolio-quality delivery discipline
+- `AGENTS.md`
+- workflow operativo
+- reglas de colaboracion multiagente
+- sistema de documentacion viva
+- metodo de iteraciones
+- criterios de verificacion
 
-## File Map
+La idea es que para un proyecto nuevo solo tengas que aportar:
 
-- [01-working-methodology.md](./01-working-methodology.md)
-  The overall way of working: phases, scope control, git discipline, validation, and documentation.
+- stack
+- arquitectura concreta
+- restricciones
+- roadmap o plan
+- comandos de verificacion
 
-- [02-ai-skills-and-collaboration.md](./02-ai-skills-and-collaboration.md)
-  How AI assistance, Codex skills, and session conventions were used as a working system rather than as isolated prompts.
+## Que Contiene
 
-- [03-architecture-and-quality-principles.md](./03-architecture-and-quality-principles.md)
-  The architecture rules, design principles, and quality constraints that shaped the codebase.
+- `operating-principles.md`: principios generales de trabajo
+- `decision-system.md`: jerarquia de autoridad, artefactos y estados de una idea
+- `multi-agent-model.md`: roles, relevo entre herramientas y trabajo multiagente
+- `cross-platform-collaboration.md`: como coordinar Codex, Claude y otras plataformas
+- `agent-operating-model.md`: reglas del agente ejecutor principal
+- `collaboration-modes.md`: modos de colaboracion entre agentes y herramientas
+- `handoff-protocol.md`: protocolo de relevo entre herramientas, agentes o sesiones
+- `iteration-model.md`: ciclo completo de una iteracion
+- `documentation-system.md`: como separar estado, direccion, metodologia y bitacora
+- `quality-and-verification.md`: verificacion proporcional y reglas practicas
+- `methodology-maintenance.md`: cuando actualizar la metodologia general y cuando no
+- `anti-patterns.md`: errores recurrentes que conviene detectar pronto
+- `project-kickoff.md`: como usar esta base antes de empezar el desarrollo tecnico
+- `project-adaptation.md`: como aterrizar esta base a un proyecto real
+- `file-blueprints.md`: esqueletos y contenidos minimos para los ficheros operativos habituales
 
-- [04-phased-delivery-model.md](./04-phased-delivery-model.md)
-  How the project was broken into phases, why that mattered, and what each phase added to the system and the workflow.
+## Como Leerlo
 
-- [05-checklists-and-templates.md](./05-checklists-and-templates.md)
-  Reusable checklists and templates for future projects, sessions, branches, validation, and portfolio close-out.
+Orden recomendado:
 
-- [06-lessons-and-what-made-this-project-serious.md](./06-lessons-and-what-made-this-project-serious.md)
-  A reflective summary of what made this feel like a serious project and what should be carried forward into the next one.
+1. `operating-principles.md`
+2. `decision-system.md`
+3. `multi-agent-model.md`
+4. `cross-platform-collaboration.md`
+5. `agent-operating-model.md`
+6. `collaboration-modes.md`
+7. `handoff-protocol.md`
+8. `iteration-model.md`
+9. `documentation-system.md`
+10. `quality-and-verification.md`
+11. `methodology-maintenance.md`
+12. `anti-patterns.md`
+13. `project-kickoff.md`
+14. `project-adaptation.md`
+15. `file-blueprints.md`
 
-## Why This Documentation Exists
+Los archivos numerados antiguos y `development-workflow.md` se mantienen solo como puentes de compatibilidad. Para trabajo nuevo, usar los documentos anteriores.
 
-This was the first more serious project in the repository where the value was not only the final application, but also the methodology behind it.
+## Regla Principal
 
-The most important outcomes were:
+Esta carpeta es la **fuente canonica** de metodologia general.
 
-- learning to work in deliberate phases instead of improvising everything at once
-- learning to protect architecture from scope drift
-- learning to combine implementation, testing, documentation, deployment, and portfolio thinking in one process
-- learning to use AI as an engineering partner with constraints, review, and verification
-- learning that project quality comes as much from discipline and repetition as from technical choices
+Si el repo mantiene otras carpetas de metodologia o notas de trabajo:
 
-## Recommended Reading Order
+- esta carpeta fija la base reusable
+- las otras carpetas pueden guardar aprendizajes concretos, historicos o especificos del proyecto
 
-If this folder is used in a future project or as a personal methodology guide, read in this order:
+## Regla De Mantenimiento
 
-1. `01-working-methodology.md`
-2. `03-architecture-and-quality-principles.md`
-3. `02-ai-skills-and-collaboration.md`
-4. `04-phased-delivery-model.md`
-5. `05-checklists-and-templates.md`
-6. `06-lessons-and-what-made-this-project-serious.md`
+Esta carpeta debe cambiar poco.
+
+No se actualiza en cada iteracion. Solo se modifica cuando aparece una regla clara, repetible y reusable entre proyectos. Los aprendizajes locales viven primero en la documentacion especifica del repo.
+
+## Uso En Un Proyecto Nuevo
+
+1. definir primero stack, arquitectura, restricciones, roadmap y verificaciones reales
+2. leer esta carpeta como base metodologica de arranque
+3. generar `AGENTS.md`, README, roadmap, progreso y bitacora desde `project-kickoff.md`, `project-adaptation.md` y `file-blueprints.md`
+4. operar el proyecto desde `AGENTS.md` y los docs vivos del repo
+5. mantener los aprendizajes locales fuera de esta carpeta salvo que se conviertan en reglas portables
