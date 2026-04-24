@@ -4,12 +4,16 @@ FitTrackPlus es una aplicacion Android nativa para crear rutinas de gimnasio, re
 
 ## Estado Actual
 
-Fase actual: `phase-6-ui-visual-front` completada tecnicamente.
-Validacion manual pendiente: prueba en movil cuando sea posible.
+Rama de trabajo actual: `codex/v2-mejoras`.
+Fase 6 y su bloque de polish visual/accesibilidad estan cerrados tecnicamente:
+- espaciado remapeado a `FitSpacing` en las pantallas principales
+- `core/design` dividido por componentes (`Cards`, `Labels`, `States`, `Indicators`)
+- transiciones `fadeIn/fadeOut` en navegacion y `AnimatedContent` en Historial
+- semantics en barras de progreso y targets tactiles revisados en Rutinas
+Validacion manual pendiente: prueba en movil/emulador para intro, transiciones, accesibilidad y dark mode.
 Branding base cerrado: docs de marca, logo e icono adaptativo ya definidos.
-Bloque 3 UX implementado en local: Ajustes funcionales, Inicio dinamico, feedback haptico, editor protegido y archivadas visibles.
-Trabajo visual actual: integrar la intro de arranque clara desde `docs/branding/Pantalla incio fondo claro/`.
-Siguiente fase funcional: Bloque 4 (export de historial, peso anterior y mejora de stats). `phase-7-sync-futura` sigue fuera de foco.
+La intro de arranque clara ya vive en Compose; Bloque 8 queda solo para validacion o ajuste real si aparece un problema.
+Siguiente trabajo recomendado: validacion manual del polish visual, luego Bloque 7 (GitHub Actions CI). `strings.xml` sigue diferido hasta estabilizar copy.
 
 La app esta arrancando una base nueva en Jetpack Compose. La v2 se compila desde `app/src/main/kotlin`.
 
@@ -77,9 +81,10 @@ Cuando existan pruebas instrumentadas:
 5. Fase 4 - Estadisticas MVP: progreso por ejercicio, volumen y mejores marcas. Completada tecnicamente.
 6. Fase 5 - Pulido UX funcional: estados, accesibilidad, errores y recorrido de usuario nuevo. Completada tecnicamente.
 7. Fase 6 - UI visual / Front con herramienta: sistema visual, navegacion y pantallas Compose redisenadas sin cambiar reglas de negocio. Completada tecnicamente.
-8. Bloque 3 UX - Ajustes, Inicio dinamico, feedback de entrenamiento, editor seguro y archivadas. Implementado en local, pendiente de validacion manual y push.
-9. Bloque 4 - Funcionalidad nueva de valor: export de historial, referencia de peso anterior y graficos de progreso.
-10. Fase 7 - Sync futura: evaluar Firebase/Auth/Firestore o alternativa cuando el nucleo local y visual este estable.
+8. Bloque 3 UX + polish visual/accesibilidad de Fase 6: implementado en local y verificado con `test` + `build`, pendiente de validacion manual y push.
+9. Bloque 7 - CI: crear workflow de GitHub Actions cuando la validacion manual del polish no detecte ajustes extra.
+10. Bloque 4 - Funcionalidad nueva de valor: export de historial, referencia de peso anterior y mejora de stats, despues de cerrar visual/CI.
+11. Fase 7 - Sync futura: evaluar Firebase/Auth/Firestore o alternativa cuando el nucleo local y visual este estable.
 
 ## Metodologia
 

@@ -98,7 +98,7 @@ fun HomeScreen(
         item {
             Column(
                 modifier = Modifier.padding(top = FitSpacing.screenTop),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
             ) {
                 Text(
                     text = formatToday(),
@@ -123,10 +123,10 @@ fun HomeScreen(
                     .clip(MaterialTheme.shapes.extraLarge)
                     .background(MaterialTheme.colorScheme.primaryDark)
                     .fillMaxWidth()
-                    .padding(22.dp)
+                    .padding(FitSpacing.cardPadding)
             ) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(FitSpacing.mdLg)
                 ) {
                     FitTrackBadge(
                         label = "LOCAL-FIRST",
@@ -240,7 +240,7 @@ private fun MiniHeroTag(text: String) {
         modifier = Modifier
             .clip(MaterialTheme.shapes.medium)
             .background(Color.White.copy(alpha = 0.10f))
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(horizontal = FitSpacing.smMd, vertical = FitSpacing.tiny)
     ) {
         Text(
             text = text,
@@ -263,7 +263,7 @@ private fun QuickActionCard(action: HomeQuickAction) {
         containerColor = MaterialTheme.colorScheme.surface
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.mdLg),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(

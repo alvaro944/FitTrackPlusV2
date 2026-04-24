@@ -1,5 +1,10 @@
 package com.alvarocervantes.fittrackplus.feature.history
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
@@ -82,31 +88,53 @@ private fun HistoryContent(
     onSessionClick: (Long) -> Unit,
     onBackToList: () -> Unit
 ) {
+    val showingDetail = state.selectedSessionId != null || state.isDetailLoading
+
+    AnimatedContent(
+        targetState = showingDetail,
+        transitionSpec = {
+            fadeIn(animationSpec = tween(200)) togetherWith fadeOut(animationSpec = tween(200))
+        },
+        label = "history_content"
+    ) { isDetailVisible ->
+        if (isDetailVisible) {
+            HistoryDetailContent(
+                state = state,
+                contentPadding = contentPadding,
+                onBackToList = onBackToList
+            )
+        } else {
+            HistoryListContent(
+                state = state,
+                contentPadding = contentPadding,
+                onSessionClick = onSessionClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryListContent(
+    state: HistoryUiState,
+    contentPadding: PaddingValues,
+    onSessionClick: (Long) -> Unit
+) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
-        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(
+            start = FitSpacing.screenHorizontal,
+            top = FitSpacing.screenTop,
+            end = FitSpacing.screenHorizontal,
+            bottom = FitSpacing.screenBottom
+        ),
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.lg)
     ) {
         item {
             FitTrackScreenHeader(
                 title = "Historial",
-                subtitle = if (state.selectedDetail == null && !state.isDetailLoading) {
-                    "Sesiones finalizadas"
-                } else {
-                    "Detalle historico"
-                },
-                trailing = {
-                    if (state.selectedDetail != null || state.isDetailLoading) {
-                        IconButton(onClick = onBackToList) {
-                            Icon(
-                                imageVector = Icons.Filled.ArrowBack,
-                                contentDescription = "Volver al listado de historial"
-                            )
-                        }
-                    }
-                }
+                subtitle = "Sesiones finalizadas"
             )
         }
 
@@ -126,7 +154,7 @@ private fun HistoryContent(
                 }
             }
 
-            state.selectedSessionId == null -> {
+            else -> {
                 item {
                     FitTrackSectionLabel(label = "Sesiones")
                 }
@@ -140,7 +168,44 @@ private fun HistoryContent(
                     )
                 }
             }
+        }
+    }
+}
 
+@Composable
+private fun HistoryDetailContent(
+    state: HistoryUiState,
+    contentPadding: PaddingValues,
+    onBackToList: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(contentPadding),
+        contentPadding = PaddingValues(
+            start = FitSpacing.screenHorizontal,
+            top = FitSpacing.screenTop,
+            end = FitSpacing.screenHorizontal,
+            bottom = FitSpacing.screenBottom
+        ),
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.lg)
+    ) {
+        item {
+            FitTrackScreenHeader(
+                title = "Historial",
+                subtitle = "Detalle historico",
+                trailing = {
+                    IconButton(onClick = onBackToList) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "Volver al listado de historial"
+                        )
+                    }
+                }
+            )
+        }
+
+        when {
             state.isDetailLoading -> {
                 item { FitTrackLoadingCard(text = "Cargando detalle historico...") }
             }
@@ -158,6 +223,10 @@ private fun HistoryContent(
                 ) { exercise ->
                     HistoryExerciseCard(exercise = exercise)
                 }
+            }
+
+            else -> {
+                item { FitTrackLoadingCard(text = "Cargando detalle historico...") }
             }
         }
     }
@@ -184,7 +253,7 @@ private fun HistorySessionCard(
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
             ) {
                 Text(
                     text = session.routineName,
@@ -227,7 +296,7 @@ private fun HistoryDetailSummary(detail: HistoryDetailUiState) {
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.xl)
         ) {
             FitTrackMetric(
                 value = detail.exercises.size.toString(),
@@ -253,10 +322,10 @@ private fun HistoryDetailSummary(detail: HistoryDetailUiState) {
 private fun HistoryExerciseCard(exercise: HistoryExerciseUiState) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
             ) {
                 Text(
                     text = exercise.name,
@@ -283,8 +352,8 @@ private fun HistorySetRow(set: HistorySetUiState) {
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
-            .padding(10.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(FitSpacing.smMd),
+        horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(

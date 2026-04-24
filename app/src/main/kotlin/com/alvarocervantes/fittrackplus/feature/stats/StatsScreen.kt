@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.core.design.components.LineChart
+import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
@@ -74,8 +75,13 @@ private fun StatsContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
-        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(
+            start = FitSpacing.screenHorizontal,
+            top = FitSpacing.screenTop,
+            end = FitSpacing.screenHorizontal,
+            bottom = FitSpacing.screenBottom
+        ),
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.lg)
     ) {
         item {
             FitTrackScreenHeader(
@@ -165,7 +171,7 @@ private fun StatsContent(
 private fun SummaryGrid(state: StatsUiState) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(FitSpacing.md)
     ) {
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
@@ -202,7 +208,7 @@ private fun SessionVolumeCard(session: SessionVolumeUiState) {
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
             ) {
                 Text(
                     text = session.routineName,
@@ -244,7 +250,7 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
             ) {
                 Text(
                     text = progress.exerciseName,
@@ -271,7 +277,7 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
         if (latest != null) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(FitSpacing.lg)
             ) {
                 FitTrackMetric(
                     value = latest.maxWeightKg.toDisplayText(),
@@ -287,7 +293,8 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
                 )
             }
             FitTrackProgressBar(
-                progress = if (maxWeight == 0.0) 0f else (latest.maxWeightKg / maxWeight).toFloat()
+                progress = if (maxWeight == 0.0) 0f else (latest.maxWeightKg / maxWeight).toFloat(),
+                contentDescription = "Progreso de peso maximo de ${progress.exerciseName}"
             )
             Text(
                 text = "Volumen ${latest.volumeKg.toDisplayText()} kg · mejor peso registrado ${maxWeight.toDisplayText()} kg",
@@ -302,7 +309,7 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
 private fun ExerciseRecordsCard(records: ExerciseRecordsUiState) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
         ) {
             FitTrackBadge(
                 label = "PR",
@@ -332,7 +339,7 @@ private fun RecordRow(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.accentSoft, MaterialTheme.shapes.large)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = FitSpacing.md, vertical = FitSpacing.smMd),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
@@ -415,7 +422,7 @@ private fun ProgressChartCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(160.dp)
-                        .padding(top = 4.dp)
+                        .padding(top = FitSpacing.xs)
                 )
             }
         }

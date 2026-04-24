@@ -573,6 +573,72 @@ Pendiente:
 - Validacion manual de Fase 6 en movil.
 - Definir personalidad de marca antes de explorar logo final o imagen generada.
 
+### Bloque 6 - Polish visual y accesibilidad
+
+Estado:
+
+- completado tecnicamente
+
+Rama:
+
+- `codex/v2-mejoras`
+
+Objetivo:
+
+- cerrar el WIP real de `core/design` sin rehacer el trabajo ya empezado
+- terminar la normalizacion de espaciado en pantallas principales
+- anadir transiciones suaves y rematar la accesibilidad basica del sistema visual
+
+Cambios principales:
+
+- `FitSpacing` queda consolidado en `core/design/Spacing.kt` con tokens intermedios reutilizables (`tiny`, `smMd`, `mdLg`, `cardPadding`).
+- `FitTrackPlusDesignSystem.kt` deja de duplicar composables y pasa a contener solo enums compartidos.
+- Se crea `Indicators.kt` y `core/design` queda dividido por responsabilidad:
+  - `Cards.kt`
+  - `Labels.kt`
+  - `States.kt`
+  - `Indicators.kt`
+- Home, Rutinas, Entrenar, Historial y Datos sustituyen los `dp` hardcodeados pendientes por tokens de `FitSpacing`.
+- `FitTrackPlusNavHost` gana `fadeIn/fadeOut` de 200 ms para navegacion entre tabs.
+- `HistoryScreen` separa listado y detalle en composables distintos y los intercambia con `AnimatedContent`.
+- `FitTrackProgressBar` gana `semantics`, `ProgressBarRangeInfo` y `contentDescription`; Entrenar y Datos pasan textos accesibles.
+- Rutinas conserva `minimumInteractiveComponentSize()` en acciones iconicas como cierre de accesibilidad tactil.
+
+Problemas encontrados:
+
+- El arbol real no estaba limpio: habia un split parcial de `core/design` con archivos nuevos, pero el archivo anterior seguia exportando los mismos simbolos.
+- Un primer `build` se quedo sin salida hasta timeout; se paro Gradle, se verifico primero `:app:compileDebugKotlin` y despues `test` y `build` completos.
+
+Decisiones:
+
+- No devolver `FitSpacing` a `FitTrackPlusDesignSystem.kt`; `Spacing.kt` pasa a ser la fuente canonica de tokens.
+- Aprovechar el WIP existente en vez de rehacer el split desde cero.
+- No abrir cambios de branding ni de intro durante este pass; la intro queda pendiente solo de validacion manual.
+- El siguiente paso tecnico no es Bloque 4 funcional sino validacion manual del polish y despues CI.
+
+Verificacion:
+
+```powershell
+.\gradlew.bat :app:compileDebugKotlin --no-daemon --console=plain
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- `compileDebugKotlin` pasa.
+- Tests pasan.
+- Build completo pasa.
+
+Pendiente:
+
+- Validacion manual en emulador/dispositivo:
+  - fade entre tabs
+  - fade lista/detalle en Historial
+  - TalkBack en barras de progreso
+  - targets tactiles en Rutinas
+  - timing y legibilidad de la intro
+
 ## Branding base + Bloque 3 UX + intro clara
 
 Estado:

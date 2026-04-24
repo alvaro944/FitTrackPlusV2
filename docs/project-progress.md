@@ -4,7 +4,7 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 
 ## Estado Actual
 
-- Rama actual: `codex/phase-6-ui-visual-front`.
+- Rama actual: `codex/v2-mejoras`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
 - Commit de cierre de Fase 1: `9df5a44 Complete phase 1 routines`.
 - Commit de cierre de Fase 2: `7cf2c02 Complete phase 2 workout logging`.
@@ -12,19 +12,20 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 - Commit de cierre de Fase 4: `Complete phase 4 statistics MVP`.
 - Commit de cierre de Fase 5: `Complete phase 5 UX polish`.
 - Remoto configurado: `https://github.com/alvaro944/FitTrackPlusV2.git`.
-- Rama local por delante de `origin/main` con commits pendientes de push.
+- Rama local alineada con `origin/codex/v2-mejoras` antes de este pass; cambios actuales aun pendientes de commit/push.
 - Fase 6 cerrada tecnicamente.
+- Bloque 6 de polish visual y accesibilidad cerrado tecnicamente y verificado con `test` + `build`.
 - Validacion manual de Fase 6 pendiente en movil.
 - Branding cerrado: docs de marca, logo decidido, app icon generado con fondo crema.
 - Bloque 3 UX implementado en local: Ajustes, Inicio dinamico, feedback haptico, editor protegido y archivadas.
-- Trabajo visual actual: intro de arranque clara en Compose basada en `docs/branding/Pantalla incio fondo claro/`.
+- Trabajo visual actual: validar intro de arranque clara en Compose basada en `docs/branding/Pantalla incio fondo claro/`.
 - Starter pack metodologico reusable consolidado y afinado en `docs/project-methodology/`.
 - Tercera pasada metodologica aplicada: ownership multiagente, handoff Codex/Claude, modos ligero/fase y derivacion de `AGENTS.md` quedan mas operativos.
 - Kickoff metodologico documentado: la metodologia se usa para configurar el proyecto y `AGENTS.md` queda como referencia operativa diaria.
 - Colaboracion entre plataformas formalizada: Codex, Claude, herramientas visuales y revisores tienen roles, ownership y handoff definidos.
 - Fichero compartido de coordinacion definido como pieza reusable para que varias plataformas se comuniquen dentro del repo.
-- Siguiente trabajo: validacion manual + intro de arranque clara + Bloque 4 funcional.
-- Siguiente fase funcional: Bloque 4 (export, referencia de peso anterior y mejora de stats).
+- Siguiente trabajo: validacion manual de intro, transiciones y accesibilidad; despues Bloque 7 CI.
+- Siguiente fase funcional de producto: Bloque 4 (export, referencia de peso anterior y mejora de stats).
 
 ## Hecho Hasta Ahora
 
@@ -193,6 +194,25 @@ Pendiente:
 - `git push` de los commits locales pendientes al remoto.
 - Validacion manual del flujo completo en dispositivo/emulador.
 
+### Bloque 6 - Polish visual y accesibilidad
+
+Implementado en workspace:
+
+- `FitSpacing` se consolida en `core/design/Spacing.kt` y absorbe tokens intermedios (`tiny`, `smMd`, `mdLg`, `cardPadding`).
+- `core/design` deja de tener un split roto:
+  - `FitTrackPlusDesignSystem.kt` queda solo con enums compartidos.
+  - `Cards.kt`, `Labels.kt`, `States.kt` y `Indicators.kt` pasan a ser la unica fuente de verdad de los composables del design system.
+- Home, Rutinas, Entrenar, Historial y Datos remapean el espaciado hardcodeado pendiente a tokens del sistema.
+- `FitTrackPlusNavHost` gana transiciones `fadeIn/fadeOut` de 200 ms entre tabs.
+- `HistoryScreen` separa lista y detalle en dos composables y usa `AnimatedContent` para la transicion entre ambos estados.
+- `FitTrackProgressBar` gana semantics y `contentDescription`, y sus usos en Entrenar y Datos pasan descripciones accesibles.
+- Rutinas mantiene los `minimumInteractiveComponentSize()` en acciones iconicas como parte del cierre de accesibilidad.
+
+Problemas encontrados:
+
+- El repo no estaba realmente limpio: habia un WIP parcial con `Spacing.kt` y varios archivos nuevos de `core/design`, pero `FitTrackPlusDesignSystem.kt` seguia duplicando simbolos.
+- Un primer `build` se quedo sin salida hasta timeout; tras parar Gradle y verificar primero `:app:compileDebugKotlin`, `test` y `build` pasaron correctamente.
+
 ### Intro de arranque clara
 
 Implementado en workspace:
@@ -271,10 +291,8 @@ Implementado:
 
 ## Siguiente Paso
 
-1. Hacer `git push` de los commits locales pendientes.
-2. Validacion manual en dispositivo/emulador via Android Studio, incluyendo launcher, Bloque 3 y dark mode.
-3. Revisar la intro de arranque clara en movil real y ajustar timing o copy si hace falta.
-4. Abrir Bloque 4 del roadmap:
-   - export de historial a JSON
-   - peso anterior como referencia en Entrenar
-   - graficos de progreso en Datos
+1. Validacion manual en dispositivo/emulador via Android Studio, incluyendo launcher, transiciones de tabs, Historial animado, TalkBack y dark mode.
+2. Ajustar Bloque 8 solo si la intro de arranque clara muestra un problema real de timing, legibilidad o convivencia con dark mode.
+3. Crear Bloque 7: `.github/workflows/ci.yml` con `test`, `build` y `detekt`.
+4. Mantener `6.2 strings.xml` diferido hasta estabilizar copy.
+5. Reabrir Bloque 4 funcional solo despues de cerrar visual + CI.

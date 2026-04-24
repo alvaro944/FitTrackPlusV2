@@ -1,5 +1,8 @@
 package com.alvarocervantes.fittrackplus.core.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -116,7 +119,11 @@ private fun AppNavGraph(
     NavHost(
         navController = navController,
         startDestination = AppRoute.Home.route,
-        modifier = Modifier.padding(contentPadding)
+        modifier = Modifier.padding(contentPadding),
+        enterTransition = { fadeIn(animationSpec = tween(200)) },
+        exitTransition = { fadeOut(animationSpec = tween(200)) },
+        popEnterTransition = { fadeIn(animationSpec = tween(200)) },
+        popExitTransition = { fadeOut(animationSpec = tween(200)) }
     ) {
         composable(AppRoute.Home.route) {
             HomeScreen(

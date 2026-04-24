@@ -252,8 +252,8 @@ private fun WorkoutPreviewCard(
         border = null
     ) {
         Column(
-            modifier = Modifier.padding(22.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            modifier = Modifier.padding(FitSpacing.cardPadding),
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.mdLg)
         ) {
             FitTrackBadge(
                 label = "PROXIMO ENTRENAMIENTO",
@@ -272,7 +272,7 @@ private fun WorkoutPreviewCard(
                 color = Color.White.copy(alpha = 0.92f)
             )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
             ) {
                 HeroTag(text = "Semana ${preview.weekNumber}")
                 HeroTag(text = "${preview.exerciseCount} ejercicios")
@@ -300,7 +300,7 @@ private fun HeroTag(text: String) {
     Box(
         modifier = Modifier
             .background(Color.White.copy(alpha = 0.10f), MaterialTheme.shapes.medium)
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(horizontal = FitSpacing.smMd, vertical = FitSpacing.tiny)
     ) {
         Text(
             text = text,
@@ -324,7 +324,7 @@ private fun ActiveSessionSummary(
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
             ) {
                 FitTrackBadge(
                     label = "SESION ACTIVA",
@@ -350,7 +350,7 @@ private fun ActiveSessionSummary(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.xl)
         ) {
             FitTrackMetric(
                 value = session.completedSetCount.toString(),
@@ -370,7 +370,8 @@ private fun ActiveSessionSummary(
                 0f
             } else {
                 session.completedSetCount.toFloat() / session.totalSetCount.toFloat()
-            }
+            },
+            contentDescription = "Progreso de series completadas del entrenamiento actual"
         )
 
         Button(
@@ -441,7 +442,7 @@ private fun WorkoutSetRow(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
-            .padding(10.dp),
+            .padding(FitSpacing.smMd),
         horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {

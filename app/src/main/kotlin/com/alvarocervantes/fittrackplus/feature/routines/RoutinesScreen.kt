@@ -1,6 +1,8 @@
 package com.alvarocervantes.fittrackplus.feature.routines
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -48,7 +50,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -63,6 +64,8 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
+
+private val repsPresetOptions = listOf("5", "6-8", "8-12", "10-15")
 
 @Composable
 fun RoutinesScreen(
@@ -370,7 +373,7 @@ private fun RoutineListItem(
 ) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.mdLg)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -379,7 +382,7 @@ private fun RoutineListItem(
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
@@ -466,7 +469,7 @@ private fun ArchivedRoutineListItem(
 ) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.mdLg)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -475,7 +478,7 @@ private fun ArchivedRoutineListItem(
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
                 ) {
                     Text(
                         text = routine.name,
@@ -730,12 +733,96 @@ private fun RoutineExerciseEditor(
     onExerciseNotesChange: (Int, Int, String) -> Unit,
     onRemoveExercise: (Int, Int) -> Unit
 ) {
+    val currentSets = exercise.targetSets.toIntOrNull()?.coerceIn(1, 99) ?: 3
+    val hasCustomReps = exercise.targetRepsText !in repsPresetOptions
+    var showCustomRepsDialog by remember { mutableStateOf(false) }
+    var customRepsDraft by remember { mutableStateOf("") }
+    var showNotesDialog by remember { mutableStateOf(false) }
+    var notesDraft by remember { mutableStateOf("") }
+
+    if (showCustomRepsDialog) {
+        AlertDialog(
+            onDismissRequest = { showCustomRepsDialog = false },
+            title = { Text("Reps personalizadas") },
+            text = {
+                OutlinedTextField(
+                    value = customRepsDraft,
+                    onValueChange = { customRepsDraft = it },
+                    label = { Text("Valor personalizado") },
+                    placeholder = { Text("12-15 o AMRAP") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onExerciseRepsChange(dayIndex, exerciseIndex, customRepsDraft.trim())
+                        showCustomRepsDialog = false
+                    },
+                    enabled = customRepsDraft.trim().isNotEmpty()
+                ) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCustomRepsDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    if (showNotesDialog) {
+        AlertDialog(
+            onDismissRequest = { showNotesDialog = false },
+            title = { Text(if (exercise.notes.isBlank()) "Anadir nota" else "Editar nota") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                    OutlinedTextField(
+                        value = notesDraft,
+                        onValueChange = { notesDraft = it },
+                        label = { Text("Notas") },
+                        minLines = 3,
+                        maxLines = 5,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (exercise.notes.isNotBlank()) {
+                        TextButton(
+                            onClick = {
+                                onExerciseNotesChange(dayIndex, exerciseIndex, "")
+                                showNotesDialog = false
+                            }
+                        ) {
+                            Text("Eliminar nota")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onExerciseNotesChange(dayIndex, exerciseIndex, notesDraft)
+                        showNotesDialog = false
+                    }
+                ) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNotesDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
             .padding(FitSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -767,35 +854,150 @@ private fun RoutineExerciseEditor(
             modifier = Modifier.fillMaxWidth()
         )
 
+        ExerciseSetsStepper(
+            sets = currentSets,
+            onDecrease = {
+                onExerciseSetsChange(dayIndex, exerciseIndex, (currentSets - 1).coerceAtLeast(1).toString())
+            },
+            onIncrease = {
+                onExerciseSetsChange(dayIndex, exerciseIndex, (currentSets + 1).coerceAtMost(99).toString())
+            }
+        )
+
+        ExerciseRepsSelector(
+            selectedReps = exercise.targetRepsText,
+            onPresetSelected = { preset ->
+                onExerciseRepsChange(dayIndex, exerciseIndex, preset)
+            },
+            onCustomSelected = {
+                customRepsDraft = if (hasCustomReps) exercise.targetRepsText else ""
+                showCustomRepsDialog = true
+            }
+        )
+
+        NotesActionRow(
+            hasNote = exercise.notes.isNotBlank(),
+            onClick = {
+                notesDraft = exercise.notes
+                showNotesDialog = true
+            }
+        )
+    }
+}
+
+@Composable
+private fun ExerciseSetsStepper(
+    sets: Int,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+    ) {
+        Text(
+            text = "Series",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+            horizontalArrangement = Arrangement.Start
         ) {
-            OutlinedTextField(
-                value = exercise.targetSets,
-                onValueChange = { onExerciseSetsChange(dayIndex, exerciseIndex, it) },
-                label = { Text("Series") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.weight(0.85f)
-            )
-            OutlinedTextField(
-                value = exercise.targetRepsText,
-                onValueChange = { onExerciseRepsChange(dayIndex, exerciseIndex, it) },
-                label = { Text("Reps objetivo") },
-                placeholder = { Text("8-12") },
-                singleLine = true,
-                modifier = Modifier.weight(1.15f)
+            Box(
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.large)
+                    .padding(horizontal = FitSpacing.sm, vertical = FitSpacing.xs)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+                ) {
+                    IconButton(
+                        onClick = onDecrease,
+                        enabled = sets > 1,
+                        modifier = Modifier.minimumInteractiveComponentSize()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Remove,
+                            contentDescription = "Reducir series"
+                        )
+                    }
+                    Text(
+                        text = sets.toString(),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    IconButton(
+                        onClick = onIncrease,
+                        enabled = sets < 99,
+                        modifier = Modifier.minimumInteractiveComponentSize()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Aumentar series"
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ExerciseRepsSelector(
+    selectedReps: String,
+    onPresetSelected: (String) -> Unit,
+    onCustomSelected: () -> Unit
+) {
+    val hasCustomSelection = selectedReps !in repsPresetOptions
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+    ) {
+        Text(
+            text = "Reps objetivo",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+        ) {
+            repsPresetOptions.forEach { preset ->
+                FilterChip(
+                    selected = selectedReps == preset,
+                    onClick = { onPresetSelected(preset) },
+                    label = { Text(preset) }
+                )
+            }
+            FilterChip(
+                selected = hasCustomSelection,
+                onClick = onCustomSelected,
+                label = { Text(if (hasCustomSelection) selectedReps else "+") }
             )
         }
+    }
+}
 
-        OutlinedTextField(
-            value = exercise.notes,
-            onValueChange = { onExerciseNotesChange(dayIndex, exerciseIndex, it) },
-            label = { Text("Notas") },
-            minLines = 1,
-            maxLines = 3,
-            modifier = Modifier.fillMaxWidth()
-        )
+@Composable
+private fun NotesActionRow(
+    hasNote: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        TextButton(onClick = onClick) {
+            Icon(
+                imageVector = Icons.Filled.Edit,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = if (hasNote) "Editar nota" else "Anadir nota",
+                modifier = Modifier.padding(start = FitSpacing.sm)
+            )
+        }
     }
 }
