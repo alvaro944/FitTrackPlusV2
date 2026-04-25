@@ -87,6 +87,13 @@ class RoutinesViewModel @Inject constructor(
         }
     }
 
+    fun startCreateRoutineFromTemplate(templateId: String) {
+        val template = routineTemplates.firstOrNull { template -> template.id == templateId } ?: return
+        _uiState.update { state ->
+            state.copy(editor = template.toEditorState().copy(isDirty = true))
+        }
+    }
+
     fun startEditRoutine(routineId: Long) {
         viewModelScope.launch {
             val snapshot = routineRepository.getRoutineSnapshot(routineId) ?: return@launch
@@ -101,16 +108,16 @@ class RoutinesViewModel @Inject constructor(
         if (editor.isDirty) {
             _uiState.update { state -> state.copy(editor = editor.copy(showCloseConfirmation = true)) }
         } else {
-            closeEditor()
+            _uiState.update { state -> state.copy(editor = null) }
         }
     }
 
-    fun dismissCloseConfirmation() {
-        updateEditor { editor -> editor.copy(showCloseConfirmation = false) }
-    }
-
-    fun closeEditor() {
-        _uiState.update { state -> state.copy(editor = null) }
+    fun resolveCloseConfirmation(discard: Boolean) {
+        if (discard) {
+            _uiState.update { state -> state.copy(editor = null) }
+        } else {
+            updateEditor { editor -> editor.copy(showCloseConfirmation = false) }
+        }
     }
 
     fun updateRoutineName(name: String) {
@@ -146,19 +153,27 @@ class RoutinesViewModel @Inject constructor(
     }
 
     fun updateExerciseName(dayIndex: Int, exerciseIndex: Int, name: String) {
-        updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(name = name) }
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(name = name) }
+        }
     }
 
     fun updateExerciseSets(dayIndex: Int, exerciseIndex: Int, targetSets: String) {
-        updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(targetSets = targetSets) }
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(targetSets = targetSets) }
+        }
     }
 
     fun updateExerciseReps(dayIndex: Int, exerciseIndex: Int, targetRepsText: String) {
-        updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(targetRepsText = targetRepsText) }
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(targetRepsText = targetRepsText) }
+        }
     }
 
     fun updateExerciseNotes(dayIndex: Int, exerciseIndex: Int, notes: String) {
-        updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(notes = notes) }
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(notes = notes) }
+        }
     }
 
     fun removeExercise(dayIndex: Int, exerciseIndex: Int) {
@@ -168,6 +183,21 @@ class RoutinesViewModel @Inject constructor(
                     if (day.exercises.size <= 1) day else day.copy(exercises = day.exercises.removeAt(exerciseIndex))
                 }
             )
+        }
+    }
+
+    fun applyEditorOperation(operation: RoutineEditorOperation) {
+        updateEditor { editor ->
+            when (operation) {
+                is RoutineEditorOperation.DuplicateDay -> editor.duplicateDay(operation.dayIndex)
+                is RoutineEditorOperation.MoveDay -> editor.moveDay(operation.dayIndex, operation.direction)
+                is RoutineEditorOperation.DuplicateExercise -> {
+                    editor.duplicateExercise(operation.dayIndex, operation.exerciseIndex)
+                }
+                is RoutineEditorOperation.MoveExercise -> {
+                    editor.moveExercise(operation.dayIndex, operation.exerciseIndex, operation.direction)
+                }
+            }
         }
     }
 
@@ -237,26 +267,24 @@ class RoutinesViewModel @Inject constructor(
         _uiState.update { state -> state.copy(message = null) }
     }
 
-    private fun updateExercise(
-        dayIndex: Int,
-        exerciseIndex: Int,
-        transform: (RoutineExerciseEditorUiState) -> RoutineExerciseEditorUiState
-    ) {
-        updateEditor { editor ->
-            editor.copy(
-                days = editor.days.replaceAt(dayIndex) { day ->
-                    day.copy(exercises = day.exercises.replaceAt(exerciseIndex, transform))
-                }
-            )
-        }
-    }
-
     private fun updateEditor(transform: (RoutineEditorUiState) -> RoutineEditorUiState) {
         _uiState.update { state ->
             val editor = state.editor ?: return@update state
             state.copy(editor = transform(editor).copy(isDirty = true))
         }
     }
+}
+
+private fun RoutineEditorUiState.updateExercise(
+    dayIndex: Int,
+    exerciseIndex: Int,
+    transform: (RoutineExerciseEditorUiState) -> RoutineExerciseEditorUiState
+): RoutineEditorUiState {
+    return copy(
+        days = days.replaceAt(dayIndex) { day ->
+            day.copy(exercises = day.exercises.replaceAt(exerciseIndex, transform))
+        }
+    )
 }
 
 data class RoutinesUiState(

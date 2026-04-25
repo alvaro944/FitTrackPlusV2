@@ -1207,3 +1207,64 @@ Resultado:
 Pendiente:
 
 - Validar manualmente pantallas tocadas en dispositivo/emulador.
+
+## Fase 2.1B.1 - Rutinas mas utiles
+
+Estado:
+
+- implementada en workspace
+- verificacion automatica completada
+
+Rama:
+
+- `codex/phase-2.1b-routines`
+
+Objetivo:
+
+- reducir friccion al crear rutinas
+- acelerar edicion con duplicado y reordenado
+- mantener Room, Firebase/sync y snapshots historicos intactos
+
+Cambios principales:
+
+- Se crea un catalogo local de plantillas en `feature/routines`:
+  - Push Pull Legs
+  - Upper Lower
+  - Full Body
+- Las plantillas abren el editor como draft editable antes de guardar.
+- Rutinas muestra plantillas en la tab de activas como accion rapida.
+- El editor permite:
+  - duplicar dias
+  - subir/bajar dias
+  - duplicar ejercicios
+  - subir/bajar ejercicios dentro del mismo dia
+- Las operaciones actuan sobre `RoutineEditorUiState`; el guardado sigue usando `RoutineDraft` y el orden de listas.
+- No se toca schema Room, repositorios, Firebase/sync ni reglas de historial.
+
+Tests anadidos:
+
+- `RoutineTemplatesTest`
+- `RoutineEditorOperationsTest`
+
+Verificacion realizada:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain --tests "com.alvarocervantes.fittrackplus.feature.routines.RoutineTemplatesTest" --tests "com.alvarocervantes.fittrackplus.feature.routines.RoutineEditorOperationsTest" --tests "com.alvarocervantes.fittrackplus.feature.routines.RoutineEditorUiStateTest"
+.\gradlew.bat clean test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+.\gradlew.bat test --no-daemon --console=plain
+```
+
+Resultado:
+
+- Tests focalizados de Rutinas pasan.
+- `clean test` pasa con `BUILD SUCCESSFUL in 6m 40s`.
+- `build` pasa con `BUILD SUCCESSFUL in 7m 15s`.
+- `test` final pasa con `BUILD SUCCESSFUL in 3m 47s` tras liberar locks locales.
+- Se mantienen warnings conocidos de AGP/compileSdk 35, D8/Kotlin metadata y deprecaciones de iconos ya existentes.
+- Antes de la verificacion final hubo que parar procesos Java/Kotlin que bloqueaban salidas KSP generadas en Windows.
+
+Pendiente:
+
+- Validar manualmente flujo de plantillas, duplicado/reordenado y preview en Entrenar.
+- Revision acotada inicialmente preparada para Claude completada por Codex por decision del usuario; no se envian mas tareas a Claude por ahora.

@@ -4,7 +4,7 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 
 ## Estado Actual
 
-- Rama actual: `codex/v2-mejoras`.
+- Rama actual: `codex/phase-2.1b-routines`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
 - Commit de cierre de Fase 1: `9df5a44 Complete phase 1 routines`.
 - Commit de cierre de Fase 2: `7cf2c02 Complete phase 2 workout logging`.
@@ -47,7 +47,14 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
   - Historial muestra notas, duracion, volumen total y mejor set si existen.
   - Settings confirma cambios de unidad `kg/lb` mediante snackbar.
 - Fase 2.1A verificada con `test` y `build`; antes hizo falta regenerar `:app:compileDebugKotlin --rerun-tasks` por un `R.jar` local inconsistente.
-- Siguiente fase funcional de producto: Fase 2.1B, despues de validar manualmente 2.1A.
+- Fase 2.1B.1 implementada y verificada en rama `codex/phase-2.1b-routines`:
+  - plantillas locales de rutina PPL, Upper/Lower y Full Body
+  - duplicado de dias y ejercicios en el editor
+  - reordenado con botones subir/bajar en dias y ejercicios
+  - sin cambios de schema, Firebase/sync ni snapshots historicos
+- Fase 2.1B.1 verificada con `test` y `build`; antes hizo falta parar procesos Java/Kotlin que bloqueaban salidas generadas por KSP en Windows.
+- Handoff de revision acotada para Claude creado en `docs/coordination/claude-phase-2.1b-routines-review.md`; por decision posterior del usuario, Codex hizo esa revision interna y no se envian mas tareas a Claude por ahora.
+- Siguiente fase funcional de producto: validacion manual en dispositivo/emulador cuando haya `adb` disponible y despues elegir la siguiente subfase de 2.1B.
 - Migracion GPT-5.5 aplicada a agentes/docs: no hay integracion runtime OpenAI en la app, asi que no habia modelo de API que cambiar.
 
 ## Hecho Hasta Ahora
@@ -318,14 +325,13 @@ Implementado:
 
 ## Siguiente Paso
 
-1. Ejecutar validacion manual de Fase 2.1A en dispositivo/emulador:
-   - Home con snackbar de error si aparece.
-   - Entrenar con inputs desde `0`, negativos e invalidos.
-   - Rutinas con editor vacio/parcial y reps custom validas/invalidas.
-   - Historial con detalle, notas, volumen, duracion, mejor set y back fisico.
-   - Settings cambiando `kg/lb`.
-2. Mantener los issues menores de Gate 0 separados en `docs/coordination/claude-gate0-minor-fixes.md`; los fixes ya presentes quedan verificados junto a 2.1A.
-3. Abrir Fase 2.1B solo despues de cerrar la validacion manual de 2.1A.
+1. Validar manualmente Rutinas:
+   - crear rutina desde plantilla
+   - editar plantilla antes de guardar
+   - duplicar y reordenar dias
+   - duplicar y reordenar ejercicios
+   - guardar, activar y comprobar preview en Entrenar
+2. Elegir la siguiente subfase de 2.1B.
 
 ## Roadmap 2.1
 

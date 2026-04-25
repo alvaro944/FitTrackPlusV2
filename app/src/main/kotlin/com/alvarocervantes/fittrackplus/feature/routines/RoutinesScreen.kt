@@ -22,8 +22,11 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
@@ -130,6 +133,7 @@ fun RoutinesScreen(
                 state = state,
                 contentPadding = padding,
                 onCreateRoutine = viewModel::startCreateRoutine,
+                onUseTemplate = viewModel::startCreateRoutineFromTemplate,
                 onEditRoutine = viewModel::startEditRoutine,
                 onArchiveRoutine = { routine -> routinePendingArchive = routine },
                 onSetActiveRoutine = viewModel::setActiveRoutine,
@@ -140,14 +144,18 @@ fun RoutinesScreen(
         } else {
             if (editor.showCloseConfirmation) {
                 AlertDialog(
-                    onDismissRequest = viewModel::dismissCloseConfirmation,
+                    onDismissRequest = { viewModel.resolveCloseConfirmation(discard = false) },
                     title = { Text("Descartar cambios") },
                     text = { Text("Los cambios sin guardar se perderan. Quieres cerrar el editor?") },
                     confirmButton = {
-                        TextButton(onClick = viewModel::closeEditor) { Text("Descartar") }
+                        TextButton(onClick = { viewModel.resolveCloseConfirmation(discard = true) }) {
+                            Text("Descartar")
+                        }
                     },
                     dismissButton = {
-                        TextButton(onClick = viewModel::dismissCloseConfirmation) { Text("Seguir editando") }
+                        TextButton(onClick = { viewModel.resolveCloseConfirmation(discard = false) }) {
+                            Text("Seguir editando")
+                        }
                     }
                 )
             }
@@ -160,12 +168,28 @@ fun RoutinesScreen(
                 onRoutineNameChange = viewModel::updateRoutineName,
                 onAddDay = viewModel::addDay,
                 onDayNameChange = viewModel::updateDayName,
+                onDuplicateDay = { dayIndex ->
+                    viewModel.applyEditorOperation(RoutineEditorOperation.DuplicateDay(dayIndex))
+                },
+                onMoveDay = { dayIndex, direction ->
+                    viewModel.applyEditorOperation(RoutineEditorOperation.MoveDay(dayIndex, direction))
+                },
                 onRemoveDay = viewModel::removeDay,
                 onAddExercise = viewModel::addExercise,
                 onExerciseNameChange = viewModel::updateExerciseName,
                 onExerciseSetsChange = viewModel::updateExerciseSets,
                 onExerciseRepsChange = viewModel::updateExerciseReps,
                 onExerciseNotesChange = viewModel::updateExerciseNotes,
+                onDuplicateExercise = { dayIndex, exerciseIndex ->
+                    viewModel.applyEditorOperation(
+                        RoutineEditorOperation.DuplicateExercise(dayIndex, exerciseIndex)
+                    )
+                },
+                onMoveExercise = { dayIndex, exerciseIndex, direction ->
+                    viewModel.applyEditorOperation(
+                        RoutineEditorOperation.MoveExercise(dayIndex, exerciseIndex, direction)
+                    )
+                },
                 onRemoveExercise = viewModel::removeExercise
             )
         }
@@ -177,6 +201,7 @@ private fun RoutineListContent(
     state: RoutinesUiState,
     contentPadding: PaddingValues,
     onCreateRoutine: () -> Unit,
+    onUseTemplate: (String) -> Unit,
     onEditRoutine: (Long) -> Unit,
     onArchiveRoutine: (RoutineListItemUiState) -> Unit,
     onSetActiveRoutine: (Long) -> Unit,
@@ -273,6 +298,20 @@ private fun RoutineListContent(
             }
 
             item {
+                FitTrackSectionLabel(label = "Plantillas")
+            }
+
+            items(
+                items = routineTemplates,
+                key = { template -> template.id }
+            ) { template ->
+                RoutineTemplateCard(
+                    template = template,
+                    onUseTemplate = onUseTemplate
+                )
+            }
+
+            item {
                 FitTrackSectionLabel(label = "Biblioteca")
             }
 
@@ -315,8 +354,8 @@ private fun RoutineListContent(
                     FitTrackEmptyState(
                         icon = Icons.AutoMirrored.Filled.List,
                         title = "Aun no hay rutinas",
-                        message = "Crea una rutina con dias y ejercicios. Despues podras marcarla como activa para entrenar.",
-                        supporting = "La fase visual cambia el aspecto, no las reglas del flujo."
+                        message = "Crea una rutina desde cero o usa una plantilla para tener una base editable.",
+                        supporting = "Revisa la plantilla antes de guardar; no se toca el historial hasta entrenar."
                     ) {
                         Button(onClick = onCreateRoutine) {
                             Text("Crear rutina")
@@ -359,6 +398,43 @@ private fun RoutineListContent(
                         onRestoreRoutine = onRestoreRoutine
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoutineTemplateCard(
+    template: RoutineTemplateUiState,
+    onUseTemplate: (String) -> Unit
+) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+            ) {
+                Text(
+                    text = template.name,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = template.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "${template.days.size} dias - ${template.days.sumOf { it.exercises.size }} ejercicios",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            FilledTonalButton(onClick = { onUseTemplate(template.id) }) {
+                Text("Usar")
             }
         }
     }
@@ -566,12 +642,16 @@ private fun RoutineEditorContent(
     onRoutineNameChange: (String) -> Unit,
     onAddDay: () -> Unit,
     onDayNameChange: (Int, String) -> Unit,
+    onDuplicateDay: (Int) -> Unit,
+    onMoveDay: (Int, MoveDirection) -> Unit,
     onRemoveDay: (Int) -> Unit,
     onAddExercise: (Int) -> Unit,
     onExerciseNameChange: (Int, Int, String) -> Unit,
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
+    onDuplicateExercise: (Int, Int) -> Unit,
+    onMoveExercise: (Int, Int, MoveDirection) -> Unit,
     onRemoveExercise: (Int, Int) -> Unit
 ) {
     LazyColumn(
@@ -631,13 +711,19 @@ private fun RoutineEditorContent(
                 dayIndex = dayIndex,
                 day = day,
                 canRemove = editor.days.size > 1,
+                canMoveUp = dayIndex > 0,
+                canMoveDown = dayIndex < editor.days.lastIndex,
                 onDayNameChange = onDayNameChange,
+                onDuplicateDay = onDuplicateDay,
+                onMoveDay = onMoveDay,
                 onRemoveDay = onRemoveDay,
                 onAddExercise = onAddExercise,
                 onExerciseNameChange = onExerciseNameChange,
                 onExerciseSetsChange = onExerciseSetsChange,
                 onExerciseRepsChange = onExerciseRepsChange,
                 onExerciseNotesChange = onExerciseNotesChange,
+                onDuplicateExercise = onDuplicateExercise,
+                onMoveExercise = onMoveExercise,
                 onRemoveExercise = onRemoveExercise
             )
         }
@@ -706,13 +792,19 @@ private fun RoutineDayEditor(
     dayIndex: Int,
     day: RoutineDayEditorUiState,
     canRemove: Boolean,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
     onDayNameChange: (Int, String) -> Unit,
+    onDuplicateDay: (Int) -> Unit,
+    onMoveDay: (Int, MoveDirection) -> Unit,
     onRemoveDay: (Int) -> Unit,
     onAddExercise: (Int) -> Unit,
     onExerciseNameChange: (Int, Int, String) -> Unit,
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
+    onDuplicateExercise: (Int, Int) -> Unit,
+    onMoveExercise: (Int, Int, MoveDirection) -> Unit,
     onRemoveExercise: (Int, Int) -> Unit
 ) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
@@ -725,9 +817,39 @@ private fun RoutineDayEditor(
                 text = "Dia ${dayIndex + 1}",
                 style = MaterialTheme.typography.titleLarge
             )
-            if (canRemove) {
+            Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                IconButton(
+                    onClick = { onMoveDay(dayIndex, MoveDirection.Up) },
+                    enabled = canMoveUp,
+                    modifier = Modifier.minimumInteractiveComponentSize()
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowUp,
+                        contentDescription = "Subir dia ${dayIndex + 1}"
+                    )
+                }
+                IconButton(
+                    onClick = { onMoveDay(dayIndex, MoveDirection.Down) },
+                    enabled = canMoveDown,
+                    modifier = Modifier.minimumInteractiveComponentSize()
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = "Bajar dia ${dayIndex + 1}"
+                    )
+                }
+                IconButton(
+                    onClick = { onDuplicateDay(dayIndex) },
+                    modifier = Modifier.minimumInteractiveComponentSize()
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.ContentCopy,
+                        contentDescription = "Duplicar dia ${dayIndex + 1}"
+                    )
+                }
                 IconButton(
                     onClick = { onRemoveDay(dayIndex) },
+                    enabled = canRemove,
                     modifier = Modifier.minimumInteractiveComponentSize()
                 ) {
                     Icon(
@@ -756,10 +878,14 @@ private fun RoutineDayEditor(
                 exerciseIndex = exerciseIndex,
                 exercise = exercise,
                 canRemove = day.exercises.size > 1,
+                canMoveUp = exerciseIndex > 0,
+                canMoveDown = exerciseIndex < day.exercises.lastIndex,
                 onExerciseNameChange = onExerciseNameChange,
                 onExerciseSetsChange = onExerciseSetsChange,
                 onExerciseRepsChange = onExerciseRepsChange,
                 onExerciseNotesChange = onExerciseNotesChange,
+                onDuplicateExercise = onDuplicateExercise,
+                onMoveExercise = onMoveExercise,
                 onRemoveExercise = onRemoveExercise
             )
         }
@@ -787,10 +913,14 @@ private fun RoutineExerciseEditor(
     exerciseIndex: Int,
     exercise: RoutineExerciseEditorUiState,
     canRemove: Boolean,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
     onExerciseNameChange: (Int, Int, String) -> Unit,
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
+    onDuplicateExercise: (Int, Int) -> Unit,
+    onMoveExercise: (Int, Int, MoveDirection) -> Unit,
     onRemoveExercise: (Int, Int) -> Unit
 ) {
     val currentSets = exercise.targetSets.toIntOrNull()?.coerceIn(1, 99) ?: 3
@@ -902,9 +1032,39 @@ private fun RoutineExerciseEditor(
                 text = "Ejercicio ${exerciseIndex + 1}",
                 style = MaterialTheme.typography.labelLarge
             )
-            if (canRemove) {
+            Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                IconButton(
+                    onClick = { onMoveExercise(dayIndex, exerciseIndex, MoveDirection.Up) },
+                    enabled = canMoveUp,
+                    modifier = Modifier.minimumInteractiveComponentSize()
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowUp,
+                        contentDescription = "Subir ejercicio ${exerciseIndex + 1}"
+                    )
+                }
+                IconButton(
+                    onClick = { onMoveExercise(dayIndex, exerciseIndex, MoveDirection.Down) },
+                    enabled = canMoveDown,
+                    modifier = Modifier.minimumInteractiveComponentSize()
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = "Bajar ejercicio ${exerciseIndex + 1}"
+                    )
+                }
+                IconButton(
+                    onClick = { onDuplicateExercise(dayIndex, exerciseIndex) },
+                    modifier = Modifier.minimumInteractiveComponentSize()
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.ContentCopy,
+                        contentDescription = "Duplicar ejercicio ${exerciseIndex + 1}"
+                    )
+                }
                 IconButton(
                     onClick = { onRemoveExercise(dayIndex, exerciseIndex) },
+                    enabled = canRemove,
                     modifier = Modifier.minimumInteractiveComponentSize()
                 ) {
                     Icon(
