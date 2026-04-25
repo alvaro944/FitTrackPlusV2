@@ -84,12 +84,19 @@ Comandos estables usados aqui:
 ```powershell
 .\gradlew.bat test --no-daemon --console=plain
 .\gradlew.bat build --no-daemon --console=plain
+.\\gradlew.bat detekt --no-daemon --console=plain
 ```
 
 Si hace falta limpiar estado:
 
 ```powershell
 .\gradlew.bat --stop
+```
+
+Si `compileDebugJavaWithJavac` falla con muchos simbolos faltantes de KSP/Hilt y no aparecen clases en `app/build/tmp/kotlin-classes/debug`, primero recompilar Kotlin y luego repetir la verificacion:
+
+```powershell
+.\gradlew.bat :app:compileDebugKotlin --rerun-tasks --no-daemon --console=plain
 ```
 
 ### Kotlin Y Estado De UI

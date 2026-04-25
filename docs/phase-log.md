@@ -639,6 +639,72 @@ Pendiente:
   - targets tactiles en Rutinas
   - timing y legibilidad de la intro
 
+## Bloque 7 - GitHub Actions CI
+
+Estado:
+
+- completado tecnicamente
+
+Rama:
+
+- `codex/v2-mejoras`
+
+Objetivo:
+
+- crear un workflow de GitHub Actions para validar el proyecto en remoto
+- ejecutarlo en `push` a `main` y `codex/**`
+- ejecutarlo tambien en `pull_request`
+- correr `test`, `build` y `detekt` sin mezclar otros cambios de producto
+
+Cambios principales:
+
+- Se crea `.github/workflows/ci.yml`.
+- El workflow usa `ubuntu-latest` con:
+  - `actions/checkout`
+  - `actions/setup-java` con Java 17
+  - `android-actions/setup-android`
+  - `gradle/actions/setup-gradle`
+- Se instala en CI `platforms;android-35` y `build-tools;35.0.0` para alinear el runner con `compileSdk 35`.
+- Se fuerza `chmod +x ./gradlew` porque el repo trackea `gradlew` con modo `100644` y en Linux no quedaria ejecutable por defecto.
+- Las comprobaciones quedan separadas en pasos distintos para que falle con diagnostico claro:
+  - `./gradlew test --no-daemon --console=plain`
+  - `./gradlew build --no-daemon --console=plain`
+  - `./gradlew detekt --no-daemon --console=plain`
+
+Problemas encontrados:
+
+- El repo no tenia aun carpeta `.github/`, asi que no habia CI previa que extender.
+- `local.properties` esta ignorado y no debe existir en GitHub Actions, asi que el workflow necesita preparar Android SDK explicitamente.
+- `gradlew` esta versionado sin bit ejecutable (`100644`), lo que en runners Linux obliga a ajustar permisos dentro del workflow.
+- La primera verificacion local de `test` encontro un `build/` inconsistente: `compileDebugJavaWithJavac` veia factories de KSP/Hilt pero faltaban las salidas Kotlin en `app/build/tmp/kotlin-classes/debug`.
+- Regenerar `:app:compileDebugKotlin --rerun-tasks` recompuso esas clases y despues `test`, `build` y `detekt` volvieron a pasar.
+
+Decisiones:
+
+- Mantener un solo job de calidad por ahora; el objetivo del bloque es robustez basica, no paralelizacion prematura.
+- Mantener `test`, `build` y `detekt` como pasos independientes para identificar rapido el punto de rotura en GitHub.
+- No tocar intro, splash, `strings.xml` ni codigo funcional del producto en este bloque.
+
+Verificacion:
+
+```powershell
+.\gradlew.bat :app:compileDebugKotlin --rerun-tasks --no-daemon --console=plain
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+.\gradlew.bat detekt --no-daemon --console=plain
+```
+
+Resultado:
+
+- Tests pasan.
+- Build completo pasa.
+- Detekt pasa.
+
+Pendiente:
+
+- Observar la primera ejecucion real de GitHub Actions tras el proximo push para confirmar el runner remoto.
+- Mantener la validacion manual visual en movil/emulador como paso separado del CI.
+
 ## Branding base + Bloque 3 UX + intro clara
 
 Estado:

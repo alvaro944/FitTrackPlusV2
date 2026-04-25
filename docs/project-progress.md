@@ -12,9 +12,10 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 - Commit de cierre de Fase 4: `Complete phase 4 statistics MVP`.
 - Commit de cierre de Fase 5: `Complete phase 5 UX polish`.
 - Remoto configurado: `https://github.com/alvaro944/FitTrackPlusV2.git`.
-- Rama local alineada con `origin/codex/v2-mejoras` antes de este pass; cambios actuales aun pendientes de commit/push.
+- Rama local alineada con `origin/codex/v2-mejoras` al iniciar Bloque 7; este pass anade solo CI + docs y queda pendiente de commit/push.
 - Fase 6 cerrada tecnicamente.
 - Bloque 6 de polish visual y accesibilidad cerrado tecnicamente y verificado con `test` + `build`.
+- Bloque 7 CI implementado en `.github/workflows/ci.yml` para `push` en `main` y `codex/**`, y para `pull_request`.
 - Validacion manual de Fase 6 pendiente en movil.
 - Branding cerrado: docs de marca, logo decidido, app icon generado con fondo crema.
 - Bloque 3 UX implementado en local: Ajustes, Inicio dinamico, feedback haptico, editor protegido y archivadas.
@@ -24,7 +25,7 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 - Kickoff metodologico documentado: la metodologia se usa para configurar el proyecto y `AGENTS.md` queda como referencia operativa diaria.
 - Colaboracion entre plataformas formalizada: Codex, Claude, herramientas visuales y revisores tienen roles, ownership y handoff definidos.
 - Fichero compartido de coordinacion definido como pieza reusable para que varias plataformas se comuniquen dentro del repo.
-- Siguiente trabajo: validacion manual de intro, transiciones y accesibilidad; despues Bloque 7 CI.
+- Siguiente trabajo: validacion manual de intro, transiciones y accesibilidad; si no aparecen ajustes reales, reabrir Bloque 4 funcional.
 - Siguiente fase funcional de producto: Bloque 4 (export, referencia de peso anterior y mejora de stats).
 
 ## Hecho Hasta Ahora
@@ -237,14 +238,18 @@ Pendiente:
 Comandos ejecutados:
 
 ```powershell
+.\gradlew.bat :app:compileDebugKotlin --rerun-tasks --no-daemon --console=plain
 .\gradlew.bat test --no-daemon --console=plain
 .\gradlew.bat build --no-daemon --console=plain
+.\gradlew.bat detekt --no-daemon --console=plain
 ```
 
 Resultado:
 
+- `compileDebugKotlin` recompone correctamente las salidas Kotlin cuando el `build/` local queda en estado inconsistente.
 - Tests pasan.
 - Build completo pasa.
+- Detekt pasa.
 
 Pendiente:
 
@@ -293,6 +298,5 @@ Implementado:
 
 1. Validacion manual en dispositivo/emulador via Android Studio, incluyendo launcher, transiciones de tabs, Historial animado, TalkBack y dark mode.
 2. Ajustar Bloque 8 solo si la intro de arranque clara muestra un problema real de timing, legibilidad o convivencia con dark mode.
-3. Crear Bloque 7: `.github/workflows/ci.yml` con `test`, `build` y `detekt`.
-4. Mantener `6.2 strings.xml` diferido hasta estabilizar copy.
-5. Reabrir Bloque 4 funcional solo despues de cerrar visual + CI.
+3. Mantener `6.2 strings.xml` diferido hasta estabilizar copy.
+4. Reabrir Bloque 4 funcional cuando la validacion manual no detecte ajustes visuales extra.

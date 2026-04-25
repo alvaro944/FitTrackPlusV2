@@ -5,7 +5,8 @@
       "Bash(Select-String -Pattern \"BUILD|FAILED|ERROR|PASSED|Tests run|Exception|error:\")",
       "Bash(Select-Object -First 40)",
       "Bash(.\\\\gradlew.bat build *)",
-      "Bash(.\\\\gradlew.bat :app:compileDebugKotlin --no-daemon)"
+      "Bash(.\\\\gradlew.bat :app:compileDebugKotlin --no-daemon)",
+      "Bash(xargs grep *)"
     ]
   }
 }
