@@ -286,15 +286,28 @@ data class RoutineEditorUiState(
     val showCloseConfirmation: Boolean = false
 ) {
     val title: String = if (routineId == null) "Nueva rutina" else "Editar rutina"
+    val routineNameError: String?
+        get() = if (name.isBlank()) "Pon un nombre para la rutina." else null
+    val validationMessage: String?
+        get() = when {
+            routineNameError != null -> routineNameError
+            days.any { it.nameError != null } -> "Revisa los nombres de los dias."
+            days.any { day -> day.exercises.isEmpty() } -> "Cada dia necesita al menos un ejercicio."
+            days.any { day -> day.exercises.any { it.nameError != null } } -> "Revisa los nombres de los ejercicios."
+            days.any { day -> day.exercises.any { it.targetSetsError != null } } -> "Las series deben estar entre 1 y 99."
+            days.any { day -> day.exercises.any { it.targetRepsError != null } } -> "Revisa las reps objetivo."
+            else -> null
+        }
     val canSave: Boolean
-        get() = name.isNotBlank() &&
+        get() = routineNameError == null &&
             days.isNotEmpty() &&
             days.all { day ->
+                day.nameError == null &&
                 day.exercises.isNotEmpty() &&
                     day.exercises.all { exercise ->
-                        exercise.name.isNotBlank() &&
-                            exercise.targetSets.toIntOrNull()?.let { it in 1..99 } == true &&
-                            exercise.targetRepsText.isNotBlank()
+                        exercise.nameError == null &&
+                            exercise.targetSetsError == null &&
+                            exercise.targetRepsError == null
                     }
             }
 }
@@ -302,14 +315,54 @@ data class RoutineEditorUiState(
 data class RoutineDayEditorUiState(
     val name: String = "Dia 1",
     val exercises: List<RoutineExerciseEditorUiState> = listOf(RoutineExerciseEditorUiState())
-)
+) {
+    val nameError: String?
+        get() = if (name.isBlank()) "Pon un nombre para el dia." else null
+}
 
 data class RoutineExerciseEditorUiState(
     val name: String = "",
     val targetSets: String = "3",
     val targetRepsText: String = "8-12",
     val notes: String = ""
-)
+) {
+    val nameError: String?
+        get() = if (name.isBlank()) "Pon un nombre para el ejercicio." else null
+    val targetSetsError: String?
+        get() = if (targetSets.toIntOrNull()?.let { it in 1..99 } == true) {
+            null
+        } else {
+            "Usa entre 1 y 99 series."
+        }
+    val targetRepsError: String?
+        get() = if (isValidTargetReps(targetRepsText)) {
+            null
+        } else {
+            "Usa 8, 8-12, AMRAP o RPE 8."
+        }
+}
+
+internal fun isValidTargetReps(value: String): Boolean {
+    val normalized = value.trim()
+    if (normalized.isEmpty()) return false
+    return when {
+        normalized.equals("AMRAP", ignoreCase = true) -> true
+        normalized.toIntOrNull()?.let { it in 1..99 } == true -> true
+        else -> {
+            val rangeMatch = Regex("""^(\d{1,2})\s*-\s*(\d{1,2})$""").matchEntire(normalized)
+            val rpeMatch = Regex("""^RPE\s*(\d{1,2})$""", RegexOption.IGNORE_CASE).matchEntire(normalized)
+            when {
+                rangeMatch != null -> {
+                    val start = rangeMatch.groupValues[1].toInt()
+                    val end = rangeMatch.groupValues[2].toInt()
+                    start in 1..99 && end in 1..99 && start <= end
+                }
+                rpeMatch != null -> rpeMatch.groupValues[1].toInt() in 1..10
+                else -> false
+            }
+        }
+    }
+}
 
 private fun RoutineSnapshot.toEditorState(): RoutineEditorUiState {
     return RoutineEditorUiState(

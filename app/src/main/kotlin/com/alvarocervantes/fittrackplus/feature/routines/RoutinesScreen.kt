@@ -409,14 +409,28 @@ private fun RoutineListItem(
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-            ) {
-                if (!routine.isActive) {
+            if (routine.isActive) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+                ) {
+                    RoutineEditButton(
+                        onClick = { onEditRoutine(routine.id) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    RoutineArchiveButton(
+                        onClick = { onArchiveRoutine(routine) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+                ) {
                     FilledTonalButton(
                         onClick = { onSetActiveRoutine(routine.id) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Check,
@@ -428,37 +442,64 @@ private fun RoutineListItem(
                             modifier = Modifier.padding(start = FitSpacing.sm)
                         )
                     }
-                }
-                OutlinedButton(
-                    onClick = { onEditRoutine(routine.id) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Edit,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = "Editar",
-                        modifier = Modifier.padding(start = FitSpacing.sm)
-                    )
-                }
-                OutlinedButton(
-                    onClick = { onArchiveRoutine(routine) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Archive,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = "Archivar",
-                        modifier = Modifier.padding(start = FitSpacing.sm)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+                    ) {
+                        RoutineEditButton(
+                            onClick = { onEditRoutine(routine.id) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        RoutineArchiveButton(
+                            onClick = { onArchiveRoutine(routine) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RoutineEditButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Edit,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
+        Text(
+            text = "Editar",
+            modifier = Modifier.padding(start = FitSpacing.sm)
+        )
+    }
+}
+
+@Composable
+private fun RoutineArchiveButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Archive,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
+        Text(
+            text = "Archivar",
+            modifier = Modifier.padding(start = FitSpacing.sm)
+        )
     }
 }
 
@@ -572,6 +613,10 @@ private fun RoutineEditorContent(
                 value = editor.name,
                 onValueChange = onRoutineNameChange,
                 label = { Text("Nombre de la rutina") },
+                isError = editor.routineNameError != null,
+                supportingText = editor.routineNameError?.let { error ->
+                    { Text(error) }
+                },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -615,30 +660,41 @@ private fun RoutineEditorContent(
         }
 
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)
             ) {
-                OutlinedButton(
-                    onClick = onClose,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Cancelar")
-                }
-                Button(
-                    onClick = onSave,
-                    enabled = editor.canSave && !state.isSaving,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
+                editor.validationMessage?.let { validationMessage ->
                     Text(
-                        text = if (state.isSaving) "Guardando" else "Guardar",
-                        modifier = Modifier.padding(start = FitSpacing.sm)
+                        text = validationMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
                     )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+                ) {
+                    OutlinedButton(
+                        onClick = onClose,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancelar")
+                    }
+                    Button(
+                        onClick = onSave,
+                        enabled = editor.canSave && !state.isSaving,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = if (state.isSaving) "Guardando" else "Guardar",
+                            modifier = Modifier.padding(start = FitSpacing.sm)
+                        )
+                    }
                 }
             }
         }
@@ -686,6 +742,10 @@ private fun RoutineDayEditor(
             value = day.name,
             onValueChange = { onDayNameChange(dayIndex, it) },
             label = { Text("Nombre del dia") },
+            isError = day.nameError != null,
+            supportingText = day.nameError?.let { error ->
+                { Text(error) }
+            },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -741,6 +801,11 @@ private fun RoutineExerciseEditor(
     var notesDraft by remember { mutableStateOf("") }
 
     if (showCustomRepsDialog) {
+        val customRepsError = customRepsDraft
+            .takeIf { it.isNotBlank() }
+            ?.let { draft ->
+                if (isValidTargetReps(draft)) null else "Usa 8, 8-12, AMRAP o RPE 8."
+            }
         AlertDialog(
             onDismissRequest = { showCustomRepsDialog = false },
             title = { Text("Reps personalizadas") },
@@ -750,6 +815,10 @@ private fun RoutineExerciseEditor(
                     onValueChange = { customRepsDraft = it },
                     label = { Text("Valor personalizado") },
                     placeholder = { Text("12-15 o AMRAP") },
+                    isError = customRepsError != null,
+                    supportingText = customRepsError?.let { error ->
+                        { Text(error) }
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -760,7 +829,7 @@ private fun RoutineExerciseEditor(
                         onExerciseRepsChange(dayIndex, exerciseIndex, customRepsDraft.trim())
                         showCustomRepsDialog = false
                     },
-                    enabled = customRepsDraft.trim().isNotEmpty()
+                    enabled = isValidTargetReps(customRepsDraft)
                 ) {
                     Text("Guardar")
                 }
@@ -850,12 +919,17 @@ private fun RoutineExerciseEditor(
             value = exercise.name,
             onValueChange = { onExerciseNameChange(dayIndex, exerciseIndex, it) },
             label = { Text("Nombre del ejercicio") },
+            isError = exercise.nameError != null,
+            supportingText = exercise.nameError?.let { error ->
+                { Text(error) }
+            },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
 
         ExerciseSetsStepper(
             sets = currentSets,
+            error = exercise.targetSetsError,
             onDecrease = {
                 onExerciseSetsChange(dayIndex, exerciseIndex, (currentSets - 1).coerceAtLeast(1).toString())
             },
@@ -874,6 +948,13 @@ private fun RoutineExerciseEditor(
                 showCustomRepsDialog = true
             }
         )
+        exercise.targetRepsError?.let { error ->
+            Text(
+                text = error,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
 
         NotesActionRow(
             hasNote = exercise.notes.isNotBlank(),
@@ -888,6 +969,7 @@ private fun RoutineExerciseEditor(
 @Composable
 private fun ExerciseSetsStepper(
     sets: Int,
+    error: String?,
     onDecrease: () -> Unit,
     onIncrease: () -> Unit
 ) {
@@ -938,6 +1020,13 @@ private fun ExerciseSetsStepper(
                     }
                 }
             }
+        }
+        error?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
         }
     }
 }

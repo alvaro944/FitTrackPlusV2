@@ -136,7 +136,31 @@ data class HistoryDetailUiState(
     val exercises: List<HistoryExerciseUiState>
 ) {
     val totalSetCount: Int = exercises.sumOf { it.sets.size }
+    val durationMillis: Long = (finishedAt - startedAt).coerceAtLeast(0)
+    val totalVolumeKg: Double = exercises.sumOf { exercise ->
+        exercise.sets.sumOf { set -> set.weightKg * set.reps }
+    }
+    val bestSet: HistoryBestSetUiState? = exercises
+        .flatMap { exercise ->
+            exercise.sets.map { set ->
+                HistoryBestSetUiState(
+                    exerciseName = exercise.name,
+                    weightKg = set.weightKg,
+                    reps = set.reps,
+                    volumeKg = set.weightKg * set.reps
+                )
+            }
+        }
+        .filter { set -> set.volumeKg > 0.0 }
+        .maxByOrNull { set -> set.volumeKg }
 }
+
+data class HistoryBestSetUiState(
+    val exerciseName: String,
+    val weightKg: Double,
+    val reps: Int,
+    val volumeKg: Double
+)
 
 data class HistoryExerciseUiState(
     val exerciseId: Long,

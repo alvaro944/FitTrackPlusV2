@@ -13,10 +13,25 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 - Commit de cierre de Fase 5: `Complete phase 5 UX polish`.
 - Remoto configurado: `https://github.com/alvaro944/FitTrackPlusV2.git`.
 - Rama local alineada con `origin/codex/v2-mejoras` al iniciar Bloque 7; este pass anade solo CI + docs y queda pendiente de commit/push.
+- Primera version funcional completa cerrada tecnicamente.
+- Roadmap post-v1 canonico creado en `docs/roadmap-2.1.md`; sustituye a `docs/future-improvements.md`.
 - Fase 6 cerrada tecnicamente.
 - Bloque 6 de polish visual y accesibilidad cerrado tecnicamente y verificado con `test` + `build`.
 - Bloque 7 CI implementado en `.github/workflows/ci.yml` para `push` en `main` y `codex/**`, y para `pull_request`.
-- Validacion manual de Fase 6 pendiente en movil.
+- Gate 0 del Roadmap 2.1 ejecutado y validado en telefono fisico para flujo principal, dark mode, navegacion, Historial, Datos y snapshots.
+- Gate 0 detecto ajustes acotados:
+  - back fisico desde detalle de Historial volvia a Inicio en vez de al listado.
+  - acciones de rutinas inactivas partian texto en botones (`Activar`, `Editar`, `Archivar`) en el ancho real del telefono.
+  - dialogo de finalizar entrenamiento mostraba artefactos claros en dark mode.
+- Ajustes pequenos aplicados en codigo para esos hallazgos; tras parar daemons Gradle/Kotlin colgados, `test` y `build` pasaron.
+- Revalidacion manual del usuario:
+  - intro/arranque OK
+  - Rutinas OK
+  - Historial OK
+  - Datos OK
+  - snapshots historicos OK
+  - Entrenar queda con issues menores: inputs peso/reps no reemplazan `0`, bordes blancos en campos enfocados y dialogo de finalizar, preview no refresca nombre de rutina activa hasta cambiar seleccion activa
+- Issues menores de Gate 0 delegados a Claude en `docs/coordination/claude-gate0-minor-fixes.md`.
 - Branding cerrado: docs de marca, logo decidido, app icon generado con fondo crema.
 - Bloque 3 UX implementado en local: Ajustes, Inicio dinamico, feedback haptico, editor protegido y archivadas.
 - Trabajo visual actual: validar intro de arranque clara en Compose basada en `docs/branding/Pantalla incio fondo claro/`.
@@ -25,8 +40,15 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 - Kickoff metodologico documentado: la metodologia se usa para configurar el proyecto y `AGENTS.md` queda como referencia operativa diaria.
 - Colaboracion entre plataformas formalizada: Codex, Claude, herramientas visuales y revisores tienen roles, ownership y handoff definidos.
 - Fichero compartido de coordinacion definido como pieza reusable para que varias plataformas se comuniquen dentro del repo.
-- Siguiente trabajo: validacion manual de intro, transiciones y accesibilidad; si no aparecen ajustes reales, reabrir Bloque 4 funcional.
-- Siguiente fase funcional de producto: Bloque 4 (export, referencia de peso anterior y mejora de stats).
+- Fase 2.1A implementada en workspace:
+  - Home muestra mensajes de error mediante snackbar.
+  - Entrenar conserva los fixes menores de Claude y mantiene normalizacion de peso/reps en dominio.
+  - Rutinas valida inline campos requeridos y reps objetivo razonables (`8`, `8-12`, `AMRAP`, `RPE 8`).
+  - Historial muestra notas, duracion, volumen total y mejor set si existen.
+  - Settings confirma cambios de unidad `kg/lb` mediante snackbar.
+- Fase 2.1A verificada con `test` y `build`; antes hizo falta regenerar `:app:compileDebugKotlin --rerun-tasks` por un `R.jar` local inconsistente.
+- Siguiente fase funcional de producto: Fase 2.1B, despues de validar manualmente 2.1A.
+- Migracion GPT-5.5 aplicada a agentes/docs: no hay integracion runtime OpenAI en la app, asi que no habia modelo de API que cambiar.
 
 ## Hecho Hasta Ahora
 
@@ -296,7 +318,51 @@ Implementado:
 
 ## Siguiente Paso
 
-1. Validacion manual en dispositivo/emulador via Android Studio, incluyendo launcher, transiciones de tabs, Historial animado, TalkBack y dark mode.
-2. Ajustar Bloque 8 solo si la intro de arranque clara muestra un problema real de timing, legibilidad o convivencia con dark mode.
-3. Mantener `6.2 strings.xml` diferido hasta estabilizar copy.
-4. Reabrir Bloque 4 funcional cuando la validacion manual no detecte ajustes visuales extra.
+1. Ejecutar validacion manual de Fase 2.1A en dispositivo/emulador:
+   - Home con snackbar de error si aparece.
+   - Entrenar con inputs desde `0`, negativos e invalidos.
+   - Rutinas con editor vacio/parcial y reps custom validas/invalidas.
+   - Historial con detalle, notas, volumen, duracion, mejor set y back fisico.
+   - Settings cambiando `kg/lb`.
+2. Mantener los issues menores de Gate 0 separados en `docs/coordination/claude-gate0-minor-fixes.md`; los fixes ya presentes quedan verificados junto a 2.1A.
+3. Abrir Fase 2.1B solo despues de cerrar la validacion manual de 2.1A.
+
+## Roadmap 2.1
+
+Estado:
+
+- Documento canonico: `docs/roadmap-2.1.md`.
+- Sustituye al backlog antiguo `docs/future-improvements.md`.
+- `docs/mejoras-claude.md` queda como historico de propuestas, no como roadmap vigente.
+
+Orden recomendado:
+
+1. Gate 0 - Validacion manual de la v1 tecnica.
+2. Fase 2.1A - Estabilidad y fricciones criticas:
+   - Home muestra errores.
+   - Workout bloquea peso negativo y reps invalidas.
+   - Rutinas gana validacion inline y regex de reps.
+   - Historial muestra notas, volumen/duracion y back correcto.
+   - Settings confirma cambio de unidad.
+3. Fase 2.1B - Features de valor:
+   - plantillas de rutina.
+   - duplicar/reordenar dias y ejercicios.
+   - timer de descanso.
+   - filtros/orden en historial.
+   - tooltip/periodos en stats.
+   - selector de tema.
+4. Fase 2.1C - Portfolio WOW:
+   - heatmap calendario.
+   - achievements.
+   - PR en vivo + celebracion.
+   - skeleton loaders.
+   - onboarding/demo data.
+
+Diferido:
+
+- Firebase/sync.
+- OpenAI API runtime: si se anade en el futuro, disenar primero backend/proxy seguro y partir de `gpt-5.5` + Responses API.
+- ExerciseCatalog global.
+- supersets/cardio/RPE.
+- import/export avanzado salvo fase dedicada.
+- i18n completa.

@@ -973,3 +973,237 @@ Verificacion:
 
 - Revision documental completada.
 - No se ejecutan `test` ni `build` porque solo se modifico documentacion.
+
+## Cierre tecnico v1 y apertura Roadmap 2.1
+
+Estado:
+
+- v1 funcional completa cerrada tecnicamente
+- Roadmap 2.1 abierto como direccion vigente post-v1
+
+Objetivo:
+
+- convertir la auditoria externa de mejoras en un roadmap oficial dentro de `docs/`
+- retirar el backlog antiguo de ideas sueltas
+- dejar claro que la validacion manual sigue pendiente y no se marca como completada
+
+Cambios principales:
+
+- se crea `docs/roadmap-2.1.md` como documento canonico de mejoras post-v1
+- se elimina `docs/future-improvements.md`
+- `README.md` apunta al Roadmap 2.1 y actualiza el estado actual
+- `docs/project-plan.md` anade cierre tecnico v1 y la seccion Roadmap 2.1
+- `docs/project-progress.md` actualiza siguiente paso y fases post-v1
+- `docs/adr/0002-sin-exercise-catalog.md` referencia el nuevo roadmap
+- `docs/mejoras-claude.md` queda marcado como historico, no como backlog vigente
+
+Decisiones:
+
+- la v1 queda cerrada tecnicamente, no validada manualmente
+- Gate 0 del Roadmap 2.1 es validar intro, navegacion, dark mode, accesibilidad y flujo completo en dispositivo/emulador
+- la primera fase de producto nueva pasa a ser Fase 2.1A de estabilidad y fricciones criticas
+- Firebase/sync sigue diferido hasta cerrar prioridades locales de V2.1
+- `docs/project-methodology/` no se modifica porque no aparecio una regla reusable nueva
+
+Verificacion:
+
+- revision documental y busqueda de referencias obsoletas
+- no se ejecutan `test` ni `build` porque solo se modifica documentacion
+
+Pendiente:
+
+- ejecutar Gate 0 en dispositivo/emulador
+- abrir Fase 2.1A si Gate 0 no detecta bloqueantes
+
+## Migracion GPT-5.5 para agentes y futuras integraciones
+
+Estado:
+
+- completado a nivel documental
+
+Objetivo:
+
+- revisar si el repo tenia un modelo OpenAI que migrar
+- dejar el criterio operativo para usar `gpt-5.5` en futuras sesiones, prompts o integraciones
+
+Cambios principales:
+
+- se confirma con busqueda en el repo que la app Android no tiene llamadas runtime a OpenAI ni IDs de modelo existentes
+- `AGENTS.md` anade una seccion OpenAI/GPT-5.5 para futuras integraciones
+- `docs/work-methodology/tips-and-skills.md` guarda el aprendizaje local de migracion
+- `docs/project-progress.md` registra que no habia superficie de API que cambiar
+
+Decisiones:
+
+- no se toca codigo Android porque no hay integracion OpenAI en `app/src/main/kotlin`
+- si aparece OpenAI API en el futuro, partir de `gpt-5.5`, Responses API y `reasoning.effort = medium` para trabajo complejo
+- no exponer claves OpenAI en el cliente Android; disenar primero backend o proxy seguro
+- `docs/project-methodology/` no se modifica porque esto queda como aprendizaje especifico del repo
+
+Verificacion:
+
+- busqueda amplia con `rg --hidden` de modelos, OpenAI, Responses API y claves relacionadas
+- revision documental de las notas editadas
+- no se ejecutan `test` ni `build` porque solo se modifico documentacion
+
+Pendiente:
+
+- instalar o reintentar el MCP oficial de OpenAI Docs fuera de este entorno si se quiere usarlo en futuras sesiones; el intento desde Codex fallo por permisos de `codex.exe`
+
+## Gate 0 Roadmap 2.1 - Validacion manual v1 tecnica
+
+Estado:
+
+- ejecutado en telefono fisico conectado
+- ajustes bloqueantes/acotados detectados y corregidos en workspace
+- verificacion automatica completada tras parar daemons Gradle/Kotlin colgados
+- revalidacion manual del usuario completada
+- Gate 0 queda cerrado con issues menores delegados a Claude
+
+Objetivo:
+
+- validar que la v1 tecnica funciona como experiencia real antes de abrir Fase 2.1A
+- no introducir features nuevas
+- aplicar solo ajustes pequenos si aparecian problemas reales
+
+Validado:
+
+- Telefono detectado por `adb devices`: `29211FDH200D4H`.
+- Modo oscuro en Inicio, Rutinas, Entrenar, Historial y Datos.
+- Navegacion inferior entre tabs principales.
+- Creacion de rutina de prueba `Gate0`.
+- Activacion de rutina.
+- Inicio de entrenamiento desde rutina activa.
+- Registro de una serie mediante inputs reales en pantalla.
+- Finalizacion de entrenamiento con dialogo de confirmacion.
+- Historial muestra la sesion finalizada.
+- Detalle historico muestra snapshot de rutina, dia, ejercicio y series.
+- Datos incorpora la sesion finalizada en sesiones y volumen.
+- Edicion posterior de la rutina activa a `GateEdit0` no cambio el snapshot historico, que siguio mostrando `Gate0`.
+- Revalidacion del usuario:
+  - inicio/arranque OK
+  - Rutinas OK
+  - Historial OK
+  - Datos OK
+  - snapshots historicos OK
+
+Problemas encontrados:
+
+- Back fisico desde detalle de Historial volvia a Inicio en vez de volver al listado.
+- En rutinas inactivas, la fila con tres acciones (`Activar`, `Editar`, `Archivar`) partia texto en botones en el ancho real del telefono.
+- El dialogo de finalizar entrenamiento mostraba artefactos claros en dark mode.
+- La entrada automatica con `adb shell input text` concatena sobre valores existentes; por eso una serie de prueba quedo con volumen inflado. No se considera bug funcional de producto para Gate 0.
+- La intro Compose intermedia no se pudo capturar de forma fiable con capturas estaticas; si se quiere cerrar ese punto con rigor, hace falta observacion humana directa o video.
+- Revalidacion posterior del usuario detecta issues menores pendientes en Entrenar:
+  - al escribir en campos de peso/reps con `0`, el valor no se selecciona ni se reemplaza y puede quedar `010`
+  - al enfocar peso/reps aparecen bordes blancos en dark mode
+  - el dialogo de finalizar sigue mostrando bordes blancos
+  - editar el nombre de una rutina activa no refresca inmediatamente la preview de Entrenar hasta cambiar la rutina activa y volver
+
+Decisiones:
+
+- Cerrar Gate 0 como validado con issues menores delegados.
+- Abrir Fase 2.1A sin mezclarla con los ajustes menores de Gate 0.
+- Encargar los issues menores a Claude mediante handoff compartido.
+- Mantener los cambios limitados a UI/back behavior.
+- No tocar Firebase/sync, Room, repositorios ni arquitectura.
+- No actualizar `docs/project-methodology/` porque no aparecio una regla general reusable.
+- No actualizar `docs/work-methodology/` porque no aparecio un aprendizaje tecnico especifico nuevo que merezca regla local.
+
+Ajustes aplicados:
+
+- `HistoryScreen` gana `BackHandler` cuando hay detalle visible.
+- `RoutinesScreen` reorganiza acciones de rutina inactiva: `Activar` queda a ancho completo y `Editar`/`Archivar` comparten una segunda fila.
+- `WorkoutScreen` fija `shape` y colores del `AlertDialog` de finalizar entrenamiento para dark mode.
+
+Verificacion realizada:
+
+```powershell
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat --stop
+.\gradlew.bat :app:compileDebugKotlin --no-daemon --console=plain
+Stop-Process -Id 8960,14320 -Force
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Los primeros intentos quedaron en timeout por un `GradleDaemon 8.7` y un `KotlinCompileDaemon` colgados.
+- Tras parar esos procesos, `test` paso con exit code 0.
+- `build` paso con `BUILD SUCCESSFUL in 4m 5s`.
+- El build mantiene warnings conocidos de AGP/compileSdk 35 y D8/Kotlin metadata.
+- La instalacion del APK actualizado no se pudo ejecutar porque `adb` dejo de listar el telefono.
+- El usuario compilo/reviso despues en telefono y confirmo que inicio, Rutinas, Historial, Datos y snapshots quedan OK.
+
+Handoff:
+
+- `docs/coordination/claude-gate0-minor-fixes.md`
+
+Pendiente:
+
+- Claude debe corregir los issues menores delegados de Entrenar/preview.
+- Integrar el resultado de Claude solo si mantiene alcance acotado y pasa `test` + `build`.
+- Abrir Fase 2.1A como siguiente fase de producto.
+
+## Fase 2.1A - Estabilidad y fricciones criticas
+
+Estado:
+
+- implementada en workspace
+- verificacion automatica completada
+
+Objetivo:
+
+- corregir fricciones criticas del Roadmap 2.1 sin abrir features de 2.1B
+- mantener arquitectura, Room, Firebase/sync y snapshots historicos intactos
+- conservar el WIP de fixes menores de Claude ya presente en Entrenar
+
+Cambios principales:
+
+- Home consume `HomeUiState.message` y muestra feedback mediante snackbar.
+- Settings expone mensaje efimero al cambiar unidad `kg/lb` y no muestra confirmacion si se pulsa la unidad ya seleccionada.
+- Rutinas gana validacion inline para nombre de rutina, dias, ejercicios, series y reps objetivo.
+- Reps objetivo acepta formatos acotados: `8`, `8-12`, `AMRAP`, `RPE 8`; valores absurdos bloquean guardado.
+- Entrenar conserva los fixes menores de Gate 0 ya aplicados en workspace:
+  - al enfocar campos con `0`, se facilita reemplazo directo
+  - inputs usan colores del tema en foco
+  - dialogo de finalizar usa `Dialog` + `Surface`
+  - preview se refresca cuando cambia la rutina activa editable
+- La normalizacion de peso/reps se mantiene en `UpdateWorkoutSetUseCase` y queda cubierta por tests.
+- Historial conserva `BackHandler` y anade en detalle:
+  - notas de sesion
+  - notas por set
+  - duracion calculada
+  - volumen total
+  - mejor set por volumen
+
+Decisiones:
+
+- No tocar Firebase/sync, schema Room ni repositorios por esta fase.
+- Calcular metricas de Historial en `HistoryDetailUiState`, no dentro del composable.
+- Mantener el editor de Rutinas simple; se anaden mensajes inline sin cambiar flujo ni navegacion.
+- No actualizar `docs/project-methodology/` porque no aparecio una regla general reusable.
+- No actualizar `docs/work-methodology/` porque no aparecio un aprendizaje especifico nuevo que merezca documentacion local.
+
+Verificacion realizada:
+
+```powershell
+.\gradlew.bat :app:compileDebugKotlin --rerun-tasks --no-daemon --console=plain
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Los tests focalizados fallaron primero como se esperaba porque Historial aun no exponia metricas de detalle.
+- Un primer `test` completo quedo en timeout sin salida.
+- `:app:testDebugUnitTest` encontro un build local inconsistente: Kotlin no pudo leer `R.jar` en `app/build/intermediates`.
+- `:app:compileDebugKotlin --rerun-tasks` regenero las salidas y paso.
+- `test` paso con `BUILD SUCCESSFUL in 3m 41s`.
+- `build` paso con `BUILD SUCCESSFUL in 10m 34s`.
+- Se mantienen warnings conocidos de AGP/compileSdk 35 y D8/Kotlin metadata.
+
+Pendiente:
+
+- Validar manualmente pantallas tocadas en dispositivo/emulador.

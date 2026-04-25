@@ -8,9 +8,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -27,11 +32,24 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val weightUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
+    val message by viewModel.message.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    LazyColumn(
-        modifier = Modifier.padding(horizontal = FitSpacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.card)
-    ) {
+    LaunchedEffect(message) {
+        val currentMessage = message ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(currentMessage)
+        viewModel.clearMessage()
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(horizontal = FitSpacing.screenHorizontal),
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.card)
+        ) {
         item {
             FitTrackScreenHeader(
                 title = "Ajustes",
@@ -99,6 +117,7 @@ fun SettingsScreen(
                     )
                 }
             }
+        }
         }
     }
 }

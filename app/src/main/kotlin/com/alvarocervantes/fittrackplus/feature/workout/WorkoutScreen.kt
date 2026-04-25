@@ -23,7 +23,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -31,9 +30,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -47,8 +48,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -86,30 +89,45 @@ fun WorkoutScreen(
     }
 
     if (showFinishConfirmation) {
-        AlertDialog(
-            onDismissRequest = { showFinishConfirmation = false },
-            title = { Text("Finalizar entrenamiento") },
-            text = {
-                Text(
-                    text = "Se guardara la sesion en el historial con las series registradas hasta ahora."
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showFinishConfirmation = false
-                        viewModel.finishWorkout()
-                    }
+        Dialog(onDismissRequest = { showFinishConfirmation = false }) {
+            Surface(
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(FitSpacing.cardPadding),
+                    verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
                 ) {
-                    Text("Finalizar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showFinishConfirmation = false }) {
-                    Text("Seguir entrenando")
+                    Text(
+                        text = "Finalizar entrenamiento",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Se guardara la sesion en el historial con las series registradas hasta ahora.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { showFinishConfirmation = false }) {
+                            Text("Seguir entrenando")
+                        }
+                        TextButton(
+                            onClick = {
+                                showFinishConfirmation = false
+                                viewModel.finishWorkout()
+                            }
+                        ) {
+                            Text("Finalizar")
+                        }
+                    }
                 }
             }
-        )
+        }
     }
 
     Scaffold(
@@ -488,9 +506,25 @@ private fun WorkoutSetRow(
                 label = { Text("Kg") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 56.dp)
+                    .onFocusChanged { focusState ->
+                        if (focusState.isFocused && set.weightText == "0") {
+                            onSetWeightChange(set.id, "")
+                        }
+                    }
             )
             if (set.previousWeight != null) {
                 Text(
@@ -512,9 +546,25 @@ private fun WorkoutSetRow(
             label = { Text("Reps") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+            ),
             modifier = Modifier
                 .weight(1f)
                 .heightIn(min = 56.dp)
+                .onFocusChanged { focusState ->
+                    if (focusState.isFocused && set.repsText == "0") {
+                        onSetRepsChange(set.id, "")
+                    }
+                }
         )
     }
 }

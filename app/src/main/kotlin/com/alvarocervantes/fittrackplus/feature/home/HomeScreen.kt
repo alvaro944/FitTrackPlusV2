@@ -19,9 +19,14 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,8 +58,15 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val hasActiveRoutine = uiState.activeRoutineId != null
+
+    LaunchedEffect(uiState.message) {
+        val message = uiState.message ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message)
+        viewModel.clearMessage()
+    }
 
     val quickActions = listOf(
         HomeQuickAction(
@@ -91,10 +103,15 @@ fun HomeScreen(
         )
     )
 
-    LazyColumn(
-        modifier = Modifier.padding(horizontal = FitSpacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.card)
-    ) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(horizontal = FitSpacing.screenHorizontal),
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.card)
+        ) {
         item {
             Column(
                 modifier = Modifier.padding(top = FitSpacing.screenTop),
@@ -230,6 +247,7 @@ fun HomeScreen(
                     }
                 }
             }
+        }
         }
     }
 }

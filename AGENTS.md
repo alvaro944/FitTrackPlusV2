@@ -27,6 +27,15 @@ Antes de editar codigo, revisar:
 - Al cerrar cada fase, actualizar `docs/project-methodology/` solo si aparece una regla general reusable; los aprendizajes especificos van a `docs/work-methodology/`.
 - Al cerrar cada fase, comentar al usuario que avances, docs y aprendizajes se han anotado.
 
+## OpenAI Y GPT-5.5
+
+- El repo no tiene integracion runtime con OpenAI en la app Android actual.
+- Si se anade una integracion OpenAI futura, usar `gpt-5.5` como modelo base para tareas complejas de razonamiento, codigo o agentes.
+- Usar Responses API como punto de partida para flujos con herramientas, razonamiento o contexto largo.
+- Empezar con `reasoning.effort = medium` para trabajo complejo; bajar a `low` o `none` solo si el flujo es simple, barato o sensible a latencia y las pruebas lo sostienen.
+- Mantener prompts cortos y orientados a resultado: objetivo, criterios de exito, restricciones, evidencia disponible y forma de salida.
+- No poner claves OpenAI en el cliente Android. Si aparece uso de API, disenar primero una capa backend o proxy seguro.
+
 ## Arquitectura
 
 - Compose no debe contener logica de negocio.

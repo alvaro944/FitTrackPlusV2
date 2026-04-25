@@ -1,5 +1,6 @@
 package com.alvarocervantes.fittrackplus.feature.history
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -89,6 +90,10 @@ private fun HistoryContent(
     onBackToList: () -> Unit
 ) {
     val showingDetail = state.selectedSessionId != null || state.isDetailLoading
+
+    BackHandler(enabled = showingDetail) {
+        onBackToList()
+    }
 
     AnimatedContent(
         targetState = showingDetail,
@@ -311,6 +316,30 @@ private fun HistoryDetailSummary(detail: HistoryDetailUiState) {
             )
         }
         Text(
+            text = "Duracion: ${formatDuration(detail.durationMillis)}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = "Volumen total: ${detail.totalVolumeKg.toDisplayText()} kg",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        detail.bestSet?.let { bestSet ->
+            Text(
+                text = "Mejor set: ${bestSet.exerciseName} · ${bestSet.weightKg.toDisplayText()} kg x ${bestSet.reps}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        detail.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+            Text(
+                text = "Notas: $notes",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Text(
             text = "Finalizada ${formatDate(detail.finishedAt)}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -348,40 +377,62 @@ private fun HistoryExerciseCard(exercise: HistoryExerciseUiState) {
 
 @Composable
 private fun HistorySetRow(set: HistorySetUiState) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
             .padding(FitSpacing.smMd),
-        horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
     ) {
-        Box(
-            modifier = Modifier
-                .size(30.dp)
-                .background(MaterialTheme.colorScheme.surface, CircleShape),
-            contentAlignment = Alignment.Center
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .background(MaterialTheme.colorScheme.surface, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = set.setNumber.toString(),
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
             Text(
-                text = set.setNumber.toString(),
-                style = MaterialTheme.typography.labelMedium
+                text = "${set.weightKg.toDisplayText()} kg",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "${set.reps} reps",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
             )
         }
-        Text(
-            text = "${set.weightKg.toDisplayText()} kg",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = "${set.reps} reps",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f)
-        )
+        set.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+            Text(
+                text = notes,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
 private fun formatDate(timestamp: Long): String {
     return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(timestamp))
+}
+
+private fun formatDuration(durationMillis: Long): String {
+    val totalMinutes = durationMillis / 60_000
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return if (hours > 0) {
+        "${hours}h ${minutes}min"
+    } else {
+        "${minutes}min"
+    }
 }
 
 private fun Double.toDisplayText(): String {

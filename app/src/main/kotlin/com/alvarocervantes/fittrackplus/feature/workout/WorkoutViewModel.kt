@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alvarocervantes.fittrackplus.data.local.relation.WorkoutSessionWithExercises
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
+import com.alvarocervantes.fittrackplus.data.repository.RoutineRepository
 import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutPreview
 import com.alvarocervantes.fittrackplus.domain.usecase.FinishWorkoutSessionUseCase
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -27,6 +29,7 @@ import kotlinx.coroutines.launch
 class WorkoutViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val routineRepository: RoutineRepository,
     private val workoutRepository: WorkoutRepository,
     private val getNextWorkoutPreview: GetNextWorkoutPreviewUseCase,
     private val startWorkoutSession: StartWorkoutSessionUseCase,
@@ -55,6 +58,19 @@ class WorkoutViewModel @Inject constructor(
                     )
                 }
             }
+            .launchIn(viewModelScope)
+
+        // Refresca el preview cuando cambia el contenido de la rutina activa (ej: nombre editado).
+        // drop(1) evita un reload doble en el arranque (ya cubierto por activeRoutineId arriba).
+        routineRepository.observeRoutines()
+            .drop(1)
+            .onEach {
+                val state = _uiState.value
+                if (state.activeSession == null && state.activeRoutineId != null) {
+                    loadWorkoutState(state.activeRoutineId)
+                }
+            }
+            .catch { }
             .launchIn(viewModelScope)
     }
 

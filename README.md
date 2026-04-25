@@ -5,21 +5,22 @@ FitTrackPlus es una aplicacion Android nativa para crear rutinas de gimnasio, re
 ## Estado Actual
 
 Rama de trabajo actual: `codex/v2-mejoras`.
-Fase 6 y su bloque de polish visual/accesibilidad estan cerrados tecnicamente:
+La primera version funcional completa queda cerrada tecnicamente. Fase 6, su bloque de polish visual/accesibilidad, la intro clara y CI quedan integrados en el estado actual:
 - espaciado remapeado a `FitSpacing` en las pantallas principales
 - `core/design` dividido por componentes (`Cards`, `Labels`, `States`, `Indicators`)
 - transiciones `fadeIn/fadeOut` en navegacion y `AnimatedContent` en Historial
 - semantics en barras de progreso y targets tactiles revisados en Rutinas
-Validacion manual pendiente: prueba en movil/emulador para intro, transiciones, accesibilidad y dark mode.
+Validacion manual pendiente: prueba en movil/emulador para intro, transiciones, accesibilidad, dark mode y flujo completo.
 Branding base cerrado: docs de marca, logo e icono adaptativo ya definidos.
 La intro de arranque clara ya vive en Compose; Bloque 8 queda solo para validacion o ajuste real si aparece un problema.
-Siguiente trabajo recomendado: validacion manual del polish visual, luego Bloque 7 (GitHub Actions CI). `strings.xml` sigue diferido hasta estabilizar copy.
+Siguiente trabajo recomendado: Gate 0 del Roadmap 2.1, validar manualmente la v1 tecnica y despues abrir Fase 2.1A de estabilidad. `strings.xml` queda diferido fuera del roadmap inmediato salvo decision explicita.
 
 La app esta arrancando una base nueva en Jetpack Compose. La v2 se compila desde `app/src/main/kotlin`.
 
 Para no perder contexto entre sesiones:
 
 - Plan maestro: `docs/project-plan.md`
+- Roadmap post-v1: `docs/roadmap-2.1.md`
 - Progreso actual: `docs/project-progress.md`
 - Bitacora por fases: `docs/phase-log.md`
 - Arquitectura: `docs/architecture.md`
@@ -81,10 +82,13 @@ Cuando existan pruebas instrumentadas:
 5. Fase 4 - Estadisticas MVP: progreso por ejercicio, volumen y mejores marcas. Completada tecnicamente.
 6. Fase 5 - Pulido UX funcional: estados, accesibilidad, errores y recorrido de usuario nuevo. Completada tecnicamente.
 7. Fase 6 - UI visual / Front con herramienta: sistema visual, navegacion y pantallas Compose redisenadas sin cambiar reglas de negocio. Completada tecnicamente.
-8. Bloque 3 UX + polish visual/accesibilidad de Fase 6: implementado en local y verificado con `test` + `build`, pendiente de validacion manual y push.
-9. Bloque 7 - CI: crear workflow de GitHub Actions cuando la validacion manual del polish no detecte ajustes extra.
-10. Bloque 4 - Funcionalidad nueva de valor: export de historial, referencia de peso anterior y mejora de stats, despues de cerrar visual/CI.
-11. Fase 7 - Sync futura: evaluar Firebase/Auth/Firestore o alternativa cuando el nucleo local y visual este estable.
+8. Bloque 3 UX + polish visual/accesibilidad de Fase 6: implementado y verificado con `test` + `build`, pendiente de validacion manual.
+9. Bloque 7 - CI: implementado con GitHub Actions para `test`, `build` y `detekt`.
+10. Gate 0 - Validacion manual de la v1 tecnica: intro, navegacion, dark mode, accesibilidad y flujo completo.
+11. Roadmap 2.1A - Estabilidad y fricciones criticas: Home, Workout, Rutinas, Historial y Settings.
+12. Roadmap 2.1B - Features de valor: plantillas, reordenar/duplicar, timer, filtros, stats y tema.
+13. Roadmap 2.1C - Portfolio WOW: heatmap, achievements, PR en vivo, skeletons y onboarding/demo data.
+14. Sync futura: evaluar Firebase/Auth/Firestore o alternativa cuando el nucleo local y V2.1 esten estables.
 
 ## Metodologia
 

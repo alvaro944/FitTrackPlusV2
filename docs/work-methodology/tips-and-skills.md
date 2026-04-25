@@ -59,6 +59,24 @@ Este documento guarda patrones reutilizables de trabajo tecnico. No intenta desc
 - cambio visible o de flujo: verificacion manual cuando sea posible
 - cambio de proceso: comprobar que la documentacion no se contradiga
 
+### Verificacion escalonada para ahorrar coste
+
+En este repo, `build` completo consume bastante tiempo y salida de terminal. Para reducir CPU, espera y tokens sin perder rigor:
+
+- docs only: no ejecutar Gradle; revisar consistencia documental
+- cambio pequeno de UI Compose: ejecutar `.\gradlew.bat :app:compileDebugKotlin --no-daemon --console=plain` y hacer revision manual si aplica
+- cambio en ViewModel, dominio, repositorios o reglas: ejecutar `.\gradlew.bat testDebugUnitTest --no-daemon --console=plain` o el test concreto si existe
+- cambio en Room, DI, navegacion compartida o superficie transversal: ejecutar `.\gradlew.bat test --no-daemon --console=plain` y considerar `build`
+- cierre de fase, merge, push importante o cambio con riesgo: ejecutar `.\gradlew.bat test --no-daemon --console=plain` y `.\gradlew.bat build --no-daemon --console=plain`
+- GitHub Actions debe confirmar `test`, `build` y `detekt` en limpio cuando haya push o PR
+
+Regla practica:
+
+- durante una iteracion, usar el check mas pequeno que pruebe el cambio real
+- agrupar micro cambios relacionados y verificar una vez
+- reservar `build` completo para cierres o cambios con blast radius real
+- no afirmar cierre de fase sin verificacion completa reciente o CI verde
+
 ### Tooling fragil
 
 Si una toolchain falla de forma intermitente:
@@ -76,6 +94,18 @@ Cuando un proyecto tenga herramientas con caches sensibles:
 - registrar cuando el problema es de tooling y no del cambio funcional
 
 ## 4. Tips Tecnicos
+
+### OpenAI / GPT-5.5
+
+El proyecto no tiene ahora llamadas runtime a OpenAI. Si se abre esa linea:
+
+- empezar por `gpt-5.5` para trabajo complejo de codigo, agentes, razonamiento o contexto largo
+- usar Responses API para flujos con herramientas, razonamiento o estado conversacional
+- arrancar con `reasoning.effort = medium` para tareas complejas y medir antes de subir
+- usar `low` o `none` solo en tareas estrechas, baratas o sensibles a latencia
+- escribir prompts outcome-first: resultado esperado, criterios de exito, restricciones, evidencia y formato
+- evitar migrar prompts antiguos tal cual si traen rol exagerado, pasos mecanicos o restricciones repetidas
+- no exponer claves OpenAI en Android; cualquier integracion real debe pasar por backend o proxy seguro
 
 ### Gradle En Windows
 

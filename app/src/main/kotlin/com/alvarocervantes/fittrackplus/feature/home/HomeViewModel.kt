@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.Calendar
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -27,6 +28,8 @@ class HomeViewModel @Inject constructor(
     private val workoutRepository: WorkoutRepository
 ) : ViewModel() {
 
+    private val message = MutableStateFlow<String?>(null)
+
     val uiState: StateFlow<HomeUiState> = combine(
         userPreferencesRepository.activeRoutineId,
         workoutRepository.observeFinishedSessions()
@@ -39,12 +42,19 @@ class HomeViewModel @Inject constructor(
             isLoading = false
         )
     }.catch { throwable ->
-        emit(HomeUiState(isLoading = false, message = throwable.message ?: "No se pudo cargar el inicio."))
+        message.value = throwable.message ?: "No se pudo cargar el inicio."
+        emit(HomeUiState(isLoading = false))
+    }.combine(message) { state, currentMessage ->
+        state.copy(message = currentMessage)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = HomeUiState()
     )
+
+    fun clearMessage() {
+        message.value = null
+    }
 
     private fun currentWeekStartMillis(): Long {
         val cal = Calendar.getInstance().apply {
