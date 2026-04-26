@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,10 +20,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -77,7 +80,9 @@ fun HistoryScreen(
             state = state,
             contentPadding = padding,
             onSessionClick = viewModel::selectSession,
-            onBackToList = viewModel::clearSelection
+            onBackToList = viewModel::clearSelection,
+            onPeriodFilterChange = viewModel::setPeriodFilter,
+            onSortOrderChange = viewModel::setSortOrder
         )
     }
 }
@@ -87,7 +92,9 @@ private fun HistoryContent(
     state: HistoryUiState,
     contentPadding: PaddingValues,
     onSessionClick: (Long) -> Unit,
-    onBackToList: () -> Unit
+    onBackToList: () -> Unit,
+    onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
+    onSortOrderChange: (HistorySortOrder) -> Unit
 ) {
     val showingDetail = state.selectedSessionId != null || state.isDetailLoading
 
@@ -112,7 +119,9 @@ private fun HistoryContent(
             HistoryListContent(
                 state = state,
                 contentPadding = contentPadding,
-                onSessionClick = onSessionClick
+                onSessionClick = onSessionClick,
+                onPeriodFilterChange = onPeriodFilterChange,
+                onSortOrderChange = onSortOrderChange
             )
         }
     }
@@ -122,7 +131,9 @@ private fun HistoryContent(
 private fun HistoryListContent(
     state: HistoryUiState,
     contentPadding: PaddingValues,
-    onSessionClick: (Long) -> Unit
+    onSessionClick: (Long) -> Unit,
+    onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
+    onSortOrderChange: (HistorySortOrder) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -143,18 +154,40 @@ private fun HistoryListContent(
             )
         }
 
+        if (state.allSessions.isNotEmpty()) {
+            item {
+                HistoryFilterControls(
+                    selectedPeriod = state.selectedPeriod,
+                    selectedSort = state.selectedSort,
+                    onPeriodFilterChange = onPeriodFilterChange,
+                    onSortOrderChange = onSortOrderChange
+                )
+            }
+        }
+
         when {
             state.isLoading -> {
                 item { FitTrackLoadingCard(text = "Cargando sesiones finalizadas...") }
             }
 
-            state.sessions.isEmpty() -> {
+            state.allSessions.isEmpty() -> {
                 item {
                     FitTrackEmptyState(
                         icon = Icons.Filled.History,
                         title = "Sin sesiones finalizadas",
                         message = "Finaliza un entrenamiento para verlo aqui.",
                         supporting = "El historial usa snapshots, asi que los cambios futuros en rutinas no modificaran estas sesiones."
+                    )
+                }
+            }
+
+            state.sessions.isEmpty() -> {
+                item {
+                    FitTrackEmptyState(
+                        icon = Icons.Filled.History,
+                        title = "Sin sesiones para este filtro",
+                        message = "Cambia el periodo o el orden para ver mas sesiones.",
+                        supporting = "El historial completo sigue guardado."
                     )
                 }
             }
@@ -170,6 +203,49 @@ private fun HistoryListContent(
                     HistorySessionCard(
                         session = session,
                         onClick = { onSessionClick(session.sessionId) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryFilterControls(
+    selectedPeriod: HistoryPeriodFilter,
+    selectedSort: HistorySortOrder,
+    onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
+    onSortOrderChange: (HistorySortOrder) -> Unit
+) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            FitTrackSectionLabel(label = "Periodo")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+            ) {
+                HistoryPeriodFilter.entries.forEach { period ->
+                    FilterChip(
+                        selected = selectedPeriod == period,
+                        onClick = { onPeriodFilterChange(period) },
+                        label = { Text(period.label) }
+                    )
+                }
+            }
+            FitTrackSectionLabel(label = "Orden")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+            ) {
+                HistorySortOrder.entries.forEach { sort ->
+                    FilterChip(
+                        selected = selectedSort == sort,
+                        onClick = { onSortOrderChange(sort) },
+                        label = { Text(sort.label) }
                     )
                 }
             }
@@ -273,6 +349,13 @@ private fun HistorySessionCard(
                 )
                 Text(
                     text = formatDate(session.finishedAt),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "${session.totalVolumeKg.toDisplayText()} kg - " +
+                        "${session.setCount} series - " +
+                        formatDuration(session.durationMillis),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

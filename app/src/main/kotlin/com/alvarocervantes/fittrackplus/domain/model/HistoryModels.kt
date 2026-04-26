@@ -6,7 +6,10 @@ data class WorkoutHistorySummary(
     val dayName: String,
     val startedAt: Long,
     val finishedAt: Long,
-    val weekNumber: Int
+    val weekNumber: Int,
+    val totalVolumeKg: Double,
+    val durationMillis: Long,
+    val setCount: Int
 )
 
 data class WorkoutHistoryDetail(

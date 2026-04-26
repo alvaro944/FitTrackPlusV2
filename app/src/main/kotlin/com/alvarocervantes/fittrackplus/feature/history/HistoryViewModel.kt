@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+private const val DAY_MILLIS: Long = 86_400_000
+
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     private val observeWorkoutHistory: ObserveWorkoutHistoryUseCase,
@@ -37,9 +39,15 @@ class HistoryViewModel @Inject constructor(
                 }
 
                 _uiState.update { state ->
+                    val allSessions = sessions.map { it.toUiState() }
                     state.copy(
                         isLoading = false,
-                        sessions = sessions.map { it.toUiState() },
+                        allSessions = allSessions,
+                        sessions = allSessions.applyHistoryFilters(
+                            period = state.selectedPeriod,
+                            sort = state.selectedSort,
+                            nowMillis = System.currentTimeMillis()
+                        ),
                         selectedSessionId = nextSelectedId,
                         selectedDetail = if (nextSelectedId == null) null else state.selectedDetail,
                         message = null
@@ -105,16 +113,57 @@ class HistoryViewModel @Inject constructor(
     fun clearMessage() {
         _uiState.update { state -> state.copy(message = null) }
     }
+
+    fun setPeriodFilter(period: HistoryPeriodFilter) {
+        _uiState.update { state ->
+            state.copy(
+                selectedPeriod = period,
+                sessions = state.allSessions.applyHistoryFilters(
+                    period = period,
+                    sort = state.selectedSort,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    fun setSortOrder(sort: HistorySortOrder) {
+        _uiState.update { state ->
+            state.copy(
+                selectedSort = sort,
+                sessions = state.allSessions.applyHistoryFilters(
+                    period = state.selectedPeriod,
+                    sort = sort,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
+        }
+    }
 }
 
 data class HistoryUiState(
     val isLoading: Boolean = true,
     val isDetailLoading: Boolean = false,
+    val allSessions: List<HistorySessionUiState> = emptyList(),
     val sessions: List<HistorySessionUiState> = emptyList(),
+    val selectedPeriod: HistoryPeriodFilter = HistoryPeriodFilter.All,
+    val selectedSort: HistorySortOrder = HistorySortOrder.Recent,
     val selectedSessionId: Long? = null,
     val selectedDetail: HistoryDetailUiState? = null,
     val message: String? = null
 )
+
+enum class HistoryPeriodFilter(val label: String) {
+    All("Todo"),
+    LastFourWeeks("4 semanas"),
+    LastTwelveWeeks("12 semanas")
+}
+
+enum class HistorySortOrder(val label: String) {
+    Recent("Reciente"),
+    Oldest("Antiguo"),
+    HighestVolume("Mayor volumen")
+}
 
 data class HistorySessionUiState(
     val sessionId: Long,
@@ -122,7 +171,10 @@ data class HistorySessionUiState(
     val dayName: String,
     val startedAt: Long,
     val finishedAt: Long,
-    val weekNumber: Int
+    val weekNumber: Int,
+    val totalVolumeKg: Double,
+    val durationMillis: Long,
+    val setCount: Int
 )
 
 data class HistoryDetailUiState(
@@ -184,8 +236,39 @@ private fun WorkoutHistorySummary.toUiState(): HistorySessionUiState {
         dayName = dayName,
         startedAt = startedAt,
         finishedAt = finishedAt,
-        weekNumber = weekNumber
+        weekNumber = weekNumber,
+        totalVolumeKg = totalVolumeKg,
+        durationMillis = durationMillis,
+        setCount = setCount
     )
+}
+
+fun List<HistorySessionUiState>.applyHistoryFilters(
+    period: HistoryPeriodFilter,
+    sort: HistorySortOrder,
+    nowMillis: Long
+): List<HistorySessionUiState> {
+    return filterByPeriod(period, nowMillis).sortByOrder(sort)
+}
+
+private fun List<HistorySessionUiState>.filterByPeriod(
+    period: HistoryPeriodFilter,
+    nowMillis: Long
+): List<HistorySessionUiState> {
+    val cutoff = when (period) {
+        HistoryPeriodFilter.All -> return this
+        HistoryPeriodFilter.LastFourWeeks -> nowMillis - 4 * 7 * DAY_MILLIS
+        HistoryPeriodFilter.LastTwelveWeeks -> nowMillis - 12 * 7 * DAY_MILLIS
+    }
+    return filter { session -> session.finishedAt >= cutoff }
+}
+
+private fun List<HistorySessionUiState>.sortByOrder(sort: HistorySortOrder): List<HistorySessionUiState> {
+    return when (sort) {
+        HistorySortOrder.Recent -> sortedByDescending { session -> session.finishedAt }
+        HistorySortOrder.Oldest -> sortedBy { session -> session.finishedAt }
+        HistorySortOrder.HighestVolume -> sortedByDescending { session -> session.totalVolumeKg }
+    }
 }
 
 private fun WorkoutHistoryDetail.toUiState(): HistoryDetailUiState {

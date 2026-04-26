@@ -1324,3 +1324,64 @@ Resultado:
 Pendiente:
 
 - Validar manualmente en dispositivo/emulador cuando haya `adb` disponible; en esta sesion `adb` no esta en PATH.
+
+## Fase 2.1B.3 - Historial con filtros y orden
+
+Estado:
+
+- implementada en workspace
+- verificacion automatica completada
+
+Rama:
+
+- `codex/phase-2.1b-history-filters`
+
+Objetivo:
+
+- hacer mas util el listado de Historial cuando haya muchas sesiones
+- anadir filtros por periodo y orden configurable
+- mantener Room, Firebase/sync y snapshots historicos intactos
+
+Cambios principales:
+
+- Historial gana filtro de periodo:
+  - Todo
+  - 4 semanas
+  - 12 semanas
+- Historial gana orden:
+  - Reciente
+  - Antiguo
+  - Mayor volumen
+- `ObserveWorkoutHistoryUseCase` lee sesiones finalizadas con ejercicios y series para calcular resumen enriquecido.
+- El resumen del listado incluye volumen total, duracion y numero de series.
+- `HistoryViewModel` conserva sesiones completas y expone la lista filtrada/ordenada para Compose.
+- Compose solo pinta controles y envia eventos de filtro/orden.
+- Se crea `docs/visual-improvements.md` como backlog visual no obligatorio.
+- No se toca schema Room, Firebase/sync, repositorios ni reglas de snapshots.
+
+Tests anadidos o ampliados:
+
+- `ObserveWorkoutHistoryUseCaseTest`
+- `HistoryFiltersTest`
+
+Verificacion realizada:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain --tests "com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutHistoryUseCaseTest" --tests "com.alvarocervantes.fittrackplus.feature.history.HistoryFiltersTest"
+.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain --tests "com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutHistoryUseCaseTest" --tests "com.alvarocervantes.fittrackplus.feature.history.HistoryFiltersTest" --tests "com.alvarocervantes.fittrackplus.feature.history.HistoryDetailUiStateTest"
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Tests RED fallaron primero por campos/helpers inexistentes.
+- Tests focalizados de Historial pasan.
+- Test completo pasa.
+- El primer build completo fallo por `detekt` con una linea demasiado larga en `HistoryScreen`; se corrigio formato sin cambiar comportamiento.
+- Build completo pasa.
+- Se mantienen warnings conocidos de AGP/compileSdk 35, D8/Kotlin metadata y deprecacion de `Icons.Filled.ArrowBack`.
+
+Pendiente:
+
+- Validacion manual conjunta de 2.1B.1, 2.1B.2 y 2.1B.3 queda pendiente para una pasada posterior.

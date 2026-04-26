@@ -4,7 +4,7 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 
 ## Estado Actual
 
-- Rama actual: `codex/phase-2.1b-timer`.
+- Rama actual: `codex/phase-2.1b-history-filters`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
 - Commit de cierre de Fase 1: `9df5a44 Complete phase 1 routines`.
 - Commit de cierre de Fase 2: `7cf2c02 Complete phase 2 workout logging`.
@@ -61,7 +61,14 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
   - auto-arranque opcional al completar una serie
   - sin Room, DataStore, Firebase/sync ni snapshots historicos
 - Fase 2.1B.2 verificada con `test` y `build`.
-- Siguiente fase funcional de producto: validacion manual en dispositivo/emulador cuando haya `adb` disponible y despues elegir la siguiente subfase de 2.1B.
+- Fase 2.1B.3 implementada y verificada en rama `codex/phase-2.1b-history-filters`:
+  - filtros de periodo en Historial: Todo, 4 semanas, 12 semanas
+  - orden del listado: Reciente, Antiguo, Mayor volumen
+  - resumen enriquecido con volumen, duracion y numero de series desde snapshots
+  - sin cambios de schema, Firebase/sync ni snapshots historicos
+- Fase 2.1B.3 verificada con `test` y `build`.
+- Backlog visual separado creado en `docs/visual-improvements.md`.
+- Siguiente fase funcional de producto: elegir la siguiente subfase de 2.1B.
 - Migracion GPT-5.5 aplicada a agentes/docs: no hay integracion runtime OpenAI en la app, asi que no habia modelo de API que cambiar.
 
 ## Hecho Hasta Ahora
@@ -332,13 +339,8 @@ Implementado:
 
 ## Siguiente Paso
 
-1. Validar manualmente Entrenar cuando haya dispositivo/emulador disponible:
-   - iniciar sesion
-   - iniciar timer 60s/90s/120s
-   - pausar, reanudar, reiniciar y cancelar
-   - activar Auto y completar una serie
-   - finalizar entrenamiento y confirmar que el timer se cancela
-2. Elegir la siguiente subfase de 2.1B.
+1. Elegir la siguiente subfase de 2.1B.
+2. Validacion manual conjunta pendiente para fases 2.1B.1, 2.1B.2 y 2.1B.3 cuando haya dispositivo/emulador disponible.
 
 ## Roadmap 2.1
 
