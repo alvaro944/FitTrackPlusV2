@@ -4,7 +4,7 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 
 ## Estado Actual
 
-- Rama actual: `codex/phase-2.1b-history-filters`.
+- Rama actual: `codex/phase-2.1b-stats-periods`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
 - Commit de cierre de Fase 1: `9df5a44 Complete phase 1 routines`.
 - Commit de cierre de Fase 2: `7cf2c02 Complete phase 2 workout logging`.
@@ -67,6 +67,12 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
   - resumen enriquecido con volumen, duracion y numero de series desde snapshots
   - sin cambios de schema, Firebase/sync ni snapshots historicos
 - Fase 2.1B.3 verificada con `test` y `build`.
+- Fase 2.1B.4 implementada y verificada en rama `codex/phase-2.1b-stats-periods`:
+  - periodos en Datos: Todo, 4 semanas, 12 semanas
+  - tooltip de punto en grafica de progreso
+  - resumen, volumen, progreso y records recalculados por periodo
+  - sin cambios de schema, Firebase/sync ni snapshots historicos
+- Fase 2.1B.4 verificada con `test` y `build`.
 - Backlog visual separado creado en `docs/visual-improvements.md`.
 - Siguiente fase funcional de producto: elegir la siguiente subfase de 2.1B.
 - Migracion GPT-5.5 aplicada a agentes/docs: no hay integracion runtime OpenAI en la app, asi que no habia modelo de API que cambiar.
@@ -340,7 +346,7 @@ Implementado:
 ## Siguiente Paso
 
 1. Elegir la siguiente subfase de 2.1B.
-2. Validacion manual conjunta pendiente para fases 2.1B.1, 2.1B.2 y 2.1B.3 cuando haya dispositivo/emulador disponible.
+2. Validacion manual conjunta pendiente para fases 2.1B.1, 2.1B.2, 2.1B.3 y 2.1B.4 cuando haya dispositivo/emulador disponible.
 
 ## Roadmap 2.1
 

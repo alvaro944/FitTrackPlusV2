@@ -6,6 +6,12 @@ data class WorkoutStats(
     val exerciseRecords: List<ExerciseRecords>
 )
 
+enum class WorkoutStatsPeriod {
+    All,
+    LastFourWeeks,
+    LastTwelveWeeks
+}
+
 data class WorkoutSessionVolume(
     val sessionId: Long,
     val routineName: String,

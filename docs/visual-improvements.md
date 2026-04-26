@@ -46,10 +46,13 @@ Ideas:
 
 ## Datos
 
+Estado actual:
+
+- Periodos `Todo`, `4 semanas`, `12 semanas`.
+- Tooltip de punto en progreso con fecha, peso maximo, volumen, reps y 1RM estimado.
+
 Ideas:
 
-- Periodos `4w`, `12w`, `Todo`.
-- Tooltips por punto en progreso.
 - Cards de records mas graficas.
 - Mejor jerarquia para volumen, marcas y tendencias.
 

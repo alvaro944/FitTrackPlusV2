@@ -9,6 +9,7 @@ import com.alvarocervantes.fittrackplus.data.local.relation.WorkoutSessionWithEx
 import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDaySnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -195,6 +196,72 @@ class ObserveWorkoutStatsUseCaseTest {
         }
     }
 
+    @Test
+    fun allPeriod_includesAllFinishedSessionsAndPreservesSnapshots() = runTest {
+        val repository = StatsWorkoutRepository(
+            sessions = statsPeriodSessions(nowMillis = NOW_MILLIS)
+        )
+        val useCase = ObserveWorkoutStatsUseCase(repository)
+
+        useCase(
+            period = WorkoutStatsPeriod.All,
+            nowMillis = NOW_MILLIS
+        ).test {
+            val stats = awaitItem()
+
+            assertEquals(listOf(3L, 2L, 1L), stats.sessionVolumes.map { it.sessionId })
+            assertEquals("Legacy Snapshot", stats.sessionVolumes.last().routineName)
+            assertEquals("Old Push", stats.sessionVolumes.last().dayName)
+            assertNull(stats.sessionVolumes.firstOrNull { it.sessionId == 4L })
+
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun lastFourWeeks_excludesOlderSessionsAndRecalculatesRecordsWithinPeriod() = runTest {
+        val repository = StatsWorkoutRepository(
+            sessions = statsPeriodSessions(nowMillis = NOW_MILLIS)
+        )
+        val useCase = ObserveWorkoutStatsUseCase(repository)
+
+        useCase(
+            period = WorkoutStatsPeriod.LastFourWeeks,
+            nowMillis = NOW_MILLIS
+        ).test {
+            val stats = awaitItem()
+
+            assertEquals(listOf(3L, 2L), stats.sessionVolumes.map { it.sessionId })
+            val benchRecords = stats.exerciseRecords.single { it.exerciseKey == "bench press" }
+            assertEquals(90.0, benchRecords.maxWeight?.weightKg ?: -1.0, 0.0)
+            assertEquals(12, benchRecords.maxReps?.reps)
+            assertEquals(960.0, benchRecords.bestSetVolume?.setVolumeKg ?: -1.0, 0.0)
+
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun lastTwelveWeeks_includesSessionsInsideTwelveWeekCutoff() = runTest {
+        val repository = StatsWorkoutRepository(
+            sessions = statsPeriodSessions(nowMillis = NOW_MILLIS)
+        )
+        val useCase = ObserveWorkoutStatsUseCase(repository)
+
+        useCase(
+            period = WorkoutStatsPeriod.LastTwelveWeeks,
+            nowMillis = NOW_MILLIS
+        ).test {
+            val stats = awaitItem()
+
+            assertEquals(listOf(3L, 2L, 1L), stats.sessionVolumes.map { it.sessionId })
+            val benchRecords = stats.exerciseRecords.single { it.exerciseKey == "bench press" }
+            assertEquals(140.0, benchRecords.maxWeight?.weightKg ?: -1.0, 0.0)
+
+            awaitComplete()
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun sessionWithExercises(
@@ -249,6 +316,88 @@ class ObserveWorkoutStatsUseCaseTest {
         weightKg = weightKg,
         reps = reps
     )
+
+    private fun statsPeriodSessions(nowMillis: Long): List<WorkoutSessionWithExercises> {
+        val dayMillis = 86_400_000L
+        return listOf(
+            sessionWithExercises(
+                sessionId = 1,
+                routineName = "Legacy Snapshot",
+                dayName = "Old Push",
+                startedAt = nowMillis - dayMillis * 60 - 1_000,
+                finishedAt = nowMillis - dayMillis * 60,
+                exercises = listOf(
+                    exercise(
+                        id = 101,
+                        sessionId = 1,
+                        name = "Bench Press",
+                        position = 0,
+                        sets = listOf(
+                            set(id = 1001, exerciseId = 101, setNumber = 1, weightKg = 140.0, reps = 3)
+                        )
+                    )
+                )
+            ),
+            sessionWithExercises(
+                sessionId = 2,
+                routineName = "Current Snapshot",
+                dayName = "Push",
+                startedAt = nowMillis - dayMillis * 14 - 1_000,
+                finishedAt = nowMillis - dayMillis * 14,
+                exercises = listOf(
+                    exercise(
+                        id = 201,
+                        sessionId = 2,
+                        name = "Bench Press",
+                        position = 0,
+                        sets = listOf(
+                            set(id = 2001, exerciseId = 201, setNumber = 1, weightKg = 90.0, reps = 10)
+                        )
+                    )
+                )
+            ),
+            sessionWithExercises(
+                sessionId = 3,
+                routineName = "Current Snapshot",
+                dayName = "Push",
+                startedAt = nowMillis - dayMillis * 2 - 1_000,
+                finishedAt = nowMillis - dayMillis * 2,
+                exercises = listOf(
+                    exercise(
+                        id = 301,
+                        sessionId = 3,
+                        name = "Bench Press",
+                        position = 0,
+                        sets = listOf(
+                            set(id = 3001, exerciseId = 301, setNumber = 1, weightKg = 80.0, reps = 12)
+                        )
+                    )
+                )
+            ),
+            sessionWithExercises(
+                sessionId = 4,
+                routineName = "Open",
+                dayName = "Open",
+                startedAt = nowMillis - dayMillis,
+                finishedAt = null,
+                exercises = listOf(
+                    exercise(
+                        id = 401,
+                        sessionId = 4,
+                        name = "Bench Press",
+                        position = 0,
+                        sets = listOf(
+                            set(id = 4001, exerciseId = 401, setNumber = 1, weightKg = 200.0, reps = 10)
+                        )
+                    )
+                )
+            )
+        )
+    }
+
+    private companion object {
+        const val NOW_MILLIS = 1_700_000_000_000L
+    }
 }
 
 private class StatsWorkoutRepository(

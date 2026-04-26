@@ -8,35 +8,42 @@ import com.alvarocervantes.fittrackplus.domain.model.ExerciseRecords
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseSetRecord
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutSessionVolume
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStats
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutStatsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class StatsViewModel @Inject constructor(
     observeWorkoutStats: ObserveWorkoutStatsUseCase
 ) : ViewModel() {
 
+    private val selectedPeriod = MutableStateFlow(WorkoutStatsPeriod.All)
     private val _uiState = MutableStateFlow(StatsUiState())
     val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
 
     init {
-        observeWorkoutStats()
-            .onEach { stats ->
+        selectedPeriod
+            .flatMapLatest { period ->
+                observeWorkoutStats(period = period).map { stats -> period to stats }
+            }
+            .onEach { (period, stats) ->
                 _uiState.update { currentState ->
-                    stats.toUiState()
-                        .copy(
-                            isLoading = false,
-                            selectedExerciseName = currentState.selectedExerciseName
-                        )
-                        .withProgressPoints()
+                    currentState.withStatsPeriod(
+                        period = period,
+                        stats = stats.toUiState().copy(isLoading = false)
+                    )
                 }
             }
             .catch { throwable ->
@@ -50,9 +57,25 @@ class StatsViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    fun setPeriodFilter(period: WorkoutStatsPeriod) {
+        selectedPeriod.value = period
+    }
+
     fun selectExercise(name: String) {
         _uiState.update { state ->
-            state.copy(selectedExerciseName = name).withProgressPoints()
+            state.withSelectedExercise(name)
+        }
+    }
+
+    fun selectProgressPoint(sessionId: Long) {
+        _uiState.update { state ->
+            state.withSelectedProgressPoint(sessionId)
+        }
+    }
+
+    fun clearSelectedProgressPoint() {
+        _uiState.update { state ->
+            state.copy(selectedProgressPoint = null)
         }
     }
 }
@@ -62,8 +85,10 @@ data class StatsUiState(
     val sessionVolumes: List<SessionVolumeUiState> = emptyList(),
     val exerciseProgress: List<ExerciseProgressUiState> = emptyList(),
     val exerciseRecords: List<ExerciseRecordsUiState> = emptyList(),
+    val selectedPeriod: WorkoutStatsPeriod = WorkoutStatsPeriod.All,
     val selectedExerciseName: String? = null,
-    val progressPoints: List<Pair<Long, Float>> = emptyList(),
+    val progressPoints: List<ProgressChartPointUiState> = emptyList(),
+    val selectedProgressPoint: ProgressChartPointUiState? = null,
     val message: String? = null
 ) {
     val isEmpty: Boolean = sessionVolumes.isEmpty() &&
@@ -90,6 +115,15 @@ data class ExerciseProgressEntryUiState(
     val finishedAt: Long,
     val volumeKg: Double,
     val maxWeightKg: Double,
+    val totalReps: Int,
+    val estimatedOneRepMaxKg: Double
+)
+
+data class ProgressChartPointUiState(
+    val sessionId: Long,
+    val finishedAt: Long,
+    val maxWeightKg: Double,
+    val volumeKg: Double,
     val totalReps: Int,
     val estimatedOneRepMaxKg: Double
 )
@@ -171,12 +205,62 @@ private fun ExerciseSetRecord.toUiState(): ExerciseSetRecordUiState {
     )
 }
 
-private fun StatsUiState.withProgressPoints(): StatsUiState {
-    val name = selectedExerciseName ?: return copy(progressPoints = emptyList())
+fun StatsUiState.withStatsPeriod(
+    period: WorkoutStatsPeriod,
+    stats: StatsUiState
+): StatsUiState {
+    val retainedExerciseName = selectedExerciseName?.takeIf { selectedName ->
+        stats.exerciseProgress.any { progress -> progress.exerciseName == selectedName }
+    }
+    return stats.copy(
+        selectedPeriod = period,
+        selectedExerciseName = retainedExerciseName,
+        selectedProgressPoint = null
+    ).withProgressPointsForSelection()
+}
+
+fun StatsUiState.withSelectedExercise(name: String): StatsUiState {
+    val selectedName = exerciseProgress
+        .firstOrNull { progress -> progress.exerciseName == name }
+        ?.exerciseName
+    return copy(
+        selectedExerciseName = selectedName,
+        selectedProgressPoint = null
+    ).withProgressPointsForSelection()
+}
+
+fun StatsUiState.withSelectedProgressPoint(sessionId: Long): StatsUiState {
+    return copy(
+        selectedProgressPoint = progressPoints.firstOrNull { point -> point.sessionId == sessionId }
+    )
+}
+
+fun StatsUiState.withProgressPointsForSelection(): StatsUiState {
+    val name = selectedExerciseName
+        ?: return copy(progressPoints = emptyList(), selectedProgressPoint = null)
     val exercise = exerciseProgress.firstOrNull { it.exerciseName == name }
-    val points = exercise?.entries
-        ?.sortedBy { it.finishedAt }
-        ?.map { Pair(it.finishedAt, it.maxWeightKg.toFloat()) }
-        ?: emptyList()
-    return copy(progressPoints = points)
+        ?: return copy(
+            selectedExerciseName = null,
+            progressPoints = emptyList(),
+            selectedProgressPoint = null
+        )
+    val points = exercise.entries
+        .sortedBy { it.finishedAt }
+        .map { entry ->
+            ProgressChartPointUiState(
+                sessionId = entry.sessionId,
+                finishedAt = entry.finishedAt,
+                maxWeightKg = entry.maxWeightKg,
+                volumeKg = entry.volumeKg,
+                totalReps = entry.totalReps,
+                estimatedOneRepMaxKg = entry.estimatedOneRepMaxKg
+            )
+    }
+    val retainedPoint = selectedProgressPoint?.let { selected ->
+        points.firstOrNull { point -> point.sessionId == selected.sessionId }
+    }
+    return copy(
+        progressPoints = points,
+        selectedProgressPoint = retainedPoint
+    )
 }

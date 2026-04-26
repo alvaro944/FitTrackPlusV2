@@ -1,6 +1,7 @@
 package com.alvarocervantes.fittrackplus.feature.stats
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,19 +10,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import com.alvarocervantes.fittrackplus.core.design.components.LineChart
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
@@ -60,7 +64,10 @@ fun StatsScreen(
         StatsContent(
             state = state,
             contentPadding = padding,
-            onSelectExercise = viewModel::selectExercise
+            onPeriodFilterChange = viewModel::setPeriodFilter,
+            onSelectExercise = viewModel::selectExercise,
+            onSelectProgressPoint = viewModel::selectProgressPoint,
+            onClearSelectedProgressPoint = viewModel::clearSelectedProgressPoint
         )
     }
 }
@@ -69,7 +76,10 @@ fun StatsScreen(
 private fun StatsContent(
     state: StatsUiState,
     contentPadding: PaddingValues,
-    onSelectExercise: (String) -> Unit
+    onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
+    onSelectExercise: (String) -> Unit,
+    onSelectProgressPoint: (Long) -> Unit,
+    onClearSelectedProgressPoint: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -88,6 +98,15 @@ private fun StatsContent(
                 title = "Datos",
                 subtitle = "Estadisticas desde sesiones finalizadas"
             )
+        }
+
+        if (!state.isLoading) {
+            item {
+                StatsPeriodControls(
+                    selectedPeriod = state.selectedPeriod,
+                    onPeriodFilterChange = onPeriodFilterChange
+                )
+            }
         }
 
         when {
@@ -134,7 +153,10 @@ private fun StatsContent(
                             exerciseNames = state.exerciseProgress.map { it.exerciseName },
                             selectedExerciseName = state.selectedExerciseName,
                             progressPoints = state.progressPoints,
-                            onSelectExercise = onSelectExercise
+                            selectedProgressPoint = state.selectedProgressPoint,
+                            onSelectExercise = onSelectExercise,
+                            onSelectProgressPoint = onSelectProgressPoint,
+                            onClearSelectedProgressPoint = onClearSelectedProgressPoint
                         )
                     }
                 }
@@ -162,6 +184,30 @@ private fun StatsContent(
                 ) { records ->
                     ExerciseRecordsCard(records = records)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatsPeriodControls(
+    selectedPeriod: WorkoutStatsPeriod,
+    onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit
+) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        FitTrackSectionLabel(label = "Periodo")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
+        ) {
+            WorkoutStatsPeriod.entries.forEach { period ->
+                FilterChip(
+                    selected = selectedPeriod == period,
+                    onClick = { onPeriodFilterChange(period) },
+                    label = { Text(period.label) }
+                )
             }
         }
     }
@@ -297,7 +343,8 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
                 contentDescription = "Progreso de peso maximo de ${progress.exerciseName}"
             )
             Text(
-                text = "Volumen ${latest.volumeKg.toDisplayText()} kg · mejor peso registrado ${maxWeight.toDisplayText()} kg",
+                text = "Volumen ${latest.volumeKg.toDisplayText()} kg - " +
+                    "mejor peso registrado ${maxWeight.toDisplayText()} kg",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -326,7 +373,12 @@ private fun ExerciseRecordsCard(records: ExerciseRecordsUiState) {
         RecordRow("Peso max", records.maxWeight?.let { "${it.weightKg.toDisplayText()} kg x ${it.reps}" })
         RecordRow("Reps max", records.maxReps?.let { "${it.reps} reps con ${it.weightKg.toDisplayText()} kg" })
         RecordRow("Volumen set", records.bestSetVolume?.let { "${it.setVolumeKg.toDisplayText()} kg" })
-        RecordRow("1RM estimado", records.bestEstimatedOneRepMax?.let { "${it.estimatedOneRepMaxKg.toDisplayText()} kg" })
+        RecordRow(
+            label = "1RM estimado",
+            value = records.bestEstimatedOneRepMax?.let {
+                "${it.estimatedOneRepMaxKg.toDisplayText()} kg"
+            }
+        )
     }
 }
 
@@ -360,8 +412,11 @@ private fun RecordRow(
 private fun ProgressChartCard(
     exerciseNames: List<String>,
     selectedExerciseName: String?,
-    progressPoints: List<Pair<Long, Float>>,
-    onSelectExercise: (String) -> Unit
+    progressPoints: List<ProgressChartPointUiState>,
+    selectedProgressPoint: ProgressChartPointUiState?,
+    onSelectExercise: (String) -> Unit,
+    onSelectProgressPoint: (Long) -> Unit,
+    onClearSelectedProgressPoint: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -417,17 +472,92 @@ private fun ProgressChartCard(
                 )
             }
             else -> {
+                val chartPoints = progressPoints.map { point ->
+                    point.finishedAt to point.maxWeightKg.toFloat()
+                }
+                val selectedIndex = selectedProgressPoint?.let { selected ->
+                    progressPoints.indexOfFirst { point -> point.sessionId == selected.sessionId }
+                }?.takeIf { index -> index >= 0 }
                 LineChart(
-                    points = progressPoints,
+                    points = chartPoints,
+                    selectedPointIndex = selectedIndex,
+                    onPointSelected = { index ->
+                        progressPoints.getOrNull(index)?.let { point ->
+                            onSelectProgressPoint(point.sessionId)
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(160.dp)
                         .padding(top = FitSpacing.xs)
                 )
+                selectedProgressPoint?.let { point ->
+                    ProgressPointDetails(
+                        point = point,
+                        onClear = onClearSelectedProgressPoint
+                    )
+                }
             }
         }
     }
 }
+
+@Composable
+private fun ProgressPointDetails(
+    point: ProgressChartPointUiState,
+    onClear: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.accentSoft, MaterialTheme.shapes.large)
+            .padding(FitSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = formatDate(point.finishedAt),
+                style = MaterialTheme.typography.titleSmall
+            )
+            TextButton(onClick = onClear) {
+                Text("Ocultar")
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.lg)
+        ) {
+            FitTrackMetric(
+                value = point.maxWeightKg.toDisplayText(),
+                unit = "kg",
+                label = "peso max",
+                accent = FitTrackMetricAccent.Primary,
+                compact = true
+            )
+            FitTrackMetric(
+                value = point.volumeKg.toDisplayText(),
+                unit = "kg",
+                label = "volumen",
+                compact = true
+            )
+        }
+        Text(
+            text = "${point.totalReps} reps - 1RM ${point.estimatedOneRepMaxKg.toDisplayText()} kg",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+private val WorkoutStatsPeriod.label: String
+    get() = when (this) {
+        WorkoutStatsPeriod.All -> "Todo"
+        WorkoutStatsPeriod.LastFourWeeks -> "4 semanas"
+        WorkoutStatsPeriod.LastTwelveWeeks -> "12 semanas"
+    }
 
 private fun formatDate(timestamp: Long): String {
     return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(timestamp))

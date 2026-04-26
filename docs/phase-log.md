@@ -1385,3 +1385,60 @@ Resultado:
 Pendiente:
 
 - Validacion manual conjunta de 2.1B.1, 2.1B.2 y 2.1B.3 queda pendiente para una pasada posterior.
+
+## Fase 2.1B.4 - Datos con periodos y tooltip
+
+Estado:
+
+- implementada en workspace
+- verificacion automatica completada
+
+Rama:
+
+- `codex/phase-2.1b-stats-periods`
+
+Objetivo:
+
+- hacer que Datos sea consultable por periodo
+- aportar contexto al tocar puntos de la grafica de progreso
+- mantener Room, Firebase/sync y snapshots historicos intactos
+
+Cambios principales:
+
+- Datos gana filtro de periodo:
+  - Todo
+  - 4 semanas
+  - 12 semanas
+- `ObserveWorkoutStatsUseCase` acepta periodo y `nowMillis`, y filtra sesiones finalizadas antes de calcular estadisticas.
+- Resumen, volumen por sesion, progreso por ejercicio y mejores marcas se recalculan dentro del periodo seleccionado.
+- `StatsViewModel` conserva el ejercicio seleccionado si sigue existiendo en el nuevo periodo y limpia el punto seleccionado al cambiar periodo o ejercicio.
+- `LineChart` permite seleccionar puntos sin mover reglas de datos a Compose.
+- La grafica muestra un detalle del punto con fecha, peso maximo, volumen, reps y 1RM estimado.
+- `docs/visual-improvements.md` marca periodos y tooltip de Datos como aterrizados.
+- No se toca schema Room, Firebase/sync, repositorios ni reglas de snapshots.
+
+Tests anadidos o ampliados:
+
+- `ObserveWorkoutStatsUseCaseTest`
+- `StatsUiStateTest`
+
+Verificacion realizada:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain --tests "com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutStatsUseCaseTest" --tests "com.alvarocervantes.fittrackplus.feature.stats.StatsUiStateTest"
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Tests RED fallaron primero por simbolos inexistentes de periodo, helpers de estado y puntos enriquecidos.
+- Una expectativa del test de 4 semanas se corrigio porque el mejor volumen de set real era `80x12 = 960`, no `90x10 = 900`.
+- Tests focalizados de Datos pasan.
+- Test completo pasa.
+- El primer build completo fallo por `detekt` porque `toWorkoutStats` superaba la longitud permitida; se dividio en helpers pequenos sin cambiar comportamiento.
+- Build completo pasa.
+
+Pendiente:
+
+- Validacion manual conjunta de 2.1B.1, 2.1B.2, 2.1B.3 y 2.1B.4 queda pendiente para una pasada posterior.
