@@ -7,11 +7,15 @@ import com.alvarocervantes.fittrackplus.data.local.relation.WorkoutSessionWithEx
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.data.repository.RoutineRepository
 import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
+import com.alvarocervantes.fittrackplus.domain.model.PrType
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutPreview
+import com.alvarocervantes.fittrackplus.domain.usecase.DetectPersonalRecordUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.FinishWorkoutSessionUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.GetNextWorkoutPreviewUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.StartWorkoutSessionUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.UpdateWorkoutSetUseCase
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
@@ -36,7 +40,8 @@ class WorkoutViewModel @Inject constructor(
     private val getNextWorkoutPreview: GetNextWorkoutPreviewUseCase,
     private val startWorkoutSession: StartWorkoutSessionUseCase,
     private val finishWorkoutSession: FinishWorkoutSessionUseCase,
-    private val updateWorkoutSet: UpdateWorkoutSetUseCase
+    private val updateWorkoutSet: UpdateWorkoutSetUseCase,
+    private val detectPersonalRecord: DetectPersonalRecordUseCase
 ) : ViewModel() {
 
     companion object {
@@ -45,6 +50,10 @@ class WorkoutViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(WorkoutUiState())
     val uiState: StateFlow<WorkoutUiState> = _uiState.asStateFlow()
+
+    private val _prHapticEvent = Channel<Unit>(Channel.BUFFERED)
+    val prHapticEvent = _prHapticEvent.receiveAsFlow()
+
     private var restTimerJob: Job? = null
 
     init {
@@ -145,6 +154,9 @@ class WorkoutViewModel @Inject constructor(
 
     fun updateSetReps(setId: Long, repsText: String) {
         val set = _uiState.value.activeSession?.findSet(setId) ?: return
+        val previousRepsWasZero = (set.repsText.toIntOrNull() ?: 0) == 0
+        val exerciseName = _uiState.value.activeSession?.exercises
+            ?.firstOrNull { ex -> ex.sets.any { it.id == setId } }?.name
         val shouldAutoStartTimer = shouldAutoStartRestTimer(
             previousRepsText = set.repsText,
             nextRepsText = repsText,
@@ -157,7 +169,9 @@ class WorkoutViewModel @Inject constructor(
         persistSet(
             setId = setId,
             weightText = set.weightText,
-            repsText = repsText
+            repsText = repsText,
+            exerciseName = exerciseName,
+            previousRepsWasZero = previousRepsWasZero
         )
     }
 
@@ -205,6 +219,7 @@ class WorkoutViewModel @Inject constructor(
             }.onSuccess {
                 savedStateHandle.remove<Long>(SESSION_KEY)
                 stopRestTimerJob()
+                val prCount = _uiState.value.activeSession?.prCount ?: 0
                 val activeRoutineId = _uiState.value.activeRoutineId
                 val nextPreview = activeRoutineId?.let { getNextWorkoutPreview(it) }
                 _uiState.update { state ->
@@ -213,7 +228,8 @@ class WorkoutViewModel @Inject constructor(
                         activeSession = null,
                         preview = nextPreview?.toUiState(),
                         restTimer = state.restTimer.cancelRestTimer(),
-                        message = "Entrenamiento finalizado."
+                        celebration = if (prCount > 0) CelebrationData(prCount) else null,
+                        message = if (prCount == 0) "Entrenamiento finalizado." else null
                     )
                 }
             }.onFailure { throwable ->
@@ -231,7 +247,17 @@ class WorkoutViewModel @Inject constructor(
         _uiState.update { state -> state.copy(message = null) }
     }
 
-    private fun persistSet(setId: Long, weightText: String, repsText: String) {
+    fun dismissCelebration() {
+        _uiState.update { state -> state.copy(celebration = null, message = "Entrenamiento finalizado.") }
+    }
+
+    private fun persistSet(
+        setId: Long,
+        weightText: String,
+        repsText: String,
+        exerciseName: String? = null,
+        previousRepsWasZero: Boolean = false
+    ) {
         viewModelScope.launch {
             runCatching {
                 updateWorkoutSet(
@@ -239,11 +265,35 @@ class WorkoutViewModel @Inject constructor(
                     weightText = weightText,
                     repsText = repsText
                 )
+            }.onSuccess {
+                if (previousRepsWasZero && exerciseName != null) {
+                    val reps = repsText.toIntOrNull() ?: 0
+                    val weightKg = weightText.toDoubleOrNull() ?: 0.0
+                    detectPrIfEligible(setId, exerciseName, weightKg, reps)
+                }
             }.onFailure { throwable ->
                 _uiState.update { state ->
                     state.copy(message = throwable.message ?: "No se pudo guardar la serie.")
                 }
             }
+        }
+    }
+
+    private suspend fun detectPrIfEligible(
+        setId: Long,
+        exerciseName: String,
+        weightKg: Double,
+        reps: Int
+    ) {
+        if (reps <= 0 || weightKg <= 0.0) return
+        val prType = detectPersonalRecord(exerciseName, weightKg, reps)
+        if (prType != null) {
+            updateSetState(setId) { it.copy(prType = prType) }
+            _uiState.update { state ->
+                val session = state.activeSession ?: return@update state
+                state.copy(activeSession = session.copy(prCount = session.prCount + 1))
+            }
+            _prHapticEvent.trySend(Unit)
         }
     }
 
@@ -350,8 +400,11 @@ data class WorkoutUiState(
     val preview: WorkoutPreviewUiState? = null,
     val activeSession: ActiveWorkoutSessionUiState? = null,
     val restTimer: RestTimerUiState = RestTimerUiState(),
+    val celebration: CelebrationData? = null,
     val message: String? = null
 )
+
+data class CelebrationData(val prCount: Int)
 
 data class WorkoutPreviewUiState(
     val routineName: String,
@@ -366,7 +419,8 @@ data class ActiveWorkoutSessionUiState(
     val dayName: String,
     val weekNumber: Int,
     val startedAt: Long,
-    val exercises: List<WorkoutExerciseUiState>
+    val exercises: List<WorkoutExerciseUiState>,
+    val prCount: Int = 0
 ) {
     val totalSetCount: Int = exercises.sumOf { it.sets.size }
     val completedSetCount: Int = exercises.sumOf { exercise ->
@@ -386,7 +440,8 @@ data class WorkoutSetUiState(
     val setNumber: Int,
     val weightText: String,
     val repsText: String,
-    val previousWeight: String? = null
+    val previousWeight: String? = null,
+    val prType: PrType? = null
 )
 
 private fun WorkoutPreview.toUiState(): WorkoutPreviewUiState {

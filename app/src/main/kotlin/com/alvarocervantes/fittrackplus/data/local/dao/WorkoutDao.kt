@@ -73,4 +73,25 @@ interface WorkoutDao {
         LIMIT 1
     """)
     suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double?
+
+    @Query("""
+        SELECT MAX(ws.weightKg) FROM workout_sets ws
+        INNER JOIN workout_exercises we ON ws.workoutExerciseId = we.id
+        INNER JOIN workout_sessions sess ON we.sessionId = sess.id
+        WHERE LOWER(TRIM(we.exerciseNameSnapshot)) = LOWER(TRIM(:exerciseName))
+        AND sess.finishedAt IS NOT NULL
+        AND ws.reps > 0
+    """)
+    suspend fun getMaxWeightForExercise(exerciseName: String): Double?
+
+    @Query("""
+        SELECT MAX(ws.weightKg * ws.reps) FROM workout_sets ws
+        INNER JOIN workout_exercises we ON ws.workoutExerciseId = we.id
+        INNER JOIN workout_sessions sess ON we.sessionId = sess.id
+        WHERE LOWER(TRIM(we.exerciseNameSnapshot)) = LOWER(TRIM(:exerciseName))
+        AND sess.finishedAt IS NOT NULL
+        AND ws.reps > 0
+        AND ws.weightKg > 0
+    """)
+    suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double?
 }

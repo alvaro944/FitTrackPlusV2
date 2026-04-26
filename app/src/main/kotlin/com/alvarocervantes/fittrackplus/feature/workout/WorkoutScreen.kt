@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -62,6 +63,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
+import com.alvarocervantes.fittrackplus.core.design.accentWarm
+import com.alvarocervantes.fittrackplus.core.design.components.ConfettiAnimation
+import com.alvarocervantes.fittrackplus.domain.model.PrType
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
 import com.alvarocervantes.fittrackplus.core.design.FitTrackLoadingCard
@@ -84,11 +88,20 @@ fun WorkoutScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showFinishConfirmation by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
 
     state.message?.let { message ->
         LaunchedEffect(message) {
             snackbarHostState.showSnackbar(message)
             viewModel.clearMessage()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.prHapticEvent.collect {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            kotlinx.coroutines.delay(80)
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         }
     }
 
@@ -134,25 +147,54 @@ fun WorkoutScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
-        WorkoutContent(
-            state = state,
-            contentPadding = padding,
-            onRefresh = viewModel::refresh,
-            onStartWorkout = viewModel::startWorkout,
-            onFinishWorkout = { showFinishConfirmation = true },
-            onSetWeightChange = viewModel::updateSetWeight,
-            onSetRepsChange = viewModel::updateSetReps,
-            onStartRestTimer = viewModel::startRestTimer,
-            onPauseRestTimer = viewModel::pauseRestTimer,
-            onResumeRestTimer = viewModel::resumeRestTimer,
-            onResetRestTimer = viewModel::resetRestTimer,
-            onCancelRestTimer = viewModel::cancelRestTimer,
-            onAutoStartRestTimerChange = viewModel::setAutoStartRestTimerEnabled,
-            onGoToRoutines = onGoToRoutines
-        )
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) }
+        ) { padding ->
+            WorkoutContent(
+                state = state,
+                contentPadding = padding,
+                onRefresh = viewModel::refresh,
+                onStartWorkout = viewModel::startWorkout,
+                onFinishWorkout = { showFinishConfirmation = true },
+                onSetWeightChange = viewModel::updateSetWeight,
+                onSetRepsChange = viewModel::updateSetReps,
+                onStartRestTimer = viewModel::startRestTimer,
+                onPauseRestTimer = viewModel::pauseRestTimer,
+                onResumeRestTimer = viewModel::resumeRestTimer,
+                onResetRestTimer = viewModel::resetRestTimer,
+                onCancelRestTimer = viewModel::cancelRestTimer,
+                onAutoStartRestTimerChange = viewModel::setAutoStartRestTimerEnabled,
+                onGoToRoutines = onGoToRoutines
+            )
+        }
+
+        if (state.celebration != null) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                ConfettiAnimation(
+                    modifier = Modifier.fillMaxSize(),
+                    onFinished = { viewModel.dismissCelebration() }
+                )
+                Box(
+                    modifier = Modifier
+                        .wrapContentSize()
+                        .background(
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                            shape = MaterialTheme.shapes.extraLarge
+                        )
+                        .padding(horizontal = FitSpacing.xl, vertical = FitSpacing.md)
+                ) {
+                    Text(
+                        text = "¡Nuevo PR!",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.accentWarm
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -618,6 +660,55 @@ private fun WorkoutExerciseCard(
 }
 
 @Composable
+private fun WeightFieldColumn(
+    setId: Long,
+    weightText: String,
+    previousWeight: String?,
+    hasInput: Boolean,
+    onSetWeightChange: (Long, String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val haptic = LocalHapticFeedback.current
+    Column(modifier = modifier) {
+        OutlinedTextField(
+            value = weightText,
+            onValueChange = { value ->
+                if (!hasInput && value.isNotBlank()) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onSetWeightChange(setId, value)
+            },
+            label = { Text("Kg") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .onFocusChanged { focusState ->
+                    if (focusState.isFocused && weightText == "0") onSetWeightChange(setId, "")
+                }
+        )
+        if (previousWeight != null) {
+            Text(
+                text = "Ultima vez: $previousWeight kg",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+            )
+        }
+    }
+}
+
+@Composable
 private fun WorkoutSetRow(
     set: WorkoutSetUiState,
     onSetWeightChange: (Long, String) -> Unit,
@@ -626,6 +717,7 @@ private fun WorkoutSetRow(
     val hasInput = set.weightText.isNotBlank() || set.repsText.isNotBlank()
     val haptic = LocalHapticFeedback.current
 
+    Column(modifier = Modifier.fillMaxWidth()) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -664,47 +756,14 @@ private fun WorkoutSetRow(
                 )
             }
         }
-        Column(modifier = Modifier.weight(1f)) {
-            OutlinedTextField(
-                value = set.weightText,
-                onValueChange = { value ->
-                    if (!hasInput && value.isNotBlank()) {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    }
-                    onSetWeightChange(set.id, value)
-                },
-                label = { Text("Kg") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    cursorColor = MaterialTheme.colorScheme.primary,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 56.dp)
-                    .onFocusChanged { focusState ->
-                        if (focusState.isFocused && set.weightText == "0") {
-                            onSetWeightChange(set.id, "")
-                        }
-                    }
-            )
-            if (set.previousWeight != null) {
-                Text(
-                    text = "Ultima vez: ${set.previousWeight} kg",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(start = 4.dp, top = 2.dp)
-                )
-            }
-        }
+        WeightFieldColumn(
+            setId = set.id,
+            weightText = set.weightText,
+            previousWeight = set.previousWeight,
+            hasInput = hasInput,
+            onSetWeightChange = onSetWeightChange,
+            modifier = Modifier.weight(1f)
+        )
         OutlinedTextField(
             value = set.repsText,
             onValueChange = { value ->
@@ -736,6 +795,14 @@ private fun WorkoutSetRow(
                     }
                 }
         )
+    }
+    if (set.prType != null) {
+        FitTrackBadge(
+            label = if (set.prType == PrType.MaxWeight) "PR PESO" else "PR VOLUMEN",
+            tone = FitTrackBadgeTone.Warm,
+            modifier = Modifier.padding(start = FitSpacing.smMd, top = 2.dp)
+        )
+    }
     }
 }
 

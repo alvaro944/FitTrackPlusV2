@@ -45,6 +45,12 @@ data class ExerciseRecords(
     val bestEstimatedOneRepMax: ExerciseSetRecord?
 )
 
+data class HeatmapDay(
+    val epochDay: Long,
+    val totalVolumeKg: Double,
+    val intensityLevel: Int  // 0 = sin actividad, 1-4 = cuartiles del rango con actividad
+)
+
 data class ExerciseSetRecord(
     val sessionId: Long,
     val finishedAt: Long,

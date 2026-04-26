@@ -6,9 +6,11 @@ import com.alvarocervantes.fittrackplus.domain.model.ExerciseProgress
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseProgressEntry
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseRecords
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseSetRecord
+import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutSessionVolume
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStats
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
+import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHeatmapUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutStatsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -26,7 +28,8 @@ import kotlinx.coroutines.flow.update
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class StatsViewModel @Inject constructor(
-    observeWorkoutStats: ObserveWorkoutStatsUseCase
+    observeWorkoutStats: ObserveWorkoutStatsUseCase,
+    getWorkoutHeatmap: GetWorkoutHeatmapUseCase
 ) : ViewModel() {
 
     private val selectedPeriod = MutableStateFlow(WorkoutStatsPeriod.All)
@@ -55,6 +58,13 @@ class StatsViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+
+        getWorkoutHeatmap()
+            .onEach { heatmap ->
+                _uiState.update { state -> state.copy(heatmapDays = heatmap) }
+            }
+            .catch { }
+            .launchIn(viewModelScope)
     }
 
     fun setPeriodFilter(period: WorkoutStatsPeriod) {
@@ -78,6 +88,21 @@ class StatsViewModel @Inject constructor(
             state.copy(selectedProgressPoint = null)
         }
     }
+
+    fun onHeatmapDayClick(day: HeatmapDay) {
+        if (day.totalVolumeKg <= 0.0) return
+        val dateStr = epochDayToDisplayString(day.epochDay)
+        val volumeStr = if (day.totalVolumeKg % 1.0 == 0.0) {
+            day.totalVolumeKg.toInt().toString()
+        } else {
+            String.format(java.util.Locale.getDefault(), "%.1f", day.totalVolumeKg)
+        }
+        _uiState.update { state -> state.copy(message = "$dateStr · $volumeStr kg") }
+    }
+
+    fun clearMessage() {
+        _uiState.update { state -> state.copy(message = null) }
+    }
 }
 
 data class StatsUiState(
@@ -89,6 +114,7 @@ data class StatsUiState(
     val selectedExerciseName: String? = null,
     val progressPoints: List<ProgressChartPointUiState> = emptyList(),
     val selectedProgressPoint: ProgressChartPointUiState? = null,
+    val heatmapDays: List<HeatmapDay> = emptyList(),
     val message: String? = null
 ) {
     val isEmpty: Boolean = sessionVolumes.isEmpty() &&
@@ -145,6 +171,11 @@ data class ExerciseSetRecordUiState(
     val setVolumeKg: Double,
     val estimatedOneRepMaxKg: Double
 )
+
+private fun epochDayToDisplayString(epochDay: Long): String {
+    val ms = epochDay * 86_400_000L
+    return java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(ms))
+}
 
 private fun WorkoutStats.toUiState(): StatsUiState {
     return StatsUiState(

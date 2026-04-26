@@ -23,4 +23,6 @@ interface WorkoutRepository {
     suspend fun updateSet(setId: Long, weightKg: Double, reps: Int)
     suspend fun finishSession(sessionId: Long, notes: String? = null)
     suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double?
+    suspend fun getMaxWeightForExercise(exerciseName: String): Double?
+    suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double?
 }

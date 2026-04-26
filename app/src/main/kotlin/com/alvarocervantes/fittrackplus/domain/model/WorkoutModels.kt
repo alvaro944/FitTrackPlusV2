@@ -1,5 +1,7 @@
 package com.alvarocervantes.fittrackplus.domain.model
 
+enum class PrType { MaxWeight, MaxVolume }
+
 data class StartedWorkoutSession(
     val sessionId: Long,
     val routineId: Long,

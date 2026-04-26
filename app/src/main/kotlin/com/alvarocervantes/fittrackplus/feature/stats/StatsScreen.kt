@@ -23,9 +23,12 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,7 +38,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
+import com.alvarocervantes.fittrackplus.core.design.components.HeatmapCalendar
 import com.alvarocervantes.fittrackplus.core.design.components.LineChart
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
@@ -59,15 +64,25 @@ fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Scaffold { padding ->
+    LaunchedEffect(state.message) {
+        val msg = state.message ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(msg)
+        viewModel.clearMessage()
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
         StatsContent(
             state = state,
             contentPadding = padding,
             onPeriodFilterChange = viewModel::setPeriodFilter,
             onSelectExercise = viewModel::selectExercise,
             onSelectProgressPoint = viewModel::selectProgressPoint,
-            onClearSelectedProgressPoint = viewModel::clearSelectedProgressPoint
+            onClearSelectedProgressPoint = viewModel::clearSelectedProgressPoint,
+            onHeatmapDayClick = viewModel::onHeatmapDayClick
         )
     }
 }
@@ -79,7 +94,8 @@ private fun StatsContent(
     onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSelectExercise: (String) -> Unit,
     onSelectProgressPoint: (Long) -> Unit,
-    onClearSelectedProgressPoint: () -> Unit
+    onClearSelectedProgressPoint: () -> Unit,
+    onHeatmapDayClick: (HeatmapDay) -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier
@@ -145,6 +161,18 @@ private fun StatsContent(
             else -> {
                 item {
                     SummaryGrid(state = state)
+                }
+
+                if (state.heatmapDays.isNotEmpty()) {
+                    item { FitTrackSectionLabel(label = "Constancia") }
+                    item {
+                        FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+                            HeatmapCalendar(
+                                days = state.heatmapDays,
+                                onDayClick = onHeatmapDayClick
+                            )
+                        }
+                    }
                 }
 
                 if (state.exerciseProgress.isNotEmpty()) {
