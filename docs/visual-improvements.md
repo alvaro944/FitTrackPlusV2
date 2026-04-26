@@ -37,6 +37,10 @@ Ideas:
 
 ## Historial
 
+Estado actual:
+
+- Detalle historico con comparativa compacta frente a la sesion anterior comparable.
+
 Ideas:
 
 - Timeline por semana o mes.
@@ -58,9 +62,12 @@ Ideas:
 
 ## General
 
+Estado actual:
+
+- Selector de tema visual en Ajustes con opciones `Sistema`, `Claro` y `Oscuro`.
+
 Ideas:
 
-- Selector de tema visual.
 - Skeleton loaders.
 - Microanimaciones al completar acciones clave.
 - Estados vacios con mas personalidad, sin parecer landing page.

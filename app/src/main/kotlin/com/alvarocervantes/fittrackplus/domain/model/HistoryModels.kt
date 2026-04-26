@@ -20,7 +20,8 @@ data class WorkoutHistoryDetail(
     val finishedAt: Long,
     val weekNumber: Int,
     val notes: String?,
-    val exercises: List<WorkoutHistoryExercise>
+    val exercises: List<WorkoutHistoryExercise>,
+    val comparison: WorkoutHistoryComparison? = null
 )
 
 data class WorkoutHistoryExercise(
@@ -36,4 +37,40 @@ data class WorkoutHistorySet(
     val weightKg: Double,
     val reps: Int,
     val notes: String?
+)
+
+data class WorkoutHistoryComparison(
+    val previousSessionId: Long,
+    val previousFinishedAt: Long,
+    val totalVolumeDelta: WorkoutHistoryMetricDelta,
+    val durationMillisDelta: WorkoutHistoryMetricDelta,
+    val setCountDelta: WorkoutHistoryMetricDelta,
+    val bestSet: WorkoutHistoryBestSetComparison
+)
+
+data class WorkoutHistoryMetricDelta(
+    val currentValue: Double,
+    val previousValue: Double,
+    val deltaValue: Double,
+    val direction: WorkoutHistoryDeltaDirection
+)
+
+enum class WorkoutHistoryDeltaDirection {
+    Up,
+    Down,
+    Same,
+    Unavailable
+}
+
+data class WorkoutHistoryBestSetComparison(
+    val current: WorkoutHistoryBestSet?,
+    val previous: WorkoutHistoryBestSet?,
+    val delta: WorkoutHistoryMetricDelta
+)
+
+data class WorkoutHistoryBestSet(
+    val exerciseName: String,
+    val weightKg: Double,
+    val reps: Int,
+    val volumeKg: Double
 )

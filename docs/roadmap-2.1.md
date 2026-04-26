@@ -10,6 +10,26 @@ Fuente de entrada:
 - Backlog historico: `docs/mejoras-claude.md`
 - Estado vivo: `docs/project-progress.md`
 
+## Snapshot De Avance (2026-04-26)
+
+| Fase | Estado | Commits / Rama |
+|------|--------|----------------|
+| Gate 0 | Cerrado (fixes menores integrados por Claude) | `docs/coordination/claude-gate0-minor-fixes.md` |
+| Fase 2.1A | Cerrada | `1595b2a Complete roadmap 2.1A stability` |
+| Fase 2.1B.1 Rutinas (plantillas, duplicar, reordenar) | Cerrada | `309dcd4 Complete phase 2.1B.1 routines` |
+| Fase 2.1B.2 Timer de descanso | Cerrada | `be0d564 Complete phase 2.1B.2 rest timer` |
+| Fase 2.1B.3 Historial con filtros y orden | Cerrada | `5f1b51e Add history filters and sorting` |
+| Fase 2.1B.4 Datos con periodos y tooltip | Cerrada | `d98cf02 Add stats periods and chart tooltip` |
+| Fase 2.1B.5 Comparativa de sesion + selector de tema | Implementada y verificada en automatico, **commit pendiente** | rama `codex/phase-2.1b-comparison-theme` (WIP no commiteado) |
+| Validacion manual conjunta 2.1B.1 a 2.1B.5 | Pendiente | en dispositivo/emulador |
+| Fase 2.1C Portfolio WOW | No iniciada | a planificar tras cerrar 2.1B |
+
+Decisiones inmediatas tras este pase:
+
+1. Commitear el WIP de 2.1B.5 para dejar la rama publicable.
+2. Ejecutar la validacion manual conjunta de todas las subfases 2.1B en dispositivo.
+3. Solo entonces, abrir Fase 2.1C eligiendo 2-3 piezas concretas (ver seccion 2.1C).
+
 ## Principios De Ejecucion
 
 - Trabajar en fases pequenas y verificables.
@@ -21,6 +41,8 @@ Fuente de entrada:
 - Al cerrar una fase, actualizar `docs/project-progress.md` y `docs/phase-log.md`.
 
 ## Gate 0 - Cierre Tecnico Y Validacion Manual
+
+Estado: **CERRADO**. Validado en telefono fisico para flujo principal, dark mode, navegacion, Historial, Datos y snapshots. Los 4 issues menores detectados quedaron resueltos por Claude (`docs/coordination/claude-gate0-minor-fixes.md`).
 
 Objetivo:
 
@@ -54,6 +76,8 @@ Verificacion:
 
 ## Fase 2.1A - Estabilidad Y Fricciones Criticas
 
+Estado: **CERRADA** en commit `1595b2a`. Las 7 mejoras de la tabla quedan implementadas. Validacion manual conjunta sigue pendiente y se hace en bloque con 2.1B.
+
 Objetivo:
 
 - Corregir fricciones que un usuario nuevo o un revisor de portfolio notaria en la experiencia basica.
@@ -79,22 +103,24 @@ Criterio de salida:
 
 ## Fase 2.1B - Features De Valor
 
+Estado: **TECNICAMENTE COMPLETA**. Las 8 mejoras quedan implementadas y verificadas en automatico, repartidas en 5 subfases. La unica accion pendiente es commitear 2.1B.5 y correr la validacion manual conjunta en dispositivo.
+
 Objetivo:
 
 - Subir la utilidad real de la app sin adelantar sync ni rehacer la arquitectura.
 
 Mejoras prioritarias:
 
-| Mejora | Objetivo | Alcance |
-|--------|----------|---------|
-| Plantillas de rutina | Reducir friccion del primer uso | PPL, Upper/Lower y Full Body desde estado vacio o selector simple |
-| Duplicar dias/ejercicios | Ahorrar entrada repetitiva | Acciones de duplicado en editor sin migracion DB |
-| Reordenar dias/ejercicios | Permitir corregir orden sin borrar | Botones subir/bajar primero; drag and drop solo si merece la pena |
-| Timer de descanso | Cubrir feature core de gimnasio | Countdown local, haptic y ajuste simple de duracion |
-| Historial con filtros | Hacer util el historial largo | Rango de fechas y orden reciente/antiguo/volumen |
-| Stats con tooltip y periodos | Convertir grafica en consultable | Tooltip por punto y chips 4w/12w/all |
-| Comparativa de sesion | Dar contexto al progreso | Delta vs sesion anterior del mismo dia o rutina |
-| Selector de tema | Control visual basico | System/light/dark persistido en DataStore |
+| Mejora | Objetivo | Alcance | Estado |
+|--------|----------|---------|--------|
+| Plantillas de rutina | Reducir friccion del primer uso | PPL, Upper/Lower y Full Body desde estado vacio o selector simple | OK 2.1B.1 (`309dcd4`) |
+| Duplicar dias/ejercicios | Ahorrar entrada repetitiva | Acciones de duplicado en editor sin migracion DB | OK 2.1B.1 (`309dcd4`) |
+| Reordenar dias/ejercicios | Permitir corregir orden sin borrar | Botones subir/bajar primero; drag and drop solo si merece la pena | OK 2.1B.1 (`309dcd4`) |
+| Timer de descanso | Cubrir feature core de gimnasio | Countdown local, haptic y ajuste simple de duracion | OK 2.1B.2 (`be0d564`) |
+| Historial con filtros | Hacer util el historial largo | Rango de fechas y orden reciente/antiguo/volumen | OK 2.1B.3 (`5f1b51e`) |
+| Stats con tooltip y periodos | Convertir grafica en consultable | Tooltip por punto y chips 4w/12w/all | OK 2.1B.4 (`d98cf02`) |
+| Comparativa de sesion | Dar contexto al progreso | Delta vs sesion anterior del mismo dia o rutina | OK 2.1B.5 (WIP rama actual) |
+| Selector de tema | Control visual basico | System/light/dark persistido en DataStore | OK 2.1B.5 (WIP rama actual) |
 
 Criterio de salida:
 
@@ -103,7 +129,15 @@ Criterio de salida:
 - Tests cubren reglas nuevas.
 - Verificacion manual cubre la pantalla afectada.
 
+Pendiente para cerrar 2.1B oficialmente:
+
+- Commit del WIP de 2.1B.5 (comparativa + selector de tema).
+- Validacion manual conjunta 2.1B.1 a 2.1B.5 en dispositivo: plantillas, duplicar, reordenar, timer, filtros historial, periodos stats, comparativa de sesion, cambio de tema en caliente.
+- Anotar resultado en `docs/project-progress.md` y `docs/phase-log.md`.
+
 ## Fase 2.1C - Portfolio WOW
+
+Estado: **NO INICIADA**. Requisito previo: cerrar 2.1B con commit + validacion manual.
 
 Objetivo:
 
@@ -111,15 +145,21 @@ Objetivo:
 
 Mejoras candidatas:
 
-| Mejora | Objetivo | Nota |
-|--------|----------|------|
-| Heatmap calendario | Mostrar constancia y volumen de entreno | Alto valor visual; requiere Canvas/data viz |
-| Achievements | Dar sensacion de progreso | Mantener reglas simples y locales |
-| PR en vivo | Celebrar records durante entrenamiento | Comparar contra mejor previo por ejercicio |
-| Celebracion al finalizar | Reforzar hitos | Confetti/haptic solo si hay PR o hito |
-| Skeleton loaders | Mejorar performance percibida | Sustituir loading generico pantalla a pantalla |
-| Onboarding/demo data | Facilitar review de portfolio | Demo opcional, nunca en release real sin confirmacion |
-| App shortcuts/widget | Profundizar integracion Android | Solo despues de estabilizar flujo principal |
+| Mejora | Objetivo | Esfuerzo | Valor portfolio | Nota |
+|--------|----------|----------|-----------------|------|
+| Heatmap calendario | Mostrar constancia y volumen de entreno | Grande | Alto | Pieza WOW; Canvas custom 52x7 |
+| PR en vivo + celebracion | Celebrar records durante entrenamiento | Mediana | Alto | Comparar contra mejor previo, haptic doble + badge en `WorkoutSetRow` |
+| Achievements | Dar sensacion de progreso | Mediana | Medio | Reglas simples y locales (1a sesion, 7 dias seguidos, 1000kg, etc) |
+| Skeleton loaders | Mejorar performance percibida | Mediana | Medio | Sustituir `FitTrackLoadingCard` pantalla a pantalla |
+| Onboarding/demo data | Facilitar review de portfolio | Mediana | Medio | Opcion "Cargar datos demo" en primer init; nunca en release sin confirmacion |
+| App shortcuts/widget homescreen | Profundizar integracion Android | Grande | Medio | Solo despues de estabilizar flujo principal |
+| Notificacion sesion en curso | Recordar al usuario que tiene sesion abierta | Mediana | Bajo-Medio | Foreground service ligero o notificacion silenciosa |
+
+Recomendacion de scope inicial (max 2-3 piezas):
+
+- **Sprint A (alto impacto visual)**: Heatmap calendario + PR en vivo + celebracion.
+- **Sprint B (polish percibido)**: Skeleton loaders + Onboarding/demo data.
+- **Sprint C (integracion Android)**: App shortcuts + widget + notificacion sesion en curso.
 
 Criterio de salida:
 

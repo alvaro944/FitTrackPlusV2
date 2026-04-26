@@ -2,6 +2,7 @@ package com.alvarocervantes.fittrackplus.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -23,6 +24,9 @@ class SettingsViewModel @Inject constructor(
     val weightUnit: StateFlow<String> = userPreferencesRepository.weightUnit
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "kg")
 
+    val themeMode: StateFlow<AppThemeMode> = userPreferencesRepository.themeMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppThemeMode.System)
+
     fun setWeightUnit(unit: String) {
         if (unit == weightUnit.value) return
         viewModelScope.launch {
@@ -31,7 +35,26 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setThemeMode(mode: AppThemeMode) {
+        val message = themeModeChangeMessage(
+            current = themeMode.value,
+            requested = mode
+        ) ?: return
+        viewModelScope.launch {
+            userPreferencesRepository.setThemeMode(mode)
+            _message.value = message
+        }
+    }
+
     fun clearMessage() {
         _message.value = null
+    }
+}
+
+fun themeModeChangeMessage(current: AppThemeMode, requested: AppThemeMode): String? {
+    return if (current == requested) {
+        null
+    } else {
+        "Tema cambiado a ${requested.label}."
     }
 }

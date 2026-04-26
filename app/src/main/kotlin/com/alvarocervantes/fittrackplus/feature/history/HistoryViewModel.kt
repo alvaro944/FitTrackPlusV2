@@ -3,7 +3,9 @@ package com.alvarocervantes.fittrackplus.feature.history
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDetail
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDeltaDirection
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryExercise
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryMetricDelta
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySet
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySummary
 import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHistoryDetailUseCase
@@ -185,7 +187,8 @@ data class HistoryDetailUiState(
     val finishedAt: Long,
     val weekNumber: Int,
     val notes: String?,
-    val exercises: List<HistoryExerciseUiState>
+    val exercises: List<HistoryExerciseUiState>,
+    val comparison: HistoryComparisonUiState? = null
 ) {
     val totalSetCount: Int = exercises.sumOf { it.sets.size }
     val durationMillis: Long = (finishedAt - startedAt).coerceAtLeast(0)
@@ -206,6 +209,27 @@ data class HistoryDetailUiState(
         .filter { set -> set.volumeKg > 0.0 }
         .maxByOrNull { set -> set.volumeKg }
 }
+
+data class HistoryComparisonUiState(
+    val previousFinishedAt: Long,
+    val totalVolumeDelta: HistoryMetricDeltaUiState,
+    val durationMillisDelta: HistoryMetricDeltaUiState,
+    val setCountDelta: HistoryMetricDeltaUiState,
+    val bestSet: HistoryBestSetComparisonUiState
+)
+
+data class HistoryMetricDeltaUiState(
+    val currentValue: Double,
+    val previousValue: Double,
+    val deltaValue: Double,
+    val direction: WorkoutHistoryDeltaDirection
+)
+
+data class HistoryBestSetComparisonUiState(
+    val current: HistoryBestSetUiState?,
+    val previous: HistoryBestSetUiState?,
+    val delta: HistoryMetricDeltaUiState
+)
 
 data class HistoryBestSetUiState(
     val exerciseName: String,
@@ -280,7 +304,43 @@ private fun WorkoutHistoryDetail.toUiState(): HistoryDetailUiState {
         finishedAt = finishedAt,
         weekNumber = weekNumber,
         notes = notes,
-        exercises = exercises.map { it.toUiState() }
+        exercises = exercises.map { it.toUiState() },
+        comparison = comparison?.let { domainComparison ->
+            HistoryComparisonUiState(
+                previousFinishedAt = domainComparison.previousFinishedAt,
+                totalVolumeDelta = domainComparison.totalVolumeDelta.toUiState(),
+                durationMillisDelta = domainComparison.durationMillisDelta.toUiState(),
+                setCountDelta = domainComparison.setCountDelta.toUiState(),
+                bestSet = HistoryBestSetComparisonUiState(
+                    current = domainComparison.bestSet.current?.let { bestSet ->
+                        HistoryBestSetUiState(
+                            exerciseName = bestSet.exerciseName,
+                            weightKg = bestSet.weightKg,
+                            reps = bestSet.reps,
+                            volumeKg = bestSet.volumeKg
+                        )
+                    },
+                    previous = domainComparison.bestSet.previous?.let { bestSet ->
+                        HistoryBestSetUiState(
+                            exerciseName = bestSet.exerciseName,
+                            weightKg = bestSet.weightKg,
+                            reps = bestSet.reps,
+                            volumeKg = bestSet.volumeKg
+                        )
+                    },
+                    delta = domainComparison.bestSet.delta.toUiState()
+                )
+            )
+        }
+    )
+}
+
+private fun WorkoutHistoryMetricDelta.toUiState(): HistoryMetricDeltaUiState {
+    return HistoryMetricDeltaUiState(
+        currentValue = currentValue,
+        previousValue = previousValue,
+        deltaValue = deltaValue,
+        direction = direction
     )
 }
 

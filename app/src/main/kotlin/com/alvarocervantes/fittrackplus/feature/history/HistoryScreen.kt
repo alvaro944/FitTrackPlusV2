@@ -55,6 +55,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDeltaDirection
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -296,6 +297,9 @@ private fun HistoryDetailContent(
                     HistoryDetailSummary(detail = state.selectedDetail)
                 }
                 item {
+                    HistoryComparisonCard(comparison = state.selectedDetail.comparison)
+                }
+                item {
                     FitTrackSectionLabel(label = "Ejercicios")
                 }
                 items(
@@ -431,6 +435,95 @@ private fun HistoryDetailSummary(detail: HistoryDetailUiState) {
 }
 
 @Composable
+private fun HistoryComparisonCard(comparison: HistoryComparisonUiState?) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            Text(
+                text = "Comparado con la anterior",
+                style = MaterialTheme.typography.titleMedium
+            )
+            if (comparison == null) {
+                Text(
+                    text = "Primera sesion comparable",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    text = "Anterior: ${formatDate(comparison.previousFinishedAt)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                HistoryDeltaRow(
+                    label = "Volumen",
+                    currentText = "${comparison.totalVolumeDelta.currentValue.toDisplayText()} kg",
+                    delta = comparison.totalVolumeDelta,
+                    deltaText = "${comparison.totalVolumeDelta.deltaValue.toSignedDisplayText()} kg"
+                )
+                HistoryDeltaRow(
+                    label = "Duracion",
+                    currentText = formatDuration(comparison.durationMillisDelta.currentValue.toLong()),
+                    delta = comparison.durationMillisDelta,
+                    deltaText = comparison.durationMillisDelta.deltaValue.toDurationDeltaText()
+                )
+                HistoryDeltaRow(
+                    label = "Series",
+                    currentText = comparison.setCountDelta.currentValue.toInt().toString(),
+                    delta = comparison.setCountDelta,
+                    deltaText = comparison.setCountDelta.deltaValue.toSignedIntText()
+                )
+                HistoryDeltaRow(
+                    label = "Mejor set",
+                    currentText = comparison.bestSet.current?.let { bestSet ->
+                        "${bestSet.exerciseName}: ${bestSet.weightKg.toDisplayText()} kg x ${bestSet.reps}"
+                    } ?: "Sin datos",
+                    delta = comparison.bestSet.delta,
+                    deltaText = "${comparison.bestSet.delta.deltaValue.toSignedDisplayText()} kg"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryDeltaRow(
+    label: String,
+    currentText: String,
+    delta: HistoryMetricDeltaUiState,
+    deltaText: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium
+            )
+            Text(
+                text = currentText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        FitTrackBadge(
+            label = delta.direction.toDeltaLabel(deltaText),
+            tone = when (delta.direction) {
+                WorkoutHistoryDeltaDirection.Up -> FitTrackBadgeTone.Active
+                WorkoutHistoryDeltaDirection.Down -> FitTrackBadgeTone.Warm
+                WorkoutHistoryDeltaDirection.Same,
+                WorkoutHistoryDeltaDirection.Unavailable -> FitTrackBadgeTone.Neutral
+            }
+        )
+    }
+}
+
+@Composable
 private fun HistoryExerciseCard(exercise: HistoryExerciseUiState) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -516,6 +609,39 @@ private fun formatDuration(durationMillis: Long): String {
     } else {
         "${minutes}min"
     }
+}
+
+private fun WorkoutHistoryDeltaDirection.toDeltaLabel(deltaText: String): String {
+    return when (this) {
+        WorkoutHistoryDeltaDirection.Up -> if (deltaText.startsWith("+")) deltaText else "+$deltaText"
+        WorkoutHistoryDeltaDirection.Down -> deltaText
+        WorkoutHistoryDeltaDirection.Same -> "Igual"
+        WorkoutHistoryDeltaDirection.Unavailable -> "Sin datos"
+    }
+}
+
+private fun Double.toSignedDisplayText(): String {
+    val absolute = kotlin.math.abs(this).toDisplayText()
+    return if (this < 0.0) {
+        "-$absolute"
+    } else {
+        absolute
+    }
+}
+
+private fun Double.toSignedIntText(): String {
+    val rounded = toInt()
+    return when {
+        rounded > 0 -> "+$rounded"
+        rounded < 0 -> rounded.toString()
+        else -> "0"
+    }
+}
+
+private fun Double.toDurationDeltaText(): String {
+    val sign = if (this < 0.0) "-" else "+"
+    val text = formatDuration(kotlin.math.abs(this).toLong())
+    return "$sign$text"
 }
 
 private fun Double.toDisplayText(): String {

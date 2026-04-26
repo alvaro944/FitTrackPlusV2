@@ -1442,3 +1442,56 @@ Resultado:
 Pendiente:
 
 - Validacion manual conjunta de 2.1B.1, 2.1B.2, 2.1B.3 y 2.1B.4 queda pendiente para una pasada posterior.
+
+## Fase 2.1B.5 - Comparativa de sesion + selector de tema
+
+Estado:
+
+- implementada en workspace
+- verificacion automatica completada
+
+Rama:
+
+- `codex/phase-2.1b-comparison-theme`
+
+Objetivo:
+
+- anadir una comparativa compacta en el detalle de Historial
+- permitir elegir tema `Sistema`, `Claro` u `Oscuro` desde Ajustes
+- mantener Room, Firebase/sync y snapshots historicos intactos
+
+Cambios principales:
+
+- `GetWorkoutHistoryDetailUseCase` calcula la sesion anterior comparable usando `routineNameSnapshot` y `dayNameSnapshot`.
+- El detalle de Historial expone deltas de volumen, duracion, numero de series y mejor set por volumen.
+- Si no hay sesion anterior comparable, la UI muestra `Primera sesion comparable`.
+- Ajustes gana selector exclusivo de tema con `Sistema`, `Claro` y `Oscuro`.
+- `UserPreferencesRepository` persiste el modo de tema como string simple en DataStore.
+- `MainActivity` aplica el tema desde el root con `FitTrackPlusTheme`.
+- `Sistema` respeta `isSystemInDarkTheme()`, `Claro` fuerza light y `Oscuro` fuerza dark.
+- `docs/visual-improvements.md` marca comparativa de Historial y selector de tema como aterrizados.
+
+Tests anadidos o ampliados:
+
+- `GetWorkoutHistoryDetailUseCaseTest`
+- `AppThemeModeTest`
+- `SettingsPreferenceMessagesTest`
+
+Verificacion realizada hasta ahora:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain --tests "com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHistoryDetailUseCaseTest" --tests "com.alvarocervantes.fittrackplus.core.design.AppThemeModeTest" --tests "com.alvarocervantes.fittrackplus.feature.settings.SettingsPreferenceMessagesTest"
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Tests RED fallaron primero por simbolos inexistentes de comparativa, tema y mensaje de Ajustes.
+- Tests focalizados pasan.
+- Test completo pasa.
+- Build completo pasa con warnings conocidos de AGP/compileSdk 35 y D8/Kotlin metadata.
+
+Pendiente:
+
+- Validacion manual conjunta de 2.1B.1 a 2.1B.5 queda pendiente para una pasada posterior.

@@ -185,9 +185,10 @@ object FitTrackPlusStyle {
 
 @Composable
 fun FitTrackPlusTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: AppThemeMode = AppThemeMode.System,
     content: @Composable () -> Unit
 ) {
+    val darkTheme = resolveDarkTheme(themeMode, isSystemInDarkTheme())
     val colorScheme = if (darkTheme) DarkColors else LightColors
     val extraColors = if (darkTheme) DarkExtraColors else LightExtraColors
 
