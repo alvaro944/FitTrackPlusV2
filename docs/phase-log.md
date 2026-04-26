@@ -1268,3 +1268,59 @@ Pendiente:
 
 - Validar manualmente flujo de plantillas, duplicado/reordenado y preview en Entrenar.
 - Revision acotada inicialmente preparada para Claude completada por Codex por decision del usuario; no se envian mas tareas a Claude por ahora.
+
+## Fase 2.1B.2 - Timer de descanso
+
+Estado:
+
+- implementada en workspace
+- verificacion automatica completada
+
+Rama:
+
+- `codex/phase-2.1b-timer`
+
+Objetivo:
+
+- anadir un timer local de descanso en Entrenar
+- mejorar el uso diario durante una sesion activa
+- mantener Room, DataStore, Firebase/sync y snapshots historicos intactos
+
+Cambios principales:
+
+- `WorkoutUiState` gana estado local de timer de descanso.
+- `WorkoutViewModel` expone eventos para iniciar, pausar, reanudar, reiniciar, cancelar y activar auto-arranque.
+- El countdown vive en el ViewModel con coroutine local y no se persiste.
+- Auto-arranque queda desactivado por defecto y solo dispara cuando reps pasan de vacio/0/invalido a valor positivo.
+- Auto-arranque no pisa un timer que ya esta corriendo o pausado.
+- `WorkoutScreen` muestra una card compacta de descanso solo durante sesion activa:
+  - botones rapidos `60s`, `90s`, `120s`
+  - pausa/reanudar, reset y cancelar
+  - switch `Auto`
+  - feedback haptico al terminar
+- Al finalizar entrenamiento se cancela el timer.
+
+Tests anadidos:
+
+- `RestTimerStateTest`
+
+Verificacion realizada hasta ahora:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain --tests "com.alvarocervantes.fittrackplus.feature.workout.RestTimerStateTest"
+.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain --tests "com.alvarocervantes.fittrackplus.feature.workout.RestTimerStateTest" --tests "com.alvarocervantes.fittrackplus.domain.usecase.UpdateWorkoutSetUseCaseTest" --tests "com.alvarocervantes.fittrackplus.domain.usecase.StartWorkoutSessionUseCaseTest"
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Tests RED fallaron primero por simbolos inexistentes del timer.
+- Tests focalizados de timer y registro de entrenamiento pasan.
+- `test` completo pasa.
+- `build` completo pasa con `BUILD SUCCESSFUL in 9m 9s`.
+- Se mantienen warnings conocidos de AGP/compileSdk 35 y D8/Kotlin metadata.
+
+Pendiente:
+
+- Validar manualmente en dispositivo/emulador cuando haya `adb` disponible; en esta sesion `adb` no esta en PATH.

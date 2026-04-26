@@ -18,11 +18,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -35,6 +36,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,10 +47,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
@@ -141,6 +145,12 @@ fun WorkoutScreen(
             onFinishWorkout = { showFinishConfirmation = true },
             onSetWeightChange = viewModel::updateSetWeight,
             onSetRepsChange = viewModel::updateSetReps,
+            onStartRestTimer = viewModel::startRestTimer,
+            onPauseRestTimer = viewModel::pauseRestTimer,
+            onResumeRestTimer = viewModel::resumeRestTimer,
+            onResetRestTimer = viewModel::resetRestTimer,
+            onCancelRestTimer = viewModel::cancelRestTimer,
+            onAutoStartRestTimerChange = viewModel::setAutoStartRestTimerEnabled,
             onGoToRoutines = onGoToRoutines
         )
     }
@@ -155,6 +165,12 @@ private fun WorkoutContent(
     onFinishWorkout: () -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onStartRestTimer: (Int) -> Unit,
+    onPauseRestTimer: () -> Unit,
+    onResumeRestTimer: () -> Unit,
+    onResetRestTimer: () -> Unit,
+    onCancelRestTimer: () -> Unit,
+    onAutoStartRestTimerChange: (Boolean) -> Unit,
     onGoToRoutines: () -> Unit
 ) {
     LazyColumn(
@@ -200,6 +216,17 @@ private fun WorkoutContent(
                         session = state.activeSession,
                         isFinishing = state.isFinishing,
                         onFinishWorkout = onFinishWorkout
+                    )
+                }
+                item {
+                    RestTimerCard(
+                        timer = state.restTimer,
+                        onStartRestTimer = onStartRestTimer,
+                        onPauseRestTimer = onPauseRestTimer,
+                        onResumeRestTimer = onResumeRestTimer,
+                        onResetRestTimer = onResetRestTimer,
+                        onCancelRestTimer = onCancelRestTimer,
+                        onAutoStartRestTimerChange = onAutoStartRestTimerChange
                     )
                 }
                 items(
@@ -411,6 +438,149 @@ private fun ActiveSessionSummary(
 }
 
 @Composable
+private fun RestTimerCard(
+    timer: RestTimerUiState,
+    onStartRestTimer: (Int) -> Unit,
+    onPauseRestTimer: () -> Unit,
+    onResumeRestTimer: () -> Unit,
+    onResetRestTimer: () -> Unit,
+    onCancelRestTimer: () -> Unit,
+    onAutoStartRestTimerChange: (Boolean) -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+
+    LaunchedEffect(timer.status) {
+        if (timer.status == RestTimerStatus.Finished) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
+
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
+            ) {
+                FitTrackBadge(label = "DESCANSO", tone = FitTrackBadgeTone.Neutral)
+                Text(
+                    text = when (timer.status) {
+                        RestTimerStatus.Finished -> "Descanso terminado"
+                        RestTimerStatus.Paused -> "Timer pausado"
+                        RestTimerStatus.Running -> formatRestTimer(timer.remainingSeconds)
+                        RestTimerStatus.Stopped -> "Timer listo"
+                    },
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    text = if (timer.autoStartEnabled) {
+                        "Auto al completar una serie"
+                    } else {
+                        "Inicia un descanso cuando lo necesites"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Auto",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Switch(
+                    checked = timer.autoStartEnabled,
+                    onCheckedChange = onAutoStartRestTimerChange
+                )
+            }
+        }
+
+        if (timer.isActive) {
+            FitTrackProgressBar(
+                progress = timer.progress,
+                contentDescription = "Tiempo restante del descanso"
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+        ) {
+            listOf(60, 90, 120).forEach { seconds ->
+                FilledTonalButton(
+                    onClick = { onStartRestTimer(seconds) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("${seconds}s")
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = {
+                    if (timer.status == RestTimerStatus.Running) {
+                        onPauseRestTimer()
+                    } else {
+                        onResumeRestTimer()
+                    }
+                },
+                enabled = timer.status == RestTimerStatus.Running || timer.status == RestTimerStatus.Paused
+            ) {
+                Icon(
+                    imageVector = if (timer.status == RestTimerStatus.Running) {
+                        Icons.Filled.Pause
+                    } else {
+                        Icons.Filled.PlayArrow
+                    },
+                    contentDescription = if (timer.status == RestTimerStatus.Running) {
+                        "Pausar descanso"
+                    } else {
+                        "Reanudar descanso"
+                    }
+                )
+            }
+            IconButton(
+                onClick = onResetRestTimer,
+                enabled = timer.durationSeconds > 0
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = "Reiniciar descanso"
+                )
+            }
+            IconButton(
+                onClick = onCancelRestTimer,
+                enabled = timer.isActive
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Cancelar descanso"
+                )
+            }
+            Icon(
+                imageVector = Icons.Filled.Timer,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(start = FitSpacing.xs)
+                    .size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
 private fun WorkoutExerciseCard(
     exercise: WorkoutExerciseUiState,
     onSetWeightChange: (Long, String) -> Unit,
@@ -571,4 +741,10 @@ private fun WorkoutSetRow(
 
 private fun formatStartedAt(timestamp: Long): String {
     return SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()).format(Date(timestamp))
+}
+
+private fun formatRestTimer(totalSeconds: Int): String {
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%d:%02d".format(minutes, seconds)
 }

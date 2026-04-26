@@ -14,6 +14,8 @@ import com.alvarocervantes.fittrackplus.domain.usecase.StartWorkoutSessionUseCas
 import com.alvarocervantes.fittrackplus.domain.usecase.UpdateWorkoutSetUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +45,7 @@ class WorkoutViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(WorkoutUiState())
     val uiState: StateFlow<WorkoutUiState> = _uiState.asStateFlow()
+    private var restTimerJob: Job? = null
 
     init {
         userPreferencesRepository.activeRoutineId
@@ -142,12 +145,53 @@ class WorkoutViewModel @Inject constructor(
 
     fun updateSetReps(setId: Long, repsText: String) {
         val set = _uiState.value.activeSession?.findSet(setId) ?: return
+        val shouldAutoStartTimer = shouldAutoStartRestTimer(
+            previousRepsText = set.repsText,
+            nextRepsText = repsText,
+            timer = _uiState.value.restTimer
+        )
         updateSetState(setId) { it.copy(repsText = repsText) }
+        if (shouldAutoStartTimer) {
+            startRestTimer(_uiState.value.restTimer.durationSeconds.takeIf { it > 0 } ?: DEFAULT_REST_TIMER_SECONDS)
+        }
         persistSet(
             setId = setId,
             weightText = set.weightText,
             repsText = repsText
         )
+    }
+
+    fun startRestTimer(seconds: Int) {
+        _uiState.update { state ->
+            state.copy(restTimer = state.restTimer.startRestTimer(seconds))
+        }
+        launchRestTimerJob()
+    }
+
+    fun pauseRestTimer() {
+        stopRestTimerJob()
+        _uiState.update { state -> state.copy(restTimer = state.restTimer.pauseRestTimer()) }
+    }
+
+    fun resumeRestTimer() {
+        _uiState.update { state -> state.copy(restTimer = state.restTimer.resumeRestTimer()) }
+        if (_uiState.value.restTimer.status == RestTimerStatus.Running) {
+            launchRestTimerJob()
+        }
+    }
+
+    fun resetRestTimer() {
+        stopRestTimerJob()
+        _uiState.update { state -> state.copy(restTimer = state.restTimer.resetRestTimer()) }
+    }
+
+    fun cancelRestTimer() {
+        stopRestTimerJob()
+        _uiState.update { state -> state.copy(restTimer = state.restTimer.cancelRestTimer()) }
+    }
+
+    fun setAutoStartRestTimerEnabled(enabled: Boolean) {
+        _uiState.update { state -> state.copy(restTimer = state.restTimer.withAutoStart(enabled)) }
     }
 
     fun finishWorkout() {
@@ -160,6 +204,7 @@ class WorkoutViewModel @Inject constructor(
                 finishWorkoutSession(sessionId)
             }.onSuccess {
                 savedStateHandle.remove<Long>(SESSION_KEY)
+                stopRestTimerJob()
                 val activeRoutineId = _uiState.value.activeRoutineId
                 val nextPreview = activeRoutineId?.let { getNextWorkoutPreview(it) }
                 _uiState.update { state ->
@@ -167,6 +212,7 @@ class WorkoutViewModel @Inject constructor(
                         isFinishing = false,
                         activeSession = null,
                         preview = nextPreview?.toUiState(),
+                        restTimer = state.restTimer.cancelRestTimer(),
                         message = "Entrenamiento finalizado."
                     )
                 }
@@ -233,8 +279,12 @@ class WorkoutViewModel @Inject constructor(
             state.copy(
                 isLoading = false,
                 activeSession = activeSession,
-                preview = preview
+                preview = preview,
+                restTimer = if (activeSession == null) state.restTimer.cancelRestTimer() else state.restTimer
             )
+        }
+        if (activeSession == null) {
+            stopRestTimerJob()
         }
     }
 
@@ -275,6 +325,21 @@ class WorkoutViewModel @Inject constructor(
             )
         }
     }
+
+    private fun launchRestTimerJob() {
+        stopRestTimerJob()
+        restTimerJob = viewModelScope.launch {
+            while (_uiState.value.restTimer.status == RestTimerStatus.Running) {
+                delay(1_000)
+                _uiState.update { state -> state.copy(restTimer = state.restTimer.tickRestTimer()) }
+            }
+        }
+    }
+
+    private fun stopRestTimerJob() {
+        restTimerJob?.cancel()
+        restTimerJob = null
+    }
 }
 
 data class WorkoutUiState(
@@ -284,6 +349,7 @@ data class WorkoutUiState(
     val activeRoutineId: Long? = null,
     val preview: WorkoutPreviewUiState? = null,
     val activeSession: ActiveWorkoutSessionUiState? = null,
+    val restTimer: RestTimerUiState = RestTimerUiState(),
     val message: String? = null
 )
 

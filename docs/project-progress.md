@@ -4,7 +4,7 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 
 ## Estado Actual
 
-- Rama actual: `codex/phase-2.1b-routines`.
+- Rama actual: `codex/phase-2.1b-timer`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
 - Commit de cierre de Fase 1: `9df5a44 Complete phase 1 routines`.
 - Commit de cierre de Fase 2: `7cf2c02 Complete phase 2 workout logging`.
@@ -54,6 +54,13 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
   - sin cambios de schema, Firebase/sync ni snapshots historicos
 - Fase 2.1B.1 verificada con `test` y `build`; antes hizo falta parar procesos Java/Kotlin que bloqueaban salidas generadas por KSP en Windows.
 - Handoff de revision acotada para Claude creado en `docs/coordination/claude-phase-2.1b-routines-review.md`; por decision posterior del usuario, Codex hizo esa revision interna y no se envian mas tareas a Claude por ahora.
+- Fase 2.1B.2 implementada y verificada en rama `codex/phase-2.1b-timer`:
+  - timer local de descanso en Entrenar
+  - controles 60s/90s/120s
+  - pausa, reanudar, reiniciar y cancelar
+  - auto-arranque opcional al completar una serie
+  - sin Room, DataStore, Firebase/sync ni snapshots historicos
+- Fase 2.1B.2 verificada con `test` y `build`.
 - Siguiente fase funcional de producto: validacion manual en dispositivo/emulador cuando haya `adb` disponible y despues elegir la siguiente subfase de 2.1B.
 - Migracion GPT-5.5 aplicada a agentes/docs: no hay integracion runtime OpenAI en la app, asi que no habia modelo de API que cambiar.
 
@@ -325,12 +332,12 @@ Implementado:
 
 ## Siguiente Paso
 
-1. Validar manualmente Rutinas:
-   - crear rutina desde plantilla
-   - editar plantilla antes de guardar
-   - duplicar y reordenar dias
-   - duplicar y reordenar ejercicios
-   - guardar, activar y comprobar preview en Entrenar
+1. Validar manualmente Entrenar cuando haya dispositivo/emulador disponible:
+   - iniciar sesion
+   - iniciar timer 60s/90s/120s
+   - pausar, reanudar, reiniciar y cancelar
+   - activar Auto y completar una serie
+   - finalizar entrenamiento y confirmar que el timer se cancela
 2. Elegir la siguiente subfase de 2.1B.
 
 ## Roadmap 2.1
