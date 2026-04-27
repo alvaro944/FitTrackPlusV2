@@ -4,7 +4,7 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 
 ## Estado Actual
 
-- Rama actual: `codex/phase-2.1b-comparison-theme`.
+- Rama actual: `codex/phase-2.1c-c-shortcuts-widget-notification`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
 - Commit de cierre de Fase 1: `9df5a44 Complete phase 1 routines`.
 - Commit de cierre de Fase 2: `7cf2c02 Complete phase 2 workout logging`.
@@ -355,6 +355,7 @@ Implementado:
 2. Validacion manual conjunta pendiente para fases 2.1B.1 a 2.1B.5 cuando haya dispositivo/emulador disponible.
 - Sprint 2.1C.A cerrado: heatmap calendario en Stats, PR detection en vivo con haptic + badge, confetti celebration al finalizar sesion con PR. Commit `16d07fc`.
 - Sprint 2.1C.B implementado en `codex/phase-2.1c-b-skeletons-demo-onboarding`: skeleton loaders (shimmer) en 5 pantallas, FitTrackLoadingCard deprecated, demo data on demand en Ajustes debug, onboarding 3 paginas con HorizontalPager. Tests pasan. Pendiente build completo + validacion manual.
+- Sprint 2.1C.C implementado en `codex/phase-2.1c-c-shortcuts-widget-notification`: app shortcuts (long-press launcher), widget Glance 2x1 (racha + sesiones semana), notificacion silenciosa IMPORTANCE_LOW mientras hay sesion activa, GetWorkoutStreakUseCase con 7 tests, core library desugaring habilitado. BUILD SUCCESSFUL, Detekt+Lint limpios. Pendiente validacion manual en dispositivo.
 
 ## Roadmap 2.1
 

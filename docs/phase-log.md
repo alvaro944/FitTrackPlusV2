@@ -1602,3 +1602,64 @@ Verificacion:
 Pendiente:
 
 - Validacion manual: shimmer visible con datos vacios, demo data desde Ajustes debug, onboarding en primer arranque.
+
+## Fase 2.1C.C - Shortcuts + Widget + Notificacion
+
+Estado:
+
+- implementada y verificada (test + build pasan)
+- pendiente: validacion manual en dispositivo
+
+Rama:
+
+- `codex/phase-2.1c-c-shortcuts-widget-notification`
+
+Commit:
+
+- `ee7649b Complete phase 2.1C.C shortcuts-widget-notification`
+
+Objetivo:
+
+- integracion nativa Android visible desde fuera de la app
+- app shortcuts en launcher (long-press)
+- widget homescreen 2x1 con racha y sesiones de la semana
+- notificacion silenciosa persistente mientras hay sesion activa
+
+Cambios principales:
+
+- `app/src/main/res/xml/shortcuts.xml` - atajos estaticos "Entrenar" y "Stats" con extra `open_tab`
+- `AndroidManifest.xml` - shortcuts meta-data, widget receiver, permiso `POST_NOTIFICATIONS`
+- `app/src/main/res/values/strings.xml` - etiquetas de shortcuts y descripcion del widget
+- `core/navigation/FitTrackPlusNavHost.kt` - parametro `initialTab: AppRoute?` + `LaunchedEffect`
+- `feature/launch/LaunchIntroScreen.kt` - `FitTrackPlusAppRoot` acepta `initialTab`
+- `MainActivity.kt` - lee extra del intent, solicita permiso `POST_NOTIFICATIONS` tras onboarding
+- `gradle/libs.versions.toml` + `build.gradle.kts` - Glance 1.1.0, lifecycle-process, desugar_jdk_libs
+- `isCoreLibraryDesugaringEnabled = true` - soporte java.time.* en minSdk 23
+- `domain/usecase/GetWorkoutStreakUseCase.kt` - algoritmo de racha consecutiva con deduplicacion por dia
+- `app/src/main/res/xml/fittrackplus_widget_info.xml` - metadata del widget 2x1
+- `feature/widget/WidgetEntryPoint.kt` - Hilt EntryPoint para acceso al repositorio desde Glance
+- `feature/widget/FitTrackPlusWidget.kt` - widget con racha + sesiones semana, tap abre app
+- `feature/widget/FitTrackPlusWidgetReceiver.kt` - GlanceAppWidgetReceiver
+- `data/local/dao/WorkoutDao.kt` - `observeActiveSession()` Flow para sesion sin finalizar
+- `data/repository/WorkoutRepository.kt` + `DefaultWorkoutRepository.kt` - expone `observeActiveSession()`
+- `core/notification/ActiveSessionNotificationManager.kt` - canal IMPORTANCE_LOW + show/cancel
+- `core/notification/ActiveSessionObserver.kt` - colecta el Flow y llama al manager
+- `FitTrackPlusApp.kt` - inyecta y arranca `ActiveSessionObserver` en el lifecycle del proceso
+- 7 fakes de tests actualizados con `observeActiveSession()` stub
+
+Tests anadidos:
+
+- `GetWorkoutStreakUseCaseTest` - 7 casos: 0 sesiones, 1 hoy, 1 ayer, 1 hace 2 dias, 7 consecutivos, gap rompe racha, mismo dia cuenta una vez
+
+Verificacion:
+
+```powershell
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado: BUILD SUCCESSFUL (124 tareas), Detekt limpio, Lint limpio, todos los tests pasan.
+
+Pendiente:
+
+- Validacion manual en dispositivo: long-press icono launcher, anadir widget, iniciar sesion (notificacion), finalizar (notificacion desaparece), Android 13+ dialog de permiso.
