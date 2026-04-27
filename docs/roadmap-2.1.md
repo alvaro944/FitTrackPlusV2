@@ -137,35 +137,37 @@ Pendiente para cerrar 2.1B oficialmente:
 
 ## Fase 2.1C - Portfolio WOW
 
-Estado: **NO INICIADA**. Requisito previo: cerrar 2.1B con commit + validacion manual.
+Estado: **TECNICAMENTE COMPLETA** (2026-04-28). Los tres sprints estan implementados y verificados con `test` + `build`. Validacion manual en dispositivo pendiente para cierre oficial.
+
+| Sprint | Rama | Commit | Estado |
+|--------|------|--------|--------|
+| 2.1C.A — Heatmap + PR en vivo + Celebracion | `codex/phase-2.1c-a-heatmap-pr-celebration` | implementado | test+build OK, validacion manual pendiente |
+| 2.1C.B — Skeletons + Demo data + Onboarding | `codex/phase-2.1c-b-skeletons-demo-onboarding` | implementado | test+build OK, validacion manual pendiente |
+| 2.1C.C — Shortcuts + Widget + Notificacion | `codex/phase-2.1c-c-shortcuts-widget-notification` | `ee7649b` | test+build OK, validacion manual pendiente |
 
 Objetivo:
 
 - Anadir piezas visuales y de producto que demuestren calidad sin comprometer mantenibilidad.
 
-Mejoras candidatas:
+Piezas implementadas:
 
-| Mejora | Objetivo | Esfuerzo | Valor portfolio | Nota |
-|--------|----------|----------|-----------------|------|
-| Heatmap calendario | Mostrar constancia y volumen de entreno | Grande | Alto | Pieza WOW; Canvas custom 52x7 |
-| PR en vivo + celebracion | Celebrar records durante entrenamiento | Mediana | Alto | Comparar contra mejor previo, haptic doble + badge en `WorkoutSetRow` |
-| Achievements | Dar sensacion de progreso | Mediana | Medio | Reglas simples y locales (1a sesion, 7 dias seguidos, 1000kg, etc) |
-| Skeleton loaders | Mejorar performance percibida | Mediana | Medio | Sustituir `FitTrackLoadingCard` pantalla a pantalla |
-| Onboarding/demo data | Facilitar review de portfolio | Mediana | Medio | Opcion "Cargar datos demo" en primer init; nunca en release sin confirmacion |
-| App shortcuts/widget homescreen | Profundizar integracion Android | Grande | Medio | Solo despues de estabilizar flujo principal |
-| Notificacion sesion en curso | Recordar al usuario que tiene sesion abierta | Mediana | Bajo-Medio | Foreground service ligero o notificacion silenciosa |
+| Mejora | Sprint | Estado |
+|--------|--------|--------|
+| Heatmap calendario (Canvas custom 52x7, escala por volumen) | A | OK |
+| PR en vivo en WorkoutScreen (badge + haptic doble) | A | OK |
+| Celebracion al finalizar sesion con PR (confetti Canvas + overlay) | A | OK |
+| Skeleton loaders con shimmer en las 5 pantallas principales | B | OK |
+| Demo data on demand en Ajustes (solo debug) | B | OK |
+| Onboarding minimo de 3 paginas con HorizontalPager | B | OK |
+| App shortcuts (long-press launcher: "Entrenar" y "Stats") | C | OK |
+| Widget homescreen 2x1 (racha + sesiones de la semana) | C | OK |
+| Notificacion silenciosa persistente mientras hay sesion activa | C | OK |
 
-Recomendacion de scope inicial (max 2-3 piezas):
+Criterio de salida pendiente:
 
-- **Sprint A (alto impacto visual)**: Heatmap calendario + PR en vivo + celebracion.
-- **Sprint B (polish percibido)**: Skeleton loaders + Onboarding/demo data.
-- **Sprint C (integracion Android)**: App shortcuts + widget + notificacion sesion en curso.
-
-Criterio de salida:
-
-- Seleccionar maximo 2-3 piezas por ciclo para evitar feature creep.
-- Cada pieza debe poder demostrarse en portfolio con datos reales o demo controlada.
-- No debe romper la sencillez local-first del proyecto.
+- Validacion manual en dispositivo de los 3 sprints (prevista 2026-04-29).
+- Merge de las 3 ramas al trunk o PR final.
+- Actualizar este documento marcando cierre oficial.
 
 ## Diferido
 
