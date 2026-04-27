@@ -35,6 +35,10 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
     suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises?
 
+    @Transaction
+    @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
+    fun observeActiveSession(): Flow<List<WorkoutSessionWithExercises>>
+
     @Query("SELECT COUNT(*) FROM workout_sessions WHERE routineId = :routineId AND finishedAt IS NOT NULL")
     suspend fun countFinishedSessionsForRoutine(routineId: Long): Int
 

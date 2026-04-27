@@ -39,6 +39,7 @@ import com.alvarocervantes.fittrackplus.feature.settings.SettingsScreen
 import com.alvarocervantes.fittrackplus.feature.stats.StatsScreen
 import com.alvarocervantes.fittrackplus.feature.workout.WorkoutScreen
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.LaunchedEffect
 
 private data class BottomDestination(
     val route: AppRoute,
@@ -56,10 +57,16 @@ private val bottomDestinations = listOf(
 )
 
 @Composable
-fun FitTrackPlusNavHost() {
+fun FitTrackPlusNavHost(initialTab: AppRoute? = null) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
+
+    LaunchedEffect(initialTab) {
+        if (initialTab != null) {
+            navController.navigateToTopLevel(initialTab)
+        }
+    }
 
     Scaffold(
         bottomBar = {

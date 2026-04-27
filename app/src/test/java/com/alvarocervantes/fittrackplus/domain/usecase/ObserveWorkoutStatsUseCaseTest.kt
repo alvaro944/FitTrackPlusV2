@@ -406,6 +406,7 @@ private class StatsWorkoutRepository(
     override fun observeSessions(): Flow<List<WorkoutSessionEntity>> = flowOf(emptyList())
     override fun observeFinishedSessions(): Flow<List<WorkoutSessionEntity>> = flowOf(emptyList())
     override fun observeFinishedSessionsWithExercises(): Flow<List<WorkoutSessionWithExercises>> = flowOf(sessions)
+    override fun observeActiveSession(): Flow<WorkoutSessionWithExercises?> = flowOf(null)
     override suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises? = null
     override suspend fun getSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises? = null
     override suspend fun getFinishedSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises? = null

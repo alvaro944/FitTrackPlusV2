@@ -6,10 +6,12 @@ import com.alvarocervantes.fittrackplus.domain.model.RoutineDaySnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
 import kotlinx.coroutines.flow.Flow
 
+@Suppress("TooManyFunctions")
 interface WorkoutRepository {
     fun observeSessions(): Flow<List<WorkoutSessionEntity>>
     fun observeFinishedSessions(): Flow<List<WorkoutSessionEntity>>
     fun observeFinishedSessionsWithExercises(): Flow<List<WorkoutSessionWithExercises>>
+    fun observeActiveSession(): Flow<WorkoutSessionWithExercises?>
     suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises?
     suspend fun getSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises?
     suspend fun getFinishedSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises?
