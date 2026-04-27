@@ -38,6 +38,10 @@ class UserPreferencesRepository @Inject constructor(
         preferences[Keys.HAS_SEEN_SNAPSHOT_INFO] ?: false
     }
 
+    val hasSeenOnboarding: Flow<Boolean> = context.userPreferencesDataStore.data.map { preferences ->
+        preferences[Keys.HAS_SEEN_ONBOARDING] ?: false
+    }
+
     suspend fun setActiveRoutineId(routineId: Long?) {
         context.userPreferencesDataStore.edit { preferences ->
             if (routineId == null) {
@@ -66,10 +70,17 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    suspend fun setHasSeenOnboarding(seen: Boolean) {
+        context.userPreferencesDataStore.edit { preferences ->
+            preferences[Keys.HAS_SEEN_ONBOARDING] = seen
+        }
+    }
+
     private object Keys {
         val ACTIVE_ROUTINE_ID: Preferences.Key<Long> = longPreferencesKey("active_routine_id")
         val WEIGHT_UNIT: Preferences.Key<String> = stringPreferencesKey("weight_unit")
         val THEME_MODE: Preferences.Key<String> = stringPreferencesKey("theme_mode")
         val HAS_SEEN_SNAPSHOT_INFO: Preferences.Key<Boolean> = booleanPreferencesKey("has_seen_snapshot_info")
+        val HAS_SEEN_ONBOARDING: Preferences.Key<Boolean> = booleanPreferencesKey("has_seen_onboarding")
     }
 }

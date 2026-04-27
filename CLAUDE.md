@@ -154,6 +154,20 @@ Then tell the user:
 - what was verified
 - what remains pending
 
+## Skills disponibles
+
+Las siguientes skills de Claude Code estan instaladas a nivel usuario y disponibles en este proyecto:
+
+| Skill | Uso principal |
+|---|---|
+| `humanizer` | Naturalizar textos de UI u onboarding |
+| `napkin` | Diagramas rapidos de arquitectura o flujos |
+| `skill-forge` | Crear nuevas skills personalizadas |
+| `caveman` / `caveman-commit` / `caveman-review` / `caveman-compress` | Simplificar explicaciones, commits y revisiones |
+| `token-optimizer` / `token-coach` / `token-dashboard` / `fleet-auditor` | Optimizar uso de tokens en sesiones largas |
+
+Referencia completa con criterios de uso en `docs/work-methodology/available-skills.md`.
+
 ## Language and tone
 
 Project docs and commit messages use Spanish without accents when possible. Match that style in `docs/`. Keep code identifiers in English.

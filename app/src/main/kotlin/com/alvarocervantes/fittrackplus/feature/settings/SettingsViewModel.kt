@@ -2,7 +2,9 @@ package com.alvarocervantes.fittrackplus.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alvarocervantes.fittrackplus.BuildConfig
 import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
+import com.alvarocervantes.fittrackplus.data.local.seed.DebugDemoDataSeeder
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -15,8 +17,11 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val debugDemoDataSeeder: DebugDemoDataSeeder
 ) : ViewModel() {
+
+    val isDebugBuild: Boolean = BuildConfig.DEBUG
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
@@ -48,6 +53,15 @@ class SettingsViewModel @Inject constructor(
 
     fun clearMessage() {
         _message.value = null
+    }
+
+    fun reloadDemoData() {
+        viewModelScope.launch {
+            _message.value = null
+            runCatching { debugDemoDataSeeder.reseed() }
+                .onSuccess { _message.value = "Datos demo recargados." }
+                .onFailure { _message.value = "Error al recargar datos demo." }
+        }
     }
 }
 

@@ -38,6 +38,15 @@ class DebugDemoDataSeeder @Inject constructor(
         }
     }
 
+    suspend fun reseed() {
+        database.withTransaction {
+            workoutDao.deleteAllSessions()
+            routineDao.deleteAllRoutines()
+        }
+        userPreferencesRepository.setActiveRoutineId(null)
+        seedDemoData()
+    }
+
     private suspend fun seedDemoData() {
         val now = System.currentTimeMillis()
         val dayMillis = 24L * 60L * 60L * 1000L

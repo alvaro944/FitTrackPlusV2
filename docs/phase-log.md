@@ -1495,3 +1495,110 @@ Resultado:
 Pendiente:
 
 - Validacion manual conjunta de 2.1B.1 a 2.1B.5 queda pendiente para una pasada posterior.
+
+## Sprint 2.1C.A - Heatmap + PR en vivo + Celebracion
+
+Estado:
+
+- implementada y verificada
+- commit: `16d07fc Complete phase 2.1C.A heatmap, PR live detection and celebration`
+
+Rama:
+
+- `codex/phase-2.1c-a-heatmap-pr-celebration`
+
+Objetivo:
+
+- anadir heatmap calendario de actividad en Stats (volumen diario, 5 niveles)
+- detectar records personales en vivo durante la sesion activa (PR de peso y de volumen)
+- celebrar sesiones con PRs mediante overlay de confetti + haptic doble
+
+Cambios principales:
+
+- `domain/model/StatsModels.kt` - nuevo `data class HeatmapDay(epochDay, totalVolumeKg, intensityLevel)`
+- `domain/model/WorkoutModels.kt` - nuevo `enum class PrType { MaxWeight, MaxVolume }`
+- `domain/usecase/GetWorkoutHeatmapUseCase.kt` - agrega volumen por dia (365 dias), calcula 5 niveles por percentiles
+- `domain/usecase/DetectPersonalRecordUseCase.kt` - compara (exerciseName, weightKg, reps) contra historico finalizado
+- `data/local/dao/WorkoutDao.kt` - queries `getMaxWeightForExercise`, `getMaxSetVolumeForExercise`, `getFinishedSessionsSince`
+- `core/design/components/HeatmapCalendar.kt` - Canvas custom 7x53, drawRoundRect por celda, colorScale de 5 tonos
+- `core/design/components/ConfettiAnimation.kt` - 40 particulas, Animatable 0-1, gravedad simulada, fade en ultimo 25%
+- `core/design/Theme.kt` - `heatmapScale: List<Color>` en `FitTrackPlusExtraColors`
+- `feature/stats/StatsViewModel.kt` - expone `heatmapDays`, maneja tap en celda con snackbar fecha+volumen
+- `feature/stats/StatsScreen.kt` - seccion "Constancia" con `HeatmapCalendar`
+- `feature/workout/WorkoutViewModel.kt` - PR detection post-persistSet, haptic channel, `CelebrationData`, `prCount`
+- `feature/workout/WorkoutScreen.kt` - badge PR (peso/volumen), haptic doble via `LaunchedEffect`, overlay confetti
+
+Tests anadidos:
+
+- `GetWorkoutHeatmapUseCaseTest`
+- `DetectPersonalRecordUseCaseTest`
+
+Verificacion:
+
+```powershell
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Tests pasan.
+- Build pasa.
+
+Pendiente:
+
+- Validacion manual en dispositivo.
+
+## Sprint 2.1C.B - Skeleton loaders + Demo data + Onboarding
+
+Estado:
+
+- implementada
+- pendiente: build completo + validacion manual
+
+Rama:
+
+- `codex/phase-2.1c-b-skeletons-demo-onboarding`
+
+Objetivo:
+
+- subir performance percibida con skeleton loaders por pantalla (shimmer)
+- facilitar evaluacion del portfolio con demo data on demand en debug
+- onboarding minimo de 3 paginas para nuevos usuarios
+
+Cambios principales:
+
+- `core/design/components/Shimmer.kt` - `Modifier.shimmer()` con `composed {}` + `Brush.linearGradient` animado
+- `core/design/components/Skeletons.kt` - `SkeletonBlock`, `SkeletonText`, `SkeletonCard`
+- `core/design/States.kt` - `FitTrackLoadingCard` marcada `@Deprecated` con `replaceWith`
+- `feature/home/HomeScreen.kt` - skeleton en hero card cuando `isLoading`
+- `feature/routines/RoutinesScreen.kt` - `RoutineListItemSkeleton` (3x) reemplaza `FitTrackLoadingCard`
+- `feature/workout/WorkoutScreen.kt` - `WorkoutLoadingSkeleton` (summary + 2 exercise cards)
+- `feature/history/HistoryScreen.kt` - `HistorySessionCardSkeleton` (5x) y `HistoryDetailSummarySkeleton` + `HistoryComparisonSkeleton`
+- `feature/stats/StatsScreen.kt` - `StatsLoadingSkeleton` (period controls + grid + heatmap + 4 cards)
+- `data/local/dao/WorkoutDao.kt` - `deleteAllSessions()`
+- `data/local/dao/RoutineDao.kt` - `deleteAllRoutines()`
+- `data/local/seed/DebugDemoDataSeeder.kt` - `reseed()` (wipe + re-seed atomico)
+- `data/preferences/UserPreferencesRepository.kt` - `hasSeenOnboarding` Flow + `setHasSeenOnboarding()`
+- `feature/settings/SettingsViewModel.kt` - `isDebugBuild`, `reloadDemoData()`
+- `feature/settings/SettingsScreen.kt` - seccion "Datos de demostracion" condicional (debug only) con dialog de confirmacion
+- `feature/onboarding/OnboardingScreen.kt` - `HorizontalPager` 3 paginas, dots indicator, "Siguiente"/"Empezar"/"Saltar"
+- `feature/launch/LaunchIntroScreen.kt` - `FitTrackPlusAppRoot` gate intro -> onboarding -> NavHost
+- `MainActivity.kt` - colecta `hasSeenOnboarding`, pasa `onOnboardingComplete` callback
+- `CLAUDE.md` - seccion de skills disponibles
+- `docs/work-methodology/available-skills.md` - documentacion completa de 12 skills
+
+Tests anadidos:
+
+- `UserPreferencesRepositoryTest` (instrumentado) - `hasSeenOnboarding_defaultFalse`, `setHasSeenOnboarding_persistsTrue`
+
+Verificacion:
+
+```powershell
+.\gradlew.bat test --no-daemon --console=plain
+.\gradlew.bat build --no-daemon --console=plain
+```
+
+Pendiente:
+
+- Validacion manual: shimmer visible con datos vacios, demo data desde Ajustes debug, onboarding en primer arranque.

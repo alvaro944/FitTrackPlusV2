@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,8 +48,10 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
-import com.alvarocervantes.fittrackplus.core.design.FitTrackLoadingCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
 import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
@@ -127,7 +130,7 @@ private fun StatsContent(
 
         when {
             state.isLoading -> {
-                item { FitTrackLoadingCard(text = "Calculando datos desde sesiones finalizadas...") }
+                item { StatsLoadingSkeleton() }
             }
 
             state.message != null -> {
@@ -586,6 +589,69 @@ private val WorkoutStatsPeriod.label: String
         WorkoutStatsPeriod.LastFourWeeks -> "4 semanas"
         WorkoutStatsPeriod.LastTwelveWeeks -> "12 semanas"
     }
+
+@Composable
+private fun StatsLoadingSkeleton() {
+    Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.lg)) {
+        // Period filter controls placeholder
+        SkeletonBlock(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = MaterialTheme.shapes.medium
+        )
+        // Summary metrics grid (3 blocks)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.md)
+        ) {
+            repeat(3) {
+                SkeletonCard(modifier = Modifier.weight(1f)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                        SkeletonText(widthFraction = 0.8f, lineHeight = 22.dp)
+                        SkeletonText(widthFraction = 0.6f)
+                    }
+                }
+            }
+        }
+        // Heatmap calendar placeholder
+        SkeletonBlock(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(90.dp),
+            shape = MaterialTheme.shapes.large
+        )
+        // 2 session volume cards
+        repeat(2) {
+            SkeletonCard(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                    SkeletonText(widthFraction = 0.5f, lineHeight = 18.dp)
+                    SkeletonBlock(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp),
+                        shape = MaterialTheme.shapes.small
+                    )
+                }
+            }
+        }
+        // 2 exercise progress cards
+        repeat(2) {
+            SkeletonCard(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                    SkeletonText(widthFraction = 0.4f, lineHeight = 18.dp)
+                    SkeletonBlock(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp),
+                        shape = MaterialTheme.shapes.small
+                    )
+                    SkeletonText(widthFraction = 0.6f)
+                }
+            }
+        }
+    }
+}
 
 private fun formatDate(timestamp: Long): String {
     return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(timestamp))

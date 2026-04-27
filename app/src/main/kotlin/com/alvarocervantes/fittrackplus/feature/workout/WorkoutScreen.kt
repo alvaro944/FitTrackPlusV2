@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -68,8 +69,10 @@ import com.alvarocervantes.fittrackplus.core.design.components.ConfettiAnimation
 import com.alvarocervantes.fittrackplus.domain.model.PrType
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
-import com.alvarocervantes.fittrackplus.core.design.FitTrackLoadingCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
 import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
@@ -249,7 +252,7 @@ private fun WorkoutContent(
 
         when {
             state.isLoading -> {
-                item { FitTrackLoadingCard(text = "Preparando entrenamiento...") }
+                item { WorkoutLoadingSkeleton() }
             }
 
             state.activeSession != null -> {
@@ -803,6 +806,62 @@ private fun WorkoutSetRow(
             modifier = Modifier.padding(start = FitSpacing.smMd, top = 2.dp)
         )
     }
+    }
+}
+
+@Composable
+private fun WorkoutLoadingSkeleton() {
+    Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.card)) {
+        // Summary card: metrics row + progress bar + finish button
+        SkeletonCard(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.md)
+                ) {
+                    repeat(3) {
+                        SkeletonBlock(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                        )
+                    }
+                }
+                SkeletonBlock(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp),
+                    shape = MaterialTheme.shapes.small
+                )
+                SkeletonBlock(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp)
+                )
+            }
+        }
+        // 2 exercise cards with 3 set rows each
+        repeat(2) {
+            SkeletonCard(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                    SkeletonText(widthFraction = 0.5f, lineHeight = 18.dp)
+                    repeat(3) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(FitSpacing.md)
+                        ) {
+                            repeat(3) {
+                                SkeletonBlock(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(32.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

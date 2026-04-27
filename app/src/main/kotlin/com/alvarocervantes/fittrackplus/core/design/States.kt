@@ -72,6 +72,9 @@ fun FitTrackEmptyState(
     }
 }
 
+@Deprecated(
+    message = "Usa SkeletonCard con SkeletonText/SkeletonBlock para shimmer contextual por pantalla."
+)
 @Composable
 fun FitTrackLoadingCard(text: String, modifier: Modifier = Modifier) {
     FitTrackCard(modifier = modifier) {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -62,8 +63,10 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
-import com.alvarocervantes.fittrackplus.core.design.FitTrackLoadingCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
@@ -348,7 +351,7 @@ private fun RoutineListContent(
             }
 
             if (state.isLoading) {
-                item { FitTrackLoadingCard(text = "Cargando rutinas guardadas...") }
+                items(3) { RoutineListItemSkeleton() }
             } else if (state.routines.isEmpty()) {
                 item {
                     FitTrackEmptyState(
@@ -1223,6 +1226,22 @@ private fun ExerciseRepsSelector(
                 selected = hasCustomSelection,
                 onClick = onCustomSelected,
                 label = { Text(if (hasCustomSelection) selectedReps else "+") }
+            )
+        }
+    }
+}
+
+@Composable
+private fun RoutineListItemSkeleton() {
+    SkeletonCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            SkeletonText(widthFraction = 0.6f, lineHeight = 20.dp)
+            SkeletonText(widthFraction = 0.4f)
+            SkeletonBlock(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp),
+                shape = MaterialTheme.shapes.medium
             )
         }
     }

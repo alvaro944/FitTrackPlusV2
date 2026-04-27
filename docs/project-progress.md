@@ -353,6 +353,8 @@ Implementado:
 
 1. Elegir la siguiente subfase de 2.1B.
 2. Validacion manual conjunta pendiente para fases 2.1B.1 a 2.1B.5 cuando haya dispositivo/emulador disponible.
+- Sprint 2.1C.A cerrado: heatmap calendario en Stats, PR detection en vivo con haptic + badge, confetti celebration al finalizar sesion con PR. Commit `16d07fc`.
+- Sprint 2.1C.B implementado en `codex/phase-2.1c-b-skeletons-demo-onboarding`: skeleton loaders (shimmer) en 5 pantallas, FitTrackLoadingCard deprecated, demo data on demand en Ajustes debug, onboarding 3 paginas con HorizontalPager. Tests pasan. Pendiente build completo + validacion manual.
 
 ## Roadmap 2.1
 

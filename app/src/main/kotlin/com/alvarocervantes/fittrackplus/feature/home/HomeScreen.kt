@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,6 +39,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
@@ -155,22 +158,33 @@ fun HomeScreen(
                         color = Color.White
                     )
 
-                    if (!uiState.isLoading) {
-                        if (uiState.totalSessions > 0) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                                MiniHeroTag(
-                                    if (uiState.sessionsThisWeek == 0) "Sin sesiones esta semana"
-                                    else "${uiState.sessionsThisWeek} sesion${if (uiState.sessionsThisWeek > 1) "es" else ""} esta semana"
-                                )
-                                MiniHeroTag("${uiState.totalSessions} en total")
-                            }
-                        } else {
-                            Text(
-                                text = "Crea una rutina, activala y empieza a registrar sesiones.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.72f)
+                    if (uiState.isLoading) {
+                        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                            SkeletonText(
+                                widthFraction = 0.55f,
+                                lineHeight = 16.dp
+                            )
+                            SkeletonBlock(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.35f)
+                                    .height(16.dp),
+                                shape = MaterialTheme.shapes.small
                             )
                         }
+                    } else if (uiState.totalSessions > 0) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                            MiniHeroTag(
+                                if (uiState.sessionsThisWeek == 0) "Sin sesiones esta semana"
+                                else "${uiState.sessionsThisWeek} sesion${if (uiState.sessionsThisWeek > 1) "es" else ""} esta semana"
+                            )
+                            MiniHeroTag("${uiState.totalSessions} en total")
+                        }
+                    } else {
+                        Text(
+                            text = "Crea una rutina, activala y empieza a registrar sesiones.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.72f)
+                        )
                     }
 
                     Button(

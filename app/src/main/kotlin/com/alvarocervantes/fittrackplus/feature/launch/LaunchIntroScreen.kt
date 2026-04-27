@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alvarocervantes.fittrackplus.R
 import com.alvarocervantes.fittrackplus.core.navigation.FitTrackPlusNavHost
+import com.alvarocervantes.fittrackplus.feature.onboarding.OnboardingScreen
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
@@ -59,15 +60,16 @@ private val IntroEmerald = Color(0xFF1F6B57)
 private val IntroCopper = Color(0xFFC47A49)
 
 @Composable
-fun FitTrackPlusAppRoot() {
+fun FitTrackPlusAppRoot(
+    hasSeenOnboarding: Boolean,
+    onOnboardingComplete: () -> Unit
+) {
     var hasCompletedIntro by rememberSaveable { mutableStateOf(false) }
 
-    if (hasCompletedIntro) {
-        FitTrackPlusNavHost()
-    } else {
-        LaunchIntroScreen(
-            onFinished = { hasCompletedIntro = true }
-        )
+    when {
+        !hasCompletedIntro -> LaunchIntroScreen(onFinished = { hasCompletedIntro = true })
+        !hasSeenOnboarding -> OnboardingScreen(onComplete = onOnboardingComplete)
+        else -> FitTrackPlusNavHost()
     }
 }
 

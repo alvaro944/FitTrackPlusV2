@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -49,8 +50,10 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
-import com.alvarocervantes.fittrackplus.core.design.FitTrackLoadingCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
@@ -168,7 +171,7 @@ private fun HistoryListContent(
 
         when {
             state.isLoading -> {
-                item { FitTrackLoadingCard(text = "Cargando sesiones finalizadas...") }
+                items(5) { HistorySessionCardSkeleton() }
             }
 
             state.allSessions.isEmpty() -> {
@@ -289,7 +292,8 @@ private fun HistoryDetailContent(
 
         when {
             state.isDetailLoading -> {
-                item { FitTrackLoadingCard(text = "Cargando detalle historico...") }
+                item { HistoryDetailSummarySkeleton() }
+                item { HistoryComparisonSkeleton() }
             }
 
             state.selectedDetail != null -> {
@@ -311,7 +315,8 @@ private fun HistoryDetailContent(
             }
 
             else -> {
-                item { FitTrackLoadingCard(text = "Cargando detalle historico...") }
+                item { HistoryDetailSummarySkeleton() }
+                item { HistoryComparisonSkeleton() }
             }
         }
     }
@@ -635,6 +640,61 @@ private fun Double.toSignedIntText(): String {
         rounded > 0 -> "+$rounded"
         rounded < 0 -> rounded.toString()
         else -> "0"
+    }
+}
+
+@Composable
+private fun HistorySessionCardSkeleton() {
+    SkeletonCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            SkeletonText(widthFraction = 0.55f, lineHeight = 18.dp)
+            SkeletonText(widthFraction = 0.35f)
+            SkeletonBlock(
+                modifier = Modifier
+                    .fillMaxWidth(0.3f)
+                    .height(20.dp),
+                shape = MaterialTheme.shapes.small
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryDetailSummarySkeleton() {
+    SkeletonCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            SkeletonText(widthFraction = 0.6f, lineHeight = 18.dp)
+            SkeletonText(widthFraction = 0.45f)
+            SkeletonText(widthFraction = 0.55f)
+            SkeletonText(widthFraction = 0.3f)
+        }
+    }
+}
+
+@Composable
+private fun HistoryComparisonSkeleton() {
+    SkeletonCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            repeat(4) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    SkeletonBlock(
+                        modifier = Modifier
+                            .fillMaxWidth(0.4f)
+                            .height(14.dp),
+                        shape = MaterialTheme.shapes.small
+                    )
+                    SkeletonBlock(
+                        modifier = Modifier
+                            .fillMaxWidth(0.3f)
+                            .height(14.dp),
+                        shape = MaterialTheme.shapes.small
+                    )
+                }
+            }
+        }
     }
 }
 

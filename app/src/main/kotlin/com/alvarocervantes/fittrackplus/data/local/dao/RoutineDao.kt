@@ -32,6 +32,9 @@ interface RoutineDao {
     @Query("SELECT COUNT(*) FROM routines")
     suspend fun countRoutines(): Int
 
+    @Query("DELETE FROM routines")
+    suspend fun deleteAllRoutines()
+
     @Insert
     suspend fun insertRoutine(routine: RoutineEntity): Long
 

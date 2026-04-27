@@ -41,6 +41,9 @@ interface WorkoutDao {
     @Query("SELECT COUNT(*) FROM workout_sessions")
     suspend fun countSessions(): Int
 
+    @Query("DELETE FROM workout_sessions")
+    suspend fun deleteAllSessions()
+
     @Insert
     suspend fun insertSession(session: WorkoutSessionEntity): Long
 
