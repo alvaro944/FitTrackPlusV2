@@ -47,8 +47,10 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.primaryDark
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
+import com.alvarocervantes.fittrackplus.core.design.surfaceCard
 import com.alvarocervantes.fittrackplus.core.design.textTertiary
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -135,6 +137,13 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+
+        item {
+            WeekActivityStrip(
+                sessionsThisWeek = uiState.sessionsThisWeek,
+                isLoading = uiState.isLoading
+            )
         }
 
         item {
@@ -264,6 +273,108 @@ fun HomeScreen(
         }
         }
     }
+}
+
+@Composable
+private fun WeekActivityStrip(
+    sessionsThisWeek: Int,
+    isLoading: Boolean
+) {
+    FitTrackCard(containerColor = MaterialTheme.colorScheme.surfaceCard) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                Text(
+                    text = "Esta semana",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = if (isLoading) {
+                        "Calculando actividad"
+                    } else {
+                        weeklySessionLabel(sessionsThisWeek)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            FitTrackBadge(
+                label = if (sessionsThisWeek > 0) "ACTIVA" else "SIN SESION",
+                tone = if (sessionsThisWeek > 0) FitTrackBadgeTone.Active else FitTrackBadgeTone.Neutral
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+        ) {
+            val todayIndex = (Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 5) % 7
+            val completedSlots = sessionsThisWeek.coerceIn(0, 7)
+            weekDayLabels().forEachIndexed { index, label ->
+                val isToday = index == todayIndex
+                val isCompleted = index < completedSlots
+                WeekDayCell(
+                    label = label,
+                    isToday = isToday,
+                    isCompleted = isCompleted,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeekDayCell(
+    label: String,
+    isToday: Boolean,
+    isCompleted: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val background = when {
+        isToday -> MaterialTheme.colorScheme.primary
+        isCompleted -> MaterialTheme.colorScheme.primarySoft
+        else -> MaterialTheme.colorScheme.surfaceAlt
+    }
+    val contentColor = when {
+        isToday -> MaterialTheme.colorScheme.onPrimary
+        isCompleted -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Column(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.medium)
+            .background(background)
+            .padding(vertical = FitSpacing.sm),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor
+        )
+        Box(
+            modifier = Modifier
+                .size(if (isCompleted || isToday) 6.dp else 4.dp)
+                .clip(MaterialTheme.shapes.extraSmall)
+                .background(contentColor.copy(alpha = if (isCompleted || isToday) 1f else 0.35f))
+        )
+    }
+}
+
+private fun weekDayLabels(): List<String> {
+    return listOf("L", "M", "X", "J", "V", "S", "D")
+}
+
+private fun weeklySessionLabel(sessionsThisWeek: Int): String {
+    val sessionWord = if (sessionsThisWeek == 1) "sesion" else "sesiones"
+    val registeredWord = if (sessionsThisWeek == 1) "registrada" else "registradas"
+    return "$sessionsThisWeek $sessionWord $registeredWord"
 }
 
 @Composable

@@ -25,10 +25,11 @@ fun FitTrackCard(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(1.dp, borderColor)
     ) {
         Column(
-            modifier = Modifier.padding(FitSpacing.card),
+            modifier = Modifier.padding(FitSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(FitSpacing.md),
             content = content
         )

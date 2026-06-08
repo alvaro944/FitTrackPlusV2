@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -51,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
@@ -75,6 +75,7 @@ import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
 import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
+import com.alvarocervantes.fittrackplus.core.design.FitTrackRadialTimer
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.primaryDark
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
@@ -188,10 +189,10 @@ fun WorkoutScreen(
                             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
                             shape = MaterialTheme.shapes.extraLarge
                         )
-                        .padding(horizontal = FitSpacing.xl, vertical = FitSpacing.md)
+                    .padding(horizontal = FitSpacing.xl, vertical = FitSpacing.md)
                 ) {
                     Text(
-                        text = "¡Nuevo PR!",
+                        text = "Nuevo PR",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.accentWarm
                     )
@@ -501,128 +502,195 @@ private fun RestTimerCard(
     }
 
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
-            ) {
-                FitTrackBadge(label = "DESCANSO", tone = FitTrackBadgeTone.Neutral)
-                Text(
-                    text = when (timer.status) {
-                        RestTimerStatus.Finished -> "Descanso terminado"
-                        RestTimerStatus.Paused -> "Timer pausado"
-                        RestTimerStatus.Running -> formatRestTimer(timer.remainingSeconds)
-                        RestTimerStatus.Stopped -> "Timer listo"
-                    },
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text(
-                    text = if (timer.autoStartEnabled) {
-                        "Auto al completar una serie"
-                    } else {
-                        "Inicia un descanso cuando lo necesites"
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Auto",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Switch(
-                    checked = timer.autoStartEnabled,
-                    onCheckedChange = onAutoStartRestTimerChange
-                )
-            }
-        }
+        RestTimerHeader(
+            timer = timer,
+            onAutoStartRestTimerChange = onAutoStartRestTimerChange
+        )
+        RestTimerRadialControls(
+            timer = timer,
+            onPauseRestTimer = onPauseRestTimer,
+            onResumeRestTimer = onResumeRestTimer,
+            onResetRestTimer = onResetRestTimer,
+            onCancelRestTimer = onCancelRestTimer
+        )
+        RestTimerQuickDurations(onStartRestTimer = onStartRestTimer)
+    }
+}
 
-        if (timer.isActive) {
-            FitTrackProgressBar(
-                progress = timer.progress,
-                contentDescription = "Tiempo restante del descanso"
+@Composable
+private fun RestTimerHeader(
+    timer: RestTimerUiState,
+    onAutoStartRestTimerChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
+        ) {
+            FitTrackBadge(label = "DESCANSO", tone = FitTrackBadgeTone.Neutral)
+            Text(
+                text = restTimerTitle(timer),
+                style = MaterialTheme.typography.titleLarge
+            )
+            Text(
+                text = restTimerSupportText(timer.autoStartEnabled),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-        ) {
-            listOf(60, 90, 120).forEach { seconds ->
-                FilledTonalButton(
-                    onClick = { onStartRestTimer(seconds) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("${seconds}s")
-                }
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = {
-                    if (timer.status == RestTimerStatus.Running) {
-                        onPauseRestTimer()
-                    } else {
-                        onResumeRestTimer()
-                    }
-                },
-                enabled = timer.status == RestTimerStatus.Running || timer.status == RestTimerStatus.Paused
-            ) {
-                Icon(
-                    imageVector = if (timer.status == RestTimerStatus.Running) {
-                        Icons.Filled.Pause
-                    } else {
-                        Icons.Filled.PlayArrow
-                    },
-                    contentDescription = if (timer.status == RestTimerStatus.Running) {
-                        "Pausar descanso"
-                    } else {
-                        "Reanudar descanso"
-                    }
-                )
-            }
-            IconButton(
-                onClick = onResetRestTimer,
-                enabled = timer.durationSeconds > 0
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Refresh,
-                    contentDescription = "Reiniciar descanso"
-                )
-            }
-            IconButton(
-                onClick = onCancelRestTimer,
-                enabled = timer.isActive
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = "Cancelar descanso"
-                )
-            }
-            Icon(
-                imageVector = Icons.Filled.Timer,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .padding(start = FitSpacing.xs)
-                    .size(20.dp)
+            Text(
+                text = "Auto",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Switch(
+                checked = timer.autoStartEnabled,
+                onCheckedChange = onAutoStartRestTimerChange
             )
         }
     }
+}
+
+@Composable
+private fun RestTimerRadialControls(
+    timer: RestTimerUiState,
+    onPauseRestTimer: () -> Unit,
+    onResumeRestTimer: () -> Unit,
+    onResetRestTimer: () -> Unit,
+    onCancelRestTimer: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(FitSpacing.lg),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        FitTrackRadialTimer(
+            remainingSeconds = timer.remainingSeconds,
+            durationSeconds = timer.durationSeconds,
+            label = restTimerRadialLabel(timer.status),
+            isUrgent = isRestTimerUrgent(timer),
+            contentDescription = "Tiempo restante del descanso"
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+        ) {
+            RestTimerPauseResumeButton(
+                timer = timer,
+                onPauseRestTimer = onPauseRestTimer,
+                onResumeRestTimer = onResumeRestTimer
+            )
+            RestTimerActionButton(
+                enabled = timer.durationSeconds > 0,
+                icon = Icons.Filled.Refresh,
+                label = "Reiniciar",
+                onClick = onResetRestTimer
+            )
+            RestTimerActionButton(
+                enabled = timer.isActive,
+                icon = Icons.Filled.Close,
+                label = "Cancelar",
+                onClick = onCancelRestTimer
+            )
+        }
+    }
+}
+
+@Composable
+private fun RestTimerPauseResumeButton(
+    timer: RestTimerUiState,
+    onPauseRestTimer: () -> Unit,
+    onResumeRestTimer: () -> Unit
+) {
+    val isRunning = timer.status == RestTimerStatus.Running
+    RestTimerActionButton(
+        enabled = isRunning || timer.status == RestTimerStatus.Paused,
+        icon = if (isRunning) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+        label = if (isRunning) "Pausar" else "Reanudar",
+        onClick = if (isRunning) onPauseRestTimer else onResumeRestTimer
+    )
+}
+
+@Composable
+private fun RestTimerQuickDurations(
+    onStartRestTimer: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+    ) {
+        listOf(60, 90, 120).forEach { seconds ->
+            FilledTonalButton(
+                onClick = { onStartRestTimer(seconds) },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("${seconds}s")
+            }
+        }
+    }
+}
+
+@Composable
+private fun RestTimerActionButton(
+    enabled: Boolean,
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    FilledTonalButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
+        Text(
+            text = label,
+            modifier = Modifier.padding(start = FitSpacing.sm)
+        )
+    }
+}
+
+private fun restTimerTitle(timer: RestTimerUiState): String {
+    return when (timer.status) {
+        RestTimerStatus.Finished -> "Descanso terminado"
+        RestTimerStatus.Paused -> "Timer pausado"
+        RestTimerStatus.Running -> formatRestTimer(timer.remainingSeconds)
+        RestTimerStatus.Stopped -> "Timer listo"
+    }
+}
+
+private fun restTimerSupportText(autoStartEnabled: Boolean): String {
+    return if (autoStartEnabled) {
+        "Auto al completar una serie"
+    } else {
+        "Inicia un descanso cuando lo necesites"
+    }
+}
+
+private fun restTimerRadialLabel(status: RestTimerStatus): String {
+    return when (status) {
+        RestTimerStatus.Finished -> "fin"
+        RestTimerStatus.Paused -> "pausa"
+        RestTimerStatus.Running -> "rest"
+        RestTimerStatus.Stopped -> "listo"
+    }
+}
+
+private fun isRestTimerUrgent(timer: RestTimerUiState): Boolean {
+    return timer.status == RestTimerStatus.Finished ||
+        (timer.status == RestTimerStatus.Running && timer.remainingSeconds <= 10)
 }
 
 @Composable

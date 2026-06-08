@@ -12,10 +12,10 @@ Estado actual:
 - Botones rapidos `60s`, `90s`, `120s`.
 - Acciones de pausar, reanudar, reiniciar y cancelar.
 - Auto-arranque opcional al completar una serie.
+- Reloj circular aterrizado en `FitTrackRadialTimer` durante la fase Final form visual.
 
 Ideas:
 
-- Reloj circular o progreso radial.
 - Variante sticky compacta mientras se baja por los ejercicios.
 - Estados visuales diferenciados para corriendo, pausado y terminado.
 - Menos botones visibles mediante menu o selector de duracion.

@@ -79,8 +79,30 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
   - el tema se persiste en DataStore y se aplica desde el root de la app
   - sin cambios de schema Room, Firebase/sync ni snapshots historicos
 - Fase 2.1B.5 verificada con `test` y `build`.
+- Fase 2.1B queda tecnicamente cerrada:
+  - las subfases 2.1B.1 a 2.1B.5 estan implementadas y verificadas en automatico
+  - queda pendiente la validacion manual conjunta en dispositivo/emulador para cierre oficial
+- Sprint 2.1C.A cerrado:
+  - heatmap calendario en Stats
+  - deteccion de PR en vivo con badge + haptic doble
+  - celebracion al finalizar sesion con overlay de confetti
+  - commit `16d07fc`
+- Sprint 2.1C.B implementado y verificado:
+  - skeleton loaders con shimmer en las 5 pantallas principales
+  - demo data on demand en Ajustes debug
+  - onboarding de 3 paginas con `HorizontalPager`
+- Sprint 2.1C.C implementado y verificado en rama `codex/phase-2.1c-c-shortcuts-widget-notification`:
+  - app shortcuts `Entrenar` y `Stats`
+  - widget Glance 2x1 con racha y sesiones de la semana
+  - notificacion silenciosa persistente mientras hay sesion activa
+  - `GetWorkoutStreakUseCase` con 7 tests
+  - Detekt y Lint limpios
+- Fase 2.1C queda tecnicamente completa:
+  - los sprints A, B y C pasan `test` + `build`
+  - la app esta practicamente en nivel de cierre funcional local
+  - queda pendiente validacion manual en dispositivo para cierre oficial
 - Backlog visual separado creado en `docs/visual-improvements.md`.
-- Siguiente fase funcional de producto: elegir la siguiente subfase de 2.1B.
+- Siguiente foco real de producto: validacion manual final y cierre oficial de 2.1C antes de abrir sync/cloud o nuevas features grandes.
 - Migracion GPT-5.5 aplicada a agentes/docs: no hay integracion runtime OpenAI en la app, asi que no habia modelo de API que cambiar.
 
 ## Hecho Hasta Ahora
@@ -349,13 +371,37 @@ Implementado:
 - Docs de marca cerrados: brand-foundation, logo-direction, color-system, typography, brand-questionnaire.
 - Nueva referencia oficial de arranque: `docs/branding/Pantalla incio fondo claro/`, aterrizada a Compose nativo.
 
+## Fase 2.1C - Final form visual
+
+Estado:
+
+- implementada y verificada sobre `codex/phase-2.1c-final-form-design`
+- basada en la referencia local `docs/Final form Fit track/`
+- sin tocar Firebase, sync, Room schema, repositorios ni snapshots historicos
+
+Cambios aterrizados:
+
+- tokens visuales ajustados a la paleta final clara/oscura del prototipo
+- radios y tarjetas alineados con el sistema visual final
+- Home gana tira semanal compacta y cards mas contenidas
+- Entrenar gana timer de descanso radial reutilizable
+- Ajustes gana selector segmentado de unidad y selector visual exclusivo de tema
+- mapeo entre referencia y Compose documentado en `docs/final-form-design-implementation.md`
+
+Pendiente:
+
+- validacion manual conjunta en dispositivo/emulador cuando se prueben las fases pendientes
+
 ## Siguiente Paso
 
-1. Elegir la siguiente subfase de 2.1B.
-2. Validacion manual conjunta pendiente para fases 2.1B.1 a 2.1B.5 cuando haya dispositivo/emulador disponible.
-- Sprint 2.1C.A cerrado: heatmap calendario en Stats, PR detection en vivo con haptic + badge, confetti celebration al finalizar sesion con PR. Commit `16d07fc`.
-- Sprint 2.1C.B implementado en `codex/phase-2.1c-b-skeletons-demo-onboarding`: skeleton loaders (shimmer) en 5 pantallas, FitTrackLoadingCard deprecated, demo data on demand en Ajustes debug, onboarding 3 paginas con HorizontalPager. Tests pasan. Pendiente build completo + validacion manual.
-- Sprint 2.1C.C implementado en `codex/phase-2.1c-c-shortcuts-widget-notification`: app shortcuts (long-press launcher), widget Glance 2x1 (racha + sesiones semana), notificacion silenciosa IMPORTANCE_LOW mientras hay sesion activa, GetWorkoutStreakUseCase con 7 tests, core library desugaring habilitado. BUILD SUCCESSFUL, Detekt+Lint limpios. Pendiente validacion manual en dispositivo.
+1. Ejecutar validacion manual final en dispositivo/emulador para 2.1B y 2.1C:
+   - plantillas, duplicado y reordenado
+   - timer de descanso
+   - filtros y comparativa de Historial
+   - periodos de Datos, heatmap y tooltip
+   - onboarding, demo data, shortcuts, widget y notificacion activa
+2. Anotar el resultado en `docs/project-progress.md` y `docs/phase-log.md`.
+3. Si la validacion sale limpia, cerrar oficialmente V2.1 local y dejar como siguiente linea mayor solo sync/cloud, export/import o pulido final de release.
 
 ## Roadmap 2.1
 
@@ -364,6 +410,9 @@ Estado:
 - Documento canonico: `docs/roadmap-2.1.md`.
 - Sustituye al backlog antiguo `docs/future-improvements.md`.
 - `docs/mejoras-claude.md` queda como historico de propuestas, no como roadmap vigente.
+- Gate 0, 2.1A y 2.1B estan tecnicamente cerradas.
+- Fase 2.1C esta tecnicamente completa y pendiente solo de validacion manual para cierre oficial.
+- El producto local-first esta cerca del nivel final de desarrollo para esta etapa del roadmap.
 
 Orden recomendado:
 
@@ -383,10 +432,10 @@ Orden recomendado:
    - selector de tema.
 4. Fase 2.1C - Portfolio WOW:
    - heatmap calendario.
-   - achievements.
    - PR en vivo + celebracion.
    - skeleton loaders.
    - onboarding/demo data.
+   - app shortcuts, widget y notificacion activa.
 
 Diferido:
 

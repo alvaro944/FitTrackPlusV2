@@ -1663,3 +1663,32 @@ Resultado: BUILD SUCCESSFUL (124 tareas), Detekt limpio, Lint limpio, todos los 
 Pendiente:
 
 - Validacion manual en dispositivo: long-press icono launcher, anadir widget, iniciar sesion (notificacion), finalizar (notificacion desaparece), Android 13+ dialog de permiso.
+
+## Fase 2.1C - Final form visual
+
+Estado:
+
+- implementada y verificada sobre `codex/phase-2.1c-final-form-design`
+- fuente visual: `docs/Final form Fit track/`
+
+Objetivo:
+
+- acercar la app nativa al prototipo final sin abrir cambios de arquitectura ni persistencia
+
+Cambios principales:
+
+- paleta clara/oscura, bordes y radios ajustados al lenguaje visual final
+- `FitTrackRadialTimer` como indicador radial reutilizable para el descanso
+- Home con tira semanal compacta
+- Entrenar con timer radial y acciones agrupadas
+- Ajustes con selector segmentado de unidad y selector visual exclusivo de tema
+
+Verificacion:
+
+- `.\gradlew.bat test --no-daemon --console=plain`
+- `.\gradlew.bat build --no-daemon --console=plain`
+- Resultado: BUILD SUCCESSFUL
+
+Pendiente:
+
+- validacion manual conjunta en dispositivo/emulador junto con el resto de 2.1B/2.1C

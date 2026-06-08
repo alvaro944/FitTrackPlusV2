@@ -30,26 +30,26 @@ private val LightColors = lightColorScheme(
     onSurface = Color(0xFF161816),
     surfaceVariant = Color(0xFFE8E5DD),
     onSurfaceVariant = Color(0xFF5E655F),
-    outline = Color(0xFFD8D4CA),
+    outline = Color(0xFFD5D0C5),
     error = Color(0xFFB15249),
     onError = Color.White
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF7FCDB7),
-    onPrimary = Color(0xFF062F27),
-    secondary = Color(0xFFE0A57D),
-    onSecondary = Color(0xFF34180D),
-    tertiary = Color(0xFF67B49A),
-    background = Color(0xFF101312),
-    onBackground = Color(0xFFEAE8E1),
-    surface = Color(0xFF171A19),
-    onSurface = Color(0xFFEAE8E1),
-    surfaceVariant = Color(0xFF232826),
-    onSurfaceVariant = Color(0xFFADB3AD),
-    outline = Color(0xFF313735),
-    error = Color(0xFFE09B92),
-    onError = Color(0xFF4D1711)
+    primary = Color(0xFF2E8B6E),
+    onPrimary = Color(0xFFEEF0EE),
+    secondary = Color(0xFFD4895A),
+    onSecondary = Color(0xFF181A18),
+    tertiary = Color(0xFF3AA882),
+    background = Color(0xFF181A18),
+    onBackground = Color(0xFFEEF0EE),
+    surface = Color(0xFF1F221F),
+    onSurface = Color(0xFFEEF0EE),
+    surfaceVariant = Color(0xFF272A27),
+    onSurfaceVariant = Color(0xFF8A928B),
+    outline = Color(0xFF353835),
+    error = Color(0xFFC96260),
+    onError = Color(0xFF181A18)
 )
 
 @Immutable
@@ -68,28 +68,28 @@ data class FitTrackPlusExtraColors(
 
 private val LightExtraColors = FitTrackPlusExtraColors(
     surfaceAlt = Color(0xFFE8E5DD),
-    surfaceCard = Color(0xFFFFFFFF),
-    borderLight = Color(0xFFECEAE4),
+    surfaceCard = Color(0xFFFCFBF7),
+    borderLight = Color(0xFFD5D0C5),
     textTertiary = Color(0xFF9AA09B),
     primaryDark = Color(0xFF174D40),
     primarySoft = Color(0xFFD9E8E1),
-    primaryMid = Color(0xFF3A8870),
+    primaryMid = Color(0xFF2E8B6E),
     accentWarm = Color(0xFFC47A49),
-    accentSoft = Color(0xFFF1E2D6),
-    errorSoft = Color(0xFFF5E0DF)
+    accentSoft = Color(0xFFF0E0D3),
+    errorSoft = Color(0xFFF2DED9)
 )
 
 private val DarkExtraColors = FitTrackPlusExtraColors(
-    surfaceAlt = Color(0xFF202523),
-    surfaceCard = Color(0xFF1B201E),
-    borderLight = Color(0xFF252A28),
-    textTertiary = Color(0xFF79807B),
-    primaryDark = Color(0xFF0E3E33),
-    primarySoft = Color(0xFF183E35),
-    primaryMid = Color(0xFF4DA78A),
-    accentWarm = Color(0xFFE0A57D),
-    accentSoft = Color(0xFF3C2A22),
-    errorSoft = Color(0xFF3A2220)
+    surfaceAlt = Color(0xFF272A27),
+    surfaceCard = Color(0xFF1F221F),
+    borderLight = Color(0xFF353835),
+    textTertiary = Color(0xFF5E655F),
+    primaryDark = Color(0xFF3AA882),
+    primarySoft = Color(0xFF1A3830),
+    primaryMid = Color(0xFF2E8B6E),
+    accentWarm = Color(0xFFD4895A),
+    accentSoft = Color(0xFF2D2018),
+    errorSoft = Color(0xFF2D1919)
 )
 
 private val LocalFitTrackPlusExtraColors = staticCompositionLocalOf { LightExtraColors }
@@ -98,30 +98,30 @@ private val AppTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Bold,
-        fontSize = 34.sp,
-        lineHeight = 38.sp,
-        letterSpacing = (-0.6).sp
+        fontSize = 32.sp,
+        lineHeight = 36.sp,
+        letterSpacing = 0.sp
     ),
     headlineLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp,
         lineHeight = 32.sp,
-        letterSpacing = (-0.5).sp
+        letterSpacing = 0.sp
     ),
     headlineMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
         lineHeight = 28.sp,
-        letterSpacing = (-0.4).sp
+        letterSpacing = 0.sp
     ),
     titleLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Bold,
         fontSize = 18.sp,
         lineHeight = 22.sp,
-        letterSpacing = (-0.2).sp
+        letterSpacing = 0.sp
     ),
     titleMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -165,16 +165,16 @@ private val AppTypography = Typography(
         fontWeight = FontWeight.SemiBold,
         fontSize = 11.sp,
         lineHeight = 16.sp,
-        letterSpacing = 1.sp
+        letterSpacing = 0.6.sp
     )
 )
 
 private val AppShapes = Shapes(
     extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-    small = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-    medium = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-    large = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
-    extraLarge = androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
+    small = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+    medium = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+    large = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+    extraLarge = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
 )
 
 object FitTrackPlusStyle {
