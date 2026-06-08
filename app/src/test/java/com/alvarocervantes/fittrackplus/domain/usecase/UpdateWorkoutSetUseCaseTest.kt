@@ -36,6 +36,24 @@ class UpdateWorkoutSetUseCaseTest {
         assertEquals(0.0, repository.lastWeightKg ?: -1.0, 0.0)
         assertEquals(0, repository.lastReps)
     }
+
+    @Test
+    fun normalizesDecimalAndNegativeRepsToZero() = runBlocking {
+        val repository = SetUpdateWorkoutRepository()
+        val useCase = UpdateWorkoutSetUseCase(repository)
+
+        useCase(setId = 9, weightText = "70", repsText = "8.5")
+
+        assertEquals(9L, repository.lastSetId)
+        assertEquals(70.0, repository.lastWeightKg ?: -1.0, 0.0)
+        assertEquals(0, repository.lastReps)
+
+        useCase(setId = 10, weightText = "72.5", repsText = "-4")
+
+        assertEquals(10L, repository.lastSetId)
+        assertEquals(72.5, repository.lastWeightKg ?: -1.0, 0.0)
+        assertEquals(0, repository.lastReps)
+    }
 }
 
 private class SetUpdateWorkoutRepository : WorkoutRepository {
@@ -46,6 +64,7 @@ private class SetUpdateWorkoutRepository : WorkoutRepository {
     override fun observeSessions(): Flow<List<WorkoutSessionEntity>> = flowOf(emptyList())
     override fun observeFinishedSessions(): Flow<List<WorkoutSessionEntity>> = flowOf(emptyList())
     override fun observeFinishedSessionsWithExercises(): Flow<List<WorkoutSessionWithExercises>> = flowOf(emptyList())
+    override fun observeActiveSession(): Flow<WorkoutSessionWithExercises?> = flowOf(null)
     override suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises? = null
     override suspend fun getSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises? = null
     override suspend fun getFinishedSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises? = null
@@ -64,4 +83,7 @@ private class SetUpdateWorkoutRepository : WorkoutRepository {
     }
 
     override suspend fun finishSession(sessionId: Long, notes: String?) = Unit
+    override suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double? = null
+    override suspend fun getMaxWeightForExercise(exerciseName: String): Double? = null
+    override suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double? = null
 }

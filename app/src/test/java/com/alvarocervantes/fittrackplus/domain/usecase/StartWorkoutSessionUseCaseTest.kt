@@ -91,10 +91,12 @@ private class FakeRoutineRepository(
     private val routine: RoutineSnapshot?
 ) : RoutineRepository {
     override fun observeRoutines(): Flow<List<RoutineSummary>> = flowOf(emptyList())
+    override fun observeArchivedRoutines(): Flow<List<RoutineSummary>> = flowOf(emptyList())
     override suspend fun getRoutineSnapshot(routineId: Long): RoutineSnapshot? = routine
     override suspend fun createRoutine(draft: RoutineDraft): Long = error("Not used")
     override suspend fun replaceRoutine(routineId: Long, draft: RoutineDraft) = error("Not used")
     override suspend fun archiveRoutine(routineId: Long) = error("Not used")
+    override suspend fun restoreRoutine(routineId: Long) = error("Not used")
 }
 
 private class FakeWorkoutRepository(
@@ -108,6 +110,8 @@ private class FakeWorkoutRepository(
     override fun observeFinishedSessions(): Flow<List<WorkoutSessionEntity>> = flowOf(emptyList())
 
     override fun observeFinishedSessionsWithExercises(): Flow<List<WorkoutSessionWithExercises>> = flowOf(emptyList())
+
+    override fun observeActiveSession(): Flow<WorkoutSessionWithExercises?> = flowOf(null)
 
     override suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises? = activeSession
 
@@ -131,4 +135,8 @@ private class FakeWorkoutRepository(
     override suspend fun updateSet(setId: Long, weightKg: Double, reps: Int) = Unit
 
     override suspend fun finishSession(sessionId: Long, notes: String?) = Unit
+
+    override suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double? = null
+    override suspend fun getMaxWeightForExercise(exerciseName: String): Double? = null
+    override suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double? = null
 }

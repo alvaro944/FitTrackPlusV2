@@ -150,13 +150,57 @@ Fuera de alcance:
 - Sync.
 - Cambios en snapshots historicos.
 
-### Fase 7 - Sync futura
+### Cierre tecnico v1
+
+Estado: cerrado tecnicamente.
+
+Objetivo:
+
+- Consolidar la primera version funcional completa antes de abrir mejoras nuevas.
+- Mantener la validacion manual como gate pendiente, sin documentarla como completada hasta ejecutarla.
+- Usar `docs/roadmap-2.1.md` como direccion oficial post-v1.
+
+Incluye:
+
+- nucleo local-first completo
+- rutinas, entrenamiento, historial, estadisticas y ajustes
+- sistema visual y branding base
+- intro clara en Compose
+- CI con `test`, `build` y `detekt`
+- documentacion viva actualizada
+
+Pendiente:
+
+- validacion manual en dispositivo/emulador de intro, navegacion, dark mode, accesibilidad y flujo completo
+
+### Roadmap 2.1 - Mejoras post-v1
+
+Documento canonico:
+
+- `docs/roadmap-2.1.md`
+
+Orden recomendado:
+
+1. Gate 0 - Validacion manual de la v1 tecnica.
+2. Fase 2.1A - Estabilidad y fricciones criticas.
+3. Fase 2.1B - Features de valor.
+4. Fase 2.1C - Portfolio WOW.
+
+Fuera del roadmap inmediato:
+
+- sync cloud
+- ExerciseCatalog global
+- supersets/cardio/RPE
+- i18n completa
+- import/export avanzado salvo fase dedicada
+
+### Sync futura
 
 Objetivo:
 
 - Evaluar Firebase/Auth/Firestore o alternativa.
 - Disenar sync offline-first antes de implementar.
-- Ejecutar solo despues de cerrar el nucleo local y la fase visual.
+- Ejecutar solo despues de cerrar el nucleo local, la fase visual y las mejoras V2.1 prioritarias.
 
 ## Linea Paralela - Branding
 

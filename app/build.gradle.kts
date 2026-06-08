@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.dagger.hilt)
     alias(libs.plugins.google.devtools.ksp)
+    alias(libs.plugins.detekt)
 }
 
 android {
@@ -34,6 +35,7 @@ android {
     }
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -44,17 +46,28 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     sourceSets {
         getByName("main") {
             java.setSrcDirs(listOf("src/main/kotlin"))
         }
+        getByName("androidTest") {
+            java.setSrcDirs(listOf("src/androidTest/kotlin"))
+        }
     }
 }
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+detekt {
+    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    baseline = file("$rootDir/config/detekt/detekt-baseline.xml")
+    buildUponDefaultConfig = true
+    source.setFrom("src/main/kotlin")
 }
 
 dependencies {
@@ -88,9 +101,18 @@ dependencies {
 
     implementation(libs.google.android.material)
 
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
+    implementation(libs.androidx.lifecycle.process)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
+
     testImplementation(libs.junit)
+    testImplementation(libs.turbine)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 }

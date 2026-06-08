@@ -35,6 +35,19 @@ class DefaultRoutineRepository @Inject constructor(
         }
     }
 
+    override fun observeArchivedRoutines(): Flow<List<RoutineSummary>> {
+        return routineDao.observeArchivedRoutineSummaries().map { rows ->
+            rows.map { row ->
+                RoutineSummary(
+                    id = row.id,
+                    name = row.name,
+                    dayCount = row.dayCount,
+                    updatedAt = row.updatedAt
+                )
+            }
+        }
+    }
+
     override suspend fun getRoutineSnapshot(routineId: Long): RoutineSnapshot? {
         return routineDao.getRoutineWithDays(routineId)?.toSnapshot()
     }
@@ -72,6 +85,13 @@ class DefaultRoutineRepository @Inject constructor(
 
     override suspend fun archiveRoutine(routineId: Long) {
         routineDao.archiveRoutine(
+            routineId = routineId,
+            updatedAt = System.currentTimeMillis()
+        )
+    }
+
+    override suspend fun restoreRoutine(routineId: Long) {
+        routineDao.restoreRoutine(
             routineId = routineId,
             updatedAt = System.currentTimeMillis()
         )

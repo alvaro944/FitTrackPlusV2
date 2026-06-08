@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,8 +20,14 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,16 +35,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.primaryDark
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
+import com.alvarocervantes.fittrackplus.core.design.surfaceCard
 import com.alvarocervantes.fittrackplus.core.design.textTertiary
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -46,8 +59,20 @@ fun HomeScreen(
     onGoToRoutines: () -> Unit,
     onGoToWorkout: () -> Unit,
     onGoToHistory: () -> Unit,
-    onGoToStats: () -> Unit
+    onGoToStats: () -> Unit,
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val hasActiveRoutine = uiState.activeRoutineId != null
+
+    LaunchedEffect(uiState.message) {
+        val message = uiState.message ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message)
+        viewModel.clearMessage()
+    }
+
     val quickActions = listOf(
         HomeQuickAction(
             title = "Preparar rutinas",
@@ -83,14 +108,19 @@ fun HomeScreen(
         )
     )
 
-    LazyColumn(
-        modifier = Modifier.padding(horizontal = FitSpacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.card)
-    ) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(horizontal = FitSpacing.screenHorizontal),
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.card)
+        ) {
         item {
             Column(
                 modifier = Modifier.padding(top = FitSpacing.screenTop),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
             ) {
                 Text(
                     text = formatToday(),
@@ -110,15 +140,22 @@ fun HomeScreen(
         }
 
         item {
+            WeekActivityStrip(
+                sessionsThisWeek = uiState.sessionsThisWeek,
+                isLoading = uiState.isLoading
+            )
+        }
+
+        item {
             Box(
                 modifier = Modifier
                     .clip(MaterialTheme.shapes.extraLarge)
                     .background(MaterialTheme.colorScheme.primaryDark)
                     .fillMaxWidth()
-                    .padding(22.dp)
+                    .padding(FitSpacing.cardPadding)
             ) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(FitSpacing.mdLg)
                 ) {
                     FitTrackBadge(
                         label = "LOCAL-FIRST",
@@ -129,27 +166,55 @@ fun HomeScreen(
                         style = MaterialTheme.typography.headlineLarge,
                         color = Color.White
                     )
-                    Text(
-                        text = "Empieza por una rutina clara, activala y registra sesiones sin reescribir el pasado.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.72f)
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-                    ) {
-                        MiniHeroTag("Crea rutina")
-                        MiniHeroTag("Activa una")
-                        MiniHeroTag("Guarda sesiones")
+
+                    if (uiState.isLoading) {
+                        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                            SkeletonText(
+                                widthFraction = 0.55f,
+                                lineHeight = 16.dp
+                            )
+                            SkeletonBlock(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.35f)
+                                    .height(16.dp),
+                                shape = MaterialTheme.shapes.small
+                            )
+                        }
+                    } else if (uiState.totalSessions > 0) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                            MiniHeroTag(
+                                if (uiState.sessionsThisWeek == 0) "Sin sesiones esta semana"
+                                else "${uiState.sessionsThisWeek} sesion${if (uiState.sessionsThisWeek > 1) "es" else ""} esta semana"
+                            )
+                            MiniHeroTag("${uiState.totalSessions} en total")
+                        }
+                    } else {
+                        Text(
+                            text = "Crea una rutina, activala y empieza a registrar sesiones.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.72f)
+                        )
                     }
-                    Button(onClick = onGoToRoutines) {
+
+                    Button(
+                        onClick = if (hasActiveRoutine) onGoToWorkout else onGoToRoutines
+                    ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.List,
+                            imageVector = if (hasActiveRoutine) Icons.Filled.PlayArrow else Icons.AutoMirrored.Filled.List,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "Preparar rutina",
+                            text = if (hasActiveRoutine) "Ir a entrenar" else "Preparar rutina",
                             modifier = Modifier.padding(start = FitSpacing.sm)
+                        )
+                    }
+
+                    if (!hasActiveRoutine && !uiState.isLoading) {
+                        Text(
+                            text = "Crea tu primera rutina y activala para empezar a entrenar.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.55f)
                         )
                     }
                 }
@@ -206,7 +271,110 @@ fun HomeScreen(
                 }
             }
         }
+        }
     }
+}
+
+@Composable
+private fun WeekActivityStrip(
+    sessionsThisWeek: Int,
+    isLoading: Boolean
+) {
+    FitTrackCard(containerColor = MaterialTheme.colorScheme.surfaceCard) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                Text(
+                    text = "Esta semana",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = if (isLoading) {
+                        "Calculando actividad"
+                    } else {
+                        weeklySessionLabel(sessionsThisWeek)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            FitTrackBadge(
+                label = if (sessionsThisWeek > 0) "ACTIVA" else "SIN SESION",
+                tone = if (sessionsThisWeek > 0) FitTrackBadgeTone.Active else FitTrackBadgeTone.Neutral
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+        ) {
+            val todayIndex = (Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 5) % 7
+            val completedSlots = sessionsThisWeek.coerceIn(0, 7)
+            weekDayLabels().forEachIndexed { index, label ->
+                val isToday = index == todayIndex
+                val isCompleted = index < completedSlots
+                WeekDayCell(
+                    label = label,
+                    isToday = isToday,
+                    isCompleted = isCompleted,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeekDayCell(
+    label: String,
+    isToday: Boolean,
+    isCompleted: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val background = when {
+        isToday -> MaterialTheme.colorScheme.primary
+        isCompleted -> MaterialTheme.colorScheme.primarySoft
+        else -> MaterialTheme.colorScheme.surfaceAlt
+    }
+    val contentColor = when {
+        isToday -> MaterialTheme.colorScheme.onPrimary
+        isCompleted -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Column(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.medium)
+            .background(background)
+            .padding(vertical = FitSpacing.sm),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor
+        )
+        Box(
+            modifier = Modifier
+                .size(if (isCompleted || isToday) 6.dp else 4.dp)
+                .clip(MaterialTheme.shapes.extraSmall)
+                .background(contentColor.copy(alpha = if (isCompleted || isToday) 1f else 0.35f))
+        )
+    }
+}
+
+private fun weekDayLabels(): List<String> {
+    return listOf("L", "M", "X", "J", "V", "S", "D")
+}
+
+private fun weeklySessionLabel(sessionsThisWeek: Int): String {
+    val sessionWord = if (sessionsThisWeek == 1) "sesion" else "sesiones"
+    val registeredWord = if (sessionsThisWeek == 1) "registrada" else "registradas"
+    return "$sessionsThisWeek $sessionWord $registeredWord"
 }
 
 @Composable
@@ -215,7 +383,7 @@ private fun MiniHeroTag(text: String) {
         modifier = Modifier
             .clip(MaterialTheme.shapes.medium)
             .background(Color.White.copy(alpha = 0.10f))
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(horizontal = FitSpacing.smMd, vertical = FitSpacing.tiny)
     ) {
         Text(
             text = text,
@@ -238,7 +406,7 @@ private fun QuickActionCard(action: HomeQuickAction) {
         containerColor = MaterialTheme.colorScheme.surface
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.mdLg),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(

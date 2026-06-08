@@ -35,11 +35,18 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
     suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises?
 
+    @Transaction
+    @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
+    fun observeActiveSession(): Flow<List<WorkoutSessionWithExercises>>
+
     @Query("SELECT COUNT(*) FROM workout_sessions WHERE routineId = :routineId AND finishedAt IS NOT NULL")
     suspend fun countFinishedSessionsForRoutine(routineId: Long): Int
 
     @Query("SELECT COUNT(*) FROM workout_sessions")
     suspend fun countSessions(): Int
+
+    @Query("DELETE FROM workout_sessions")
+    suspend fun deleteAllSessions()
 
     @Insert
     suspend fun insertSession(session: WorkoutSessionEntity): Long
@@ -61,4 +68,37 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM workout_sets WHERE id = :setId")
     suspend fun getSet(setId: Long): WorkoutSetEntity?
+
+    @Query("""
+        SELECT ws.weightKg FROM workout_sets ws
+        INNER JOIN workout_exercises we ON ws.workoutExerciseId = we.id
+        INNER JOIN workout_sessions sess ON we.sessionId = sess.id
+        WHERE we.exerciseNameSnapshot = :exerciseName
+        AND sess.finishedAt IS NOT NULL
+        AND ws.setNumber = :setNumber
+        ORDER BY sess.startedAt DESC
+        LIMIT 1
+    """)
+    suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double?
+
+    @Query("""
+        SELECT MAX(ws.weightKg) FROM workout_sets ws
+        INNER JOIN workout_exercises we ON ws.workoutExerciseId = we.id
+        INNER JOIN workout_sessions sess ON we.sessionId = sess.id
+        WHERE LOWER(TRIM(we.exerciseNameSnapshot)) = LOWER(TRIM(:exerciseName))
+        AND sess.finishedAt IS NOT NULL
+        AND ws.reps > 0
+    """)
+    suspend fun getMaxWeightForExercise(exerciseName: String): Double?
+
+    @Query("""
+        SELECT MAX(ws.weightKg * ws.reps) FROM workout_sets ws
+        INNER JOIN workout_exercises we ON ws.workoutExerciseId = we.id
+        INNER JOIN workout_sessions sess ON we.sessionId = sess.id
+        WHERE LOWER(TRIM(we.exerciseNameSnapshot)) = LOWER(TRIM(:exerciseName))
+        AND sess.finishedAt IS NOT NULL
+        AND ws.reps > 0
+        AND ws.weightKg > 0
+    """)
+    suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double?
 }

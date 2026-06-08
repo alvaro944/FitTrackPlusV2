@@ -11,6 +11,7 @@ import com.alvarocervantes.fittrackplus.domain.model.RoutineDaySnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class DefaultWorkoutRepository @Inject constructor(
     private val database: FitTrackPlusDatabase,
@@ -27,6 +28,10 @@ class DefaultWorkoutRepository @Inject constructor(
 
     override fun observeFinishedSessionsWithExercises(): Flow<List<WorkoutSessionWithExercises>> {
         return workoutDao.observeFinishedSessionsWithExercises()
+    }
+
+    override fun observeActiveSession(): Flow<WorkoutSessionWithExercises?> {
+        return workoutDao.observeActiveSession().map { it.firstOrNull() }
     }
 
     override suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises? {
@@ -112,5 +117,17 @@ class DefaultWorkoutRepository @Inject constructor(
                 notes = notes?.trim()?.ifBlank { null }
             )
         )
+    }
+
+    override suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double? {
+        return workoutDao.getLastWeightKgForExerciseSet(exerciseName, setNumber)
+    }
+
+    override suspend fun getMaxWeightForExercise(exerciseName: String): Double? {
+        return workoutDao.getMaxWeightForExercise(exerciseName)
+    }
+
+    override suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double? {
+        return workoutDao.getMaxSetVolumeForExercise(exerciseName)
     }
 }

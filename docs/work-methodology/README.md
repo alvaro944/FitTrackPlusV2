@@ -1,34 +1,24 @@
-# Guia De Trabajo Y Metodologia
+# Work Methodology
 
-Esta carpeta recoge como estamos trabajando, que decisiones tecnicas vamos aprendiendo y que procedimientos conviene repetir en futuras fases.
+Esta carpeta deja de ser la fuente canonica de metodologia general.
 
-No es documentacion del producto como tal. Es una guia de estudio y una memoria practica del proceso.
-Tambien es una capa mas abstracta que el propio proyecto: aqui se fija la forma de trabajar con varias herramientas y agentes de IA sin mezclar eso con el roadmap funcional de FitTrackPlus.
-La idea es que esta carpeta sirva incluso cuando cambien las plataformas de trabajo, los editores o el agente principal.
+Ahora el starter pack reusable vive en:
 
-## Objetivo
+- `docs/project-methodology/README.md`
 
-- Entender como se construye una app Android moderna por fases.
-- Recordar los pasos de trabajo que han funcionado.
-- Separar metodologia de roadmap.
-- Guardar tips, errores reales y aprendizajes pequenos.
-- Hacer que cada fase deje una leccion reutilizable.
-- Consolidar una estructura de trabajo reutilizable para varios agentes, no solo para este repo.
+## Para Que Queda Esta Carpeta
 
-## Documentos
+Como apoyo del repo actual:
 
-- `phase-procedure.md`: procedimiento base para empezar, desarrollar y cerrar una fase.
-- `architecture-notes.md`: notas de arquitectura aprendidas durante la implementacion.
-- `agent-collaboration.md`: forma de trabajar con varios agentes y herramientas para mantener control y aprendizaje.
-- `tips-and-skills.md`: tips, habilidades practicadas y problemas encontrados.
+- aprendizajes historicos
+- notas de arquitectura nacidas en este proyecto
+- patrones tecnicos observados durante la ejecucion real
 
-## Regla De Mantenimiento
+## Regla Practica
 
-Al cerrar cada fase se debe revisar esta carpeta y actualizar lo que aplique:
+- si buscas metodologia portable entre proyectos -> ir a `docs/project-methodology/`
+- si buscas aprendizajes concretos de este repo -> usar `docs/work-methodology/`
 
-- nuevos pasos del procedimiento
-- decisiones de arquitectura que se repitan
-- errores encontrados y como se resolvieron
-- comandos utiles
-- skills practicadas
-- cosas que conviene evitar en proximas fases
+## Aprendizajes Del Repo
+
+- En Windows, KSP/Hilt puede dejar archivos de `app/build/generated/ksp/` bloqueados por procesos Java/Kotlin tras builds largos o fallidos. Si aparece `NoSuchFileException`, `FileAlreadyExistsException` o `FileNotFoundException` sobre salidas generadas, parar daemons/procesos Java bloqueantes y repetir con `.\gradlew.bat clean test --no-daemon --console=plain` antes de relanzar `build`.

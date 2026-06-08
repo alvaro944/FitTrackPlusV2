@@ -1,34 +1,57 @@
 package com.alvarocervantes.fittrackplus.feature.stats
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
+import com.alvarocervantes.fittrackplus.core.design.components.HeatmapCalendar
+import com.alvarocervantes.fittrackplus.core.design.components.LineChart
+import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
-import com.alvarocervantes.fittrackplus.core.design.FitTrackLoadingCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
 import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
@@ -44,11 +67,25 @@ fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Scaffold { padding ->
+    LaunchedEffect(state.message) {
+        val msg = state.message ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(msg)
+        viewModel.clearMessage()
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
         StatsContent(
             state = state,
-            contentPadding = padding
+            contentPadding = padding,
+            onPeriodFilterChange = viewModel::setPeriodFilter,
+            onSelectExercise = viewModel::selectExercise,
+            onSelectProgressPoint = viewModel::selectProgressPoint,
+            onClearSelectedProgressPoint = viewModel::clearSelectedProgressPoint,
+            onHeatmapDayClick = viewModel::onHeatmapDayClick
         )
     }
 }
@@ -56,14 +93,24 @@ fun StatsScreen(
 @Composable
 private fun StatsContent(
     state: StatsUiState,
-    contentPadding: PaddingValues
+    contentPadding: PaddingValues,
+    onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
+    onSelectExercise: (String) -> Unit,
+    onSelectProgressPoint: (Long) -> Unit,
+    onClearSelectedProgressPoint: () -> Unit,
+    onHeatmapDayClick: (HeatmapDay) -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
-        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(
+            start = FitSpacing.screenHorizontal,
+            top = FitSpacing.screenTop,
+            end = FitSpacing.screenHorizontal,
+            bottom = FitSpacing.screenBottom
+        ),
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.lg)
     ) {
         item {
             FitTrackScreenHeader(
@@ -72,9 +119,18 @@ private fun StatsContent(
             )
         }
 
+        if (!state.isLoading) {
+            item {
+                StatsPeriodControls(
+                    selectedPeriod = state.selectedPeriod,
+                    onPeriodFilterChange = onPeriodFilterChange
+                )
+            }
+        }
+
         when {
             state.isLoading -> {
-                item { FitTrackLoadingCard(text = "Calculando datos desde sesiones finalizadas...") }
+                item { StatsLoadingSkeleton() }
             }
 
             state.message != null -> {
@@ -110,6 +166,32 @@ private fun StatsContent(
                     SummaryGrid(state = state)
                 }
 
+                if (state.heatmapDays.isNotEmpty()) {
+                    item { FitTrackSectionLabel(label = "Constancia") }
+                    item {
+                        FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+                            HeatmapCalendar(
+                                days = state.heatmapDays,
+                                onDayClick = onHeatmapDayClick
+                            )
+                        }
+                    }
+                }
+
+                if (state.exerciseProgress.isNotEmpty()) {
+                    item {
+                        ProgressChartCard(
+                            exerciseNames = state.exerciseProgress.map { it.exerciseName },
+                            selectedExerciseName = state.selectedExerciseName,
+                            progressPoints = state.progressPoints,
+                            selectedProgressPoint = state.selectedProgressPoint,
+                            onSelectExercise = onSelectExercise,
+                            onSelectProgressPoint = onSelectProgressPoint,
+                            onClearSelectedProgressPoint = onClearSelectedProgressPoint
+                        )
+                    }
+                }
+
                 item { FitTrackSectionLabel(label = "Volumen por sesion") }
                 items(
                     items = state.sessionVolumes,
@@ -139,10 +221,34 @@ private fun StatsContent(
 }
 
 @Composable
+private fun StatsPeriodControls(
+    selectedPeriod: WorkoutStatsPeriod,
+    onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit
+) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        FitTrackSectionLabel(label = "Periodo")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
+        ) {
+            WorkoutStatsPeriod.entries.forEach { period ->
+                FilterChip(
+                    selected = selectedPeriod == period,
+                    onClick = { onPeriodFilterChange(period) },
+                    label = { Text(period.label) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SummaryGrid(state: StatsUiState) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(FitSpacing.md)
     ) {
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
@@ -179,7 +285,7 @@ private fun SessionVolumeCard(session: SessionVolumeUiState) {
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
             ) {
                 Text(
                     text = session.routineName,
@@ -221,7 +327,7 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
             ) {
                 Text(
                     text = progress.exerciseName,
@@ -248,7 +354,7 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
         if (latest != null) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(FitSpacing.lg)
             ) {
                 FitTrackMetric(
                     value = latest.maxWeightKg.toDisplayText(),
@@ -264,10 +370,12 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
                 )
             }
             FitTrackProgressBar(
-                progress = if (maxWeight == 0.0) 0f else (latest.maxWeightKg / maxWeight).toFloat()
+                progress = if (maxWeight == 0.0) 0f else (latest.maxWeightKg / maxWeight).toFloat(),
+                contentDescription = "Progreso de peso maximo de ${progress.exerciseName}"
             )
             Text(
-                text = "Volumen ${latest.volumeKg.toDisplayText()} kg · mejor peso registrado ${maxWeight.toDisplayText()} kg",
+                text = "Volumen ${latest.volumeKg.toDisplayText()} kg - " +
+                    "mejor peso registrado ${maxWeight.toDisplayText()} kg",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -279,7 +387,7 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
 private fun ExerciseRecordsCard(records: ExerciseRecordsUiState) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
         ) {
             FitTrackBadge(
                 label = "PR",
@@ -296,7 +404,12 @@ private fun ExerciseRecordsCard(records: ExerciseRecordsUiState) {
         RecordRow("Peso max", records.maxWeight?.let { "${it.weightKg.toDisplayText()} kg x ${it.reps}" })
         RecordRow("Reps max", records.maxReps?.let { "${it.reps} reps con ${it.weightKg.toDisplayText()} kg" })
         RecordRow("Volumen set", records.bestSetVolume?.let { "${it.setVolumeKg.toDisplayText()} kg" })
-        RecordRow("1RM estimado", records.bestEstimatedOneRepMax?.let { "${it.estimatedOneRepMaxKg.toDisplayText()} kg" })
+        RecordRow(
+            label = "1RM estimado",
+            value = records.bestEstimatedOneRepMax?.let {
+                "${it.estimatedOneRepMaxKg.toDisplayText()} kg"
+            }
+        )
     }
 }
 
@@ -309,7 +422,7 @@ private fun RecordRow(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.accentSoft, MaterialTheme.shapes.large)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = FitSpacing.md, vertical = FitSpacing.smMd),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
@@ -322,6 +435,221 @@ private fun RecordRow(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.accentWarm
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProgressChartCard(
+    exerciseNames: List<String>,
+    selectedExerciseName: String?,
+    progressPoints: List<ProgressChartPointUiState>,
+    selectedProgressPoint: ProgressChartPointUiState?,
+    onSelectExercise: (String) -> Unit,
+    onSelectProgressPoint: (Long) -> Unit,
+    onClearSelectedProgressPoint: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Progreso visual",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
+        ) {
+            OutlinedTextField(
+                value = selectedExerciseName ?: "Selecciona un ejercicio",
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                exerciseNames.forEach { name ->
+                    DropdownMenuItem(
+                        text = { Text(name) },
+                        onClick = {
+                            onSelectExercise(name)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        when {
+            selectedExerciseName == null -> {
+                Text(
+                    text = "Selecciona un ejercicio para ver la evolucion de su peso maximo.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            progressPoints.size < 2 -> {
+                Text(
+                    text = "Se necesitan al menos 2 sesiones de '${selectedExerciseName}' para mostrar el grafico.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            else -> {
+                val chartPoints = progressPoints.map { point ->
+                    point.finishedAt to point.maxWeightKg.toFloat()
+                }
+                val selectedIndex = selectedProgressPoint?.let { selected ->
+                    progressPoints.indexOfFirst { point -> point.sessionId == selected.sessionId }
+                }?.takeIf { index -> index >= 0 }
+                LineChart(
+                    points = chartPoints,
+                    selectedPointIndex = selectedIndex,
+                    onPointSelected = { index ->
+                        progressPoints.getOrNull(index)?.let { point ->
+                            onSelectProgressPoint(point.sessionId)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .padding(top = FitSpacing.xs)
+                )
+                selectedProgressPoint?.let { point ->
+                    ProgressPointDetails(
+                        point = point,
+                        onClear = onClearSelectedProgressPoint
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProgressPointDetails(
+    point: ProgressChartPointUiState,
+    onClear: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.accentSoft, MaterialTheme.shapes.large)
+            .padding(FitSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = formatDate(point.finishedAt),
+                style = MaterialTheme.typography.titleSmall
+            )
+            TextButton(onClick = onClear) {
+                Text("Ocultar")
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.lg)
+        ) {
+            FitTrackMetric(
+                value = point.maxWeightKg.toDisplayText(),
+                unit = "kg",
+                label = "peso max",
+                accent = FitTrackMetricAccent.Primary,
+                compact = true
+            )
+            FitTrackMetric(
+                value = point.volumeKg.toDisplayText(),
+                unit = "kg",
+                label = "volumen",
+                compact = true
+            )
+        }
+        Text(
+            text = "${point.totalReps} reps - 1RM ${point.estimatedOneRepMaxKg.toDisplayText()} kg",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+private val WorkoutStatsPeriod.label: String
+    get() = when (this) {
+        WorkoutStatsPeriod.All -> "Todo"
+        WorkoutStatsPeriod.LastFourWeeks -> "4 semanas"
+        WorkoutStatsPeriod.LastTwelveWeeks -> "12 semanas"
+    }
+
+@Composable
+private fun StatsLoadingSkeleton() {
+    Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.lg)) {
+        // Period filter controls placeholder
+        SkeletonBlock(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = MaterialTheme.shapes.medium
+        )
+        // Summary metrics grid (3 blocks)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.md)
+        ) {
+            repeat(3) {
+                SkeletonCard(modifier = Modifier.weight(1f)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                        SkeletonText(widthFraction = 0.8f, lineHeight = 22.dp)
+                        SkeletonText(widthFraction = 0.6f)
+                    }
+                }
+            }
+        }
+        // Heatmap calendar placeholder
+        SkeletonBlock(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(90.dp),
+            shape = MaterialTheme.shapes.large
+        )
+        // 2 session volume cards
+        repeat(2) {
+            SkeletonCard(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                    SkeletonText(widthFraction = 0.5f, lineHeight = 18.dp)
+                    SkeletonBlock(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp),
+                        shape = MaterialTheme.shapes.small
+                    )
+                }
+            }
+        }
+        // 2 exercise progress cards
+        repeat(2) {
+            SkeletonCard(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                    SkeletonText(widthFraction = 0.4f, lineHeight = 18.dp)
+                    SkeletonBlock(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp),
+                        shape = MaterialTheme.shapes.small
+                    )
+                    SkeletonText(widthFraction = 0.6f)
+                }
+            }
+        }
     }
 }
 

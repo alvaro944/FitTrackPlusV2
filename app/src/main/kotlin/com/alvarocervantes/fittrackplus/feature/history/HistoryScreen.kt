@@ -1,9 +1,17 @@
 package com.alvarocervantes.fittrackplus.feature.history
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,10 +21,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,16 +45,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
-import com.alvarocervantes.fittrackplus.core.design.FitTrackLoadingCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
+import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDeltaDirection
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -70,7 +84,9 @@ fun HistoryScreen(
             state = state,
             contentPadding = padding,
             onSessionClick = viewModel::selectSession,
-            onBackToList = viewModel::clearSelection
+            onBackToList = viewModel::clearSelection,
+            onPeriodFilterChange = viewModel::setPeriodFilter,
+            onSortOrderChange = viewModel::setSortOrder
         )
     }
 }
@@ -80,42 +96,85 @@ private fun HistoryContent(
     state: HistoryUiState,
     contentPadding: PaddingValues,
     onSessionClick: (Long) -> Unit,
-    onBackToList: () -> Unit
+    onBackToList: () -> Unit,
+    onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
+    onSortOrderChange: (HistorySortOrder) -> Unit
+) {
+    val showingDetail = state.selectedSessionId != null || state.isDetailLoading
+
+    BackHandler(enabled = showingDetail) {
+        onBackToList()
+    }
+
+    AnimatedContent(
+        targetState = showingDetail,
+        transitionSpec = {
+            fadeIn(animationSpec = tween(200)) togetherWith fadeOut(animationSpec = tween(200))
+        },
+        label = "history_content"
+    ) { isDetailVisible ->
+        if (isDetailVisible) {
+            HistoryDetailContent(
+                state = state,
+                contentPadding = contentPadding,
+                onBackToList = onBackToList
+            )
+        } else {
+            HistoryListContent(
+                state = state,
+                contentPadding = contentPadding,
+                onSessionClick = onSessionClick,
+                onPeriodFilterChange = onPeriodFilterChange,
+                onSortOrderChange = onSortOrderChange
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryListContent(
+    state: HistoryUiState,
+    contentPadding: PaddingValues,
+    onSessionClick: (Long) -> Unit,
+    onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
+    onSortOrderChange: (HistorySortOrder) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
-        contentPadding = PaddingValues(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(
+            start = FitSpacing.screenHorizontal,
+            top = FitSpacing.screenTop,
+            end = FitSpacing.screenHorizontal,
+            bottom = FitSpacing.screenBottom
+        ),
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.lg)
     ) {
         item {
             FitTrackScreenHeader(
                 title = "Historial",
-                subtitle = if (state.selectedDetail == null && !state.isDetailLoading) {
-                    "Sesiones finalizadas"
-                } else {
-                    "Detalle historico"
-                },
-                trailing = {
-                    if (state.selectedDetail != null || state.isDetailLoading) {
-                        IconButton(onClick = onBackToList) {
-                            Icon(
-                                imageVector = Icons.Filled.ArrowBack,
-                                contentDescription = "Volver al listado de historial"
-                            )
-                        }
-                    }
-                }
+                subtitle = "Sesiones finalizadas"
             )
+        }
+
+        if (state.allSessions.isNotEmpty()) {
+            item {
+                HistoryFilterControls(
+                    selectedPeriod = state.selectedPeriod,
+                    selectedSort = state.selectedSort,
+                    onPeriodFilterChange = onPeriodFilterChange,
+                    onSortOrderChange = onSortOrderChange
+                )
+            }
         }
 
         when {
             state.isLoading -> {
-                item { FitTrackLoadingCard(text = "Cargando sesiones finalizadas...") }
+                items(5) { HistorySessionCardSkeleton() }
             }
 
-            state.sessions.isEmpty() -> {
+            state.allSessions.isEmpty() -> {
                 item {
                     FitTrackEmptyState(
                         icon = Icons.Filled.History,
@@ -126,7 +185,18 @@ private fun HistoryContent(
                 }
             }
 
-            state.selectedSessionId == null -> {
+            state.sessions.isEmpty() -> {
+                item {
+                    FitTrackEmptyState(
+                        icon = Icons.Filled.History,
+                        title = "Sin sesiones para este filtro",
+                        message = "Cambia el periodo o el orden para ver mas sesiones.",
+                        supporting = "El historial completo sigue guardado."
+                    )
+                }
+            }
+
+            else -> {
                 item {
                     FitTrackSectionLabel(label = "Sesiones")
                 }
@@ -140,14 +210,98 @@ private fun HistoryContent(
                     )
                 }
             }
+        }
+    }
+}
 
+@Composable
+private fun HistoryFilterControls(
+    selectedPeriod: HistoryPeriodFilter,
+    selectedSort: HistorySortOrder,
+    onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
+    onSortOrderChange: (HistorySortOrder) -> Unit
+) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            FitTrackSectionLabel(label = "Periodo")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+            ) {
+                HistoryPeriodFilter.entries.forEach { period ->
+                    FilterChip(
+                        selected = selectedPeriod == period,
+                        onClick = { onPeriodFilterChange(period) },
+                        label = { Text(period.label) }
+                    )
+                }
+            }
+            FitTrackSectionLabel(label = "Orden")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+            ) {
+                HistorySortOrder.entries.forEach { sort ->
+                    FilterChip(
+                        selected = selectedSort == sort,
+                        onClick = { onSortOrderChange(sort) },
+                        label = { Text(sort.label) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryDetailContent(
+    state: HistoryUiState,
+    contentPadding: PaddingValues,
+    onBackToList: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(contentPadding),
+        contentPadding = PaddingValues(
+            start = FitSpacing.screenHorizontal,
+            top = FitSpacing.screenTop,
+            end = FitSpacing.screenHorizontal,
+            bottom = FitSpacing.screenBottom
+        ),
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.lg)
+    ) {
+        item {
+            FitTrackScreenHeader(
+                title = "Historial",
+                subtitle = "Detalle historico",
+                trailing = {
+                    IconButton(onClick = onBackToList) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "Volver al listado de historial"
+                        )
+                    }
+                }
+            )
+        }
+
+        when {
             state.isDetailLoading -> {
-                item { FitTrackLoadingCard(text = "Cargando detalle historico...") }
+                item { HistoryDetailSummarySkeleton() }
+                item { HistoryComparisonSkeleton() }
             }
 
             state.selectedDetail != null -> {
                 item {
                     HistoryDetailSummary(detail = state.selectedDetail)
+                }
+                item {
+                    HistoryComparisonCard(comparison = state.selectedDetail.comparison)
                 }
                 item {
                     FitTrackSectionLabel(label = "Ejercicios")
@@ -158,6 +312,11 @@ private fun HistoryContent(
                 ) { exercise ->
                     HistoryExerciseCard(exercise = exercise)
                 }
+            }
+
+            else -> {
+                item { HistoryDetailSummarySkeleton() }
+                item { HistoryComparisonSkeleton() }
             }
         }
     }
@@ -184,7 +343,7 @@ private fun HistorySessionCard(
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
             ) {
                 Text(
                     text = session.routineName,
@@ -199,6 +358,13 @@ private fun HistorySessionCard(
                 )
                 Text(
                     text = formatDate(session.finishedAt),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "${session.totalVolumeKg.toDisplayText()} kg - " +
+                        "${session.setCount} series - " +
+                        formatDuration(session.durationMillis),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -227,7 +393,7 @@ private fun HistoryDetailSummary(detail: HistoryDetailUiState) {
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.xl)
         ) {
             FitTrackMetric(
                 value = detail.exercises.size.toString(),
@@ -242,6 +408,30 @@ private fun HistoryDetailSummary(detail: HistoryDetailUiState) {
             )
         }
         Text(
+            text = "Duracion: ${formatDuration(detail.durationMillis)}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = "Volumen total: ${detail.totalVolumeKg.toDisplayText()} kg",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        detail.bestSet?.let { bestSet ->
+            Text(
+                text = "Mejor set: ${bestSet.exerciseName} · ${bestSet.weightKg.toDisplayText()} kg x ${bestSet.reps}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        detail.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+            Text(
+                text = "Notas: $notes",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Text(
             text = "Finalizada ${formatDate(detail.finishedAt)}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -250,13 +440,102 @@ private fun HistoryDetailSummary(detail: HistoryDetailUiState) {
 }
 
 @Composable
+private fun HistoryComparisonCard(comparison: HistoryComparisonUiState?) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            Text(
+                text = "Comparado con la anterior",
+                style = MaterialTheme.typography.titleMedium
+            )
+            if (comparison == null) {
+                Text(
+                    text = "Primera sesion comparable",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    text = "Anterior: ${formatDate(comparison.previousFinishedAt)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                HistoryDeltaRow(
+                    label = "Volumen",
+                    currentText = "${comparison.totalVolumeDelta.currentValue.toDisplayText()} kg",
+                    delta = comparison.totalVolumeDelta,
+                    deltaText = "${comparison.totalVolumeDelta.deltaValue.toSignedDisplayText()} kg"
+                )
+                HistoryDeltaRow(
+                    label = "Duracion",
+                    currentText = formatDuration(comparison.durationMillisDelta.currentValue.toLong()),
+                    delta = comparison.durationMillisDelta,
+                    deltaText = comparison.durationMillisDelta.deltaValue.toDurationDeltaText()
+                )
+                HistoryDeltaRow(
+                    label = "Series",
+                    currentText = comparison.setCountDelta.currentValue.toInt().toString(),
+                    delta = comparison.setCountDelta,
+                    deltaText = comparison.setCountDelta.deltaValue.toSignedIntText()
+                )
+                HistoryDeltaRow(
+                    label = "Mejor set",
+                    currentText = comparison.bestSet.current?.let { bestSet ->
+                        "${bestSet.exerciseName}: ${bestSet.weightKg.toDisplayText()} kg x ${bestSet.reps}"
+                    } ?: "Sin datos",
+                    delta = comparison.bestSet.delta,
+                    deltaText = "${comparison.bestSet.delta.deltaValue.toSignedDisplayText()} kg"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryDeltaRow(
+    label: String,
+    currentText: String,
+    delta: HistoryMetricDeltaUiState,
+    deltaText: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium
+            )
+            Text(
+                text = currentText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        FitTrackBadge(
+            label = delta.direction.toDeltaLabel(deltaText),
+            tone = when (delta.direction) {
+                WorkoutHistoryDeltaDirection.Up -> FitTrackBadgeTone.Active
+                WorkoutHistoryDeltaDirection.Down -> FitTrackBadgeTone.Warm
+                WorkoutHistoryDeltaDirection.Same,
+                WorkoutHistoryDeltaDirection.Unavailable -> FitTrackBadgeTone.Neutral
+            }
+        )
+    }
+}
+
+@Composable
 private fun HistoryExerciseCard(exercise: HistoryExerciseUiState) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
             ) {
                 Text(
                     text = exercise.name,
@@ -279,40 +558,150 @@ private fun HistoryExerciseCard(exercise: HistoryExerciseUiState) {
 
 @Composable
 private fun HistorySetRow(set: HistorySetUiState) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
-            .padding(10.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(FitSpacing.smMd),
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
     ) {
-        Box(
-            modifier = Modifier
-                .size(30.dp)
-                .background(MaterialTheme.colorScheme.surface, CircleShape),
-            contentAlignment = Alignment.Center
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .background(MaterialTheme.colorScheme.surface, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = set.setNumber.toString(),
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
             Text(
-                text = set.setNumber.toString(),
-                style = MaterialTheme.typography.labelMedium
+                text = "${set.weightKg.toDisplayText()} kg",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "${set.reps} reps",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
             )
         }
-        Text(
-            text = "${set.weightKg.toDisplayText()} kg",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = "${set.reps} reps",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f)
-        )
+        set.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+            Text(
+                text = notes,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
 private fun formatDate(timestamp: Long): String {
     return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(timestamp))
+}
+
+private fun formatDuration(durationMillis: Long): String {
+    val totalMinutes = durationMillis / 60_000
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return if (hours > 0) {
+        "${hours}h ${minutes}min"
+    } else {
+        "${minutes}min"
+    }
+}
+
+private fun WorkoutHistoryDeltaDirection.toDeltaLabel(deltaText: String): String {
+    return when (this) {
+        WorkoutHistoryDeltaDirection.Up -> if (deltaText.startsWith("+")) deltaText else "+$deltaText"
+        WorkoutHistoryDeltaDirection.Down -> deltaText
+        WorkoutHistoryDeltaDirection.Same -> "Igual"
+        WorkoutHistoryDeltaDirection.Unavailable -> "Sin datos"
+    }
+}
+
+private fun Double.toSignedDisplayText(): String {
+    val absolute = kotlin.math.abs(this).toDisplayText()
+    return if (this < 0.0) {
+        "-$absolute"
+    } else {
+        absolute
+    }
+}
+
+private fun Double.toSignedIntText(): String {
+    val rounded = toInt()
+    return when {
+        rounded > 0 -> "+$rounded"
+        rounded < 0 -> rounded.toString()
+        else -> "0"
+    }
+}
+
+@Composable
+private fun HistorySessionCardSkeleton() {
+    SkeletonCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            SkeletonText(widthFraction = 0.55f, lineHeight = 18.dp)
+            SkeletonText(widthFraction = 0.35f)
+            SkeletonBlock(
+                modifier = Modifier
+                    .fillMaxWidth(0.3f)
+                    .height(20.dp),
+                shape = MaterialTheme.shapes.small
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryDetailSummarySkeleton() {
+    SkeletonCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            SkeletonText(widthFraction = 0.6f, lineHeight = 18.dp)
+            SkeletonText(widthFraction = 0.45f)
+            SkeletonText(widthFraction = 0.55f)
+            SkeletonText(widthFraction = 0.3f)
+        }
+    }
+}
+
+@Composable
+private fun HistoryComparisonSkeleton() {
+    SkeletonCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            repeat(4) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    SkeletonBlock(
+                        modifier = Modifier
+                            .fillMaxWidth(0.4f)
+                            .height(14.dp),
+                        shape = MaterialTheme.shapes.small
+                    )
+                    SkeletonBlock(
+                        modifier = Modifier
+                            .fillMaxWidth(0.3f)
+                            .height(14.dp),
+                        shape = MaterialTheme.shapes.small
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun Double.toDurationDeltaText(): String {
+    val sign = if (this < 0.0) "-" else "+"
+    val text = formatDuration(kotlin.math.abs(this).toLong())
+    return "$sign$text"
 }
 
 private fun Double.toDisplayText(): String {

@@ -10,37 +10,79 @@ import com.alvarocervantes.fittrackplus.domain.model.ExerciseRecords
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseSetRecord
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutSessionVolume
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStats
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
+import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.util.Locale
+
+private const val DAY_MILLIS: Long = 86_400_000
 
 class ObserveWorkoutStatsUseCase @Inject constructor(
     private val workoutRepository: WorkoutRepository
 ) {
-    operator fun invoke(): Flow<WorkoutStats> {
+    operator fun invoke(
+        period: WorkoutStatsPeriod = WorkoutStatsPeriod.All,
+        nowMillis: Long = System.currentTimeMillis()
+    ): Flow<WorkoutStats> {
         return workoutRepository.observeFinishedSessionsWithExercises().map { sessions ->
-            sessions.toWorkoutStats()
+            sessions.toWorkoutStats(period = period, nowMillis = nowMillis)
         }
     }
 }
 
-private fun List<WorkoutSessionWithExercises>.toWorkoutStats(): WorkoutStats {
-    val finishedSessions = mapNotNull { session ->
+private fun List<WorkoutSessionWithExercises>.toWorkoutStats(
+    period: WorkoutStatsPeriod,
+    nowMillis: Long
+): WorkoutStats {
+    val finishedSessions = toFinishedSessions().filterByPeriod(
+        period = period,
+        nowMillis = nowMillis
+    )
+    val exerciseGroups = finishedSessions.chronological().toExerciseGroups()
+
+    return WorkoutStats(
+        sessionVolumes = finishedSessions.recent().toSessionVolumes(),
+        exerciseProgress = exerciseGroups.toExerciseProgress(),
+        exerciseRecords = exerciseGroups.toExerciseRecords()
+    )
+}
+
+private fun List<WorkoutSessionWithExercises>.toFinishedSessions(): List<FinishedSession> {
+    return mapNotNull { session ->
         val finishedAt = session.session.finishedAt ?: return@mapNotNull null
         FinishedSession(session = session, finishedAt = finishedAt)
     }
+}
 
-    val recentSessions = finishedSessions.sortedWith(
+private fun List<FinishedSession>.filterByPeriod(
+    period: WorkoutStatsPeriod,
+    nowMillis: Long
+): List<FinishedSession> {
+    val cutoff = when (period) {
+        WorkoutStatsPeriod.All -> return this
+        WorkoutStatsPeriod.LastFourWeeks -> nowMillis - 4 * 7 * DAY_MILLIS
+        WorkoutStatsPeriod.LastTwelveWeeks -> nowMillis - 12 * 7 * DAY_MILLIS
+    }
+    return filter { session -> session.finishedAt >= cutoff }
+}
+
+private fun List<FinishedSession>.recent(): List<FinishedSession> {
+    return sortedWith(
         compareByDescending<FinishedSession> { it.finishedAt }
             .thenByDescending { it.session.session.startedAt }
     )
-    val chronologicalSessions = finishedSessions.sortedWith(
+}
+
+private fun List<FinishedSession>.chronological(): List<FinishedSession> {
+    return sortedWith(
         compareBy<FinishedSession> { it.finishedAt }
             .thenBy { it.session.session.startedAt }
     )
+}
 
-    val sessionVolumes = recentSessions.map { finishedSession ->
+private fun List<FinishedSession>.toSessionVolumes(): List<WorkoutSessionVolume> {
+    return map { finishedSession ->
         val session = finishedSession.session.session
         WorkoutSessionVolume(
             sessionId = session.id,
@@ -53,54 +95,61 @@ private fun List<WorkoutSessionWithExercises>.toWorkoutStats(): WorkoutStats {
             }
         )
     }
+}
 
-    val exerciseGroups = chronologicalSessions
-        .flatMap { finishedSession ->
-            finishedSession.session.exercises.mapNotNull { exercise ->
-                val key = exercise.exercise.exerciseNameSnapshot.normalizedExerciseKey()
-                if (key.isBlank()) {
-                    null
-                } else {
-                    ExerciseSnapshot(
-                        key = key,
-                        name = exercise.exercise.exerciseNameSnapshot.trim(),
-                        sessionId = finishedSession.session.session.id,
-                        finishedAt = finishedSession.finishedAt,
-                        exercise = exercise
-                    )
-                }
-            }
+private fun List<FinishedSession>.toExerciseGroups(): Map<String, List<ExerciseSnapshot>> {
+    return flatMap { finishedSession ->
+        finishedSession.session.exercises.mapNotNull { exercise ->
+            finishedSession.toExerciseSnapshot(exercise)
         }
-        .groupBy { snapshot -> snapshot.key }
+    }.groupBy { snapshot -> snapshot.key }
+}
 
-    val exerciseProgress = exerciseGroups.map { (key, snapshots) ->
+private fun FinishedSession.toExerciseSnapshot(
+    exercise: WorkoutExerciseWithSets
+): ExerciseSnapshot? {
+    val key = exercise.exercise.exerciseNameSnapshot.normalizedExerciseKey()
+    return if (key.isBlank()) {
+        null
+    } else {
+        ExerciseSnapshot(
+            key = key,
+            name = exercise.exercise.exerciseNameSnapshot.trim(),
+            sessionId = session.session.id,
+            finishedAt = finishedAt,
+            exercise = exercise
+        )
+    }
+}
+
+private fun Map<String, List<ExerciseSnapshot>>.toExerciseProgress(): List<ExerciseProgress> {
+    return map { (key, snapshots) ->
         ExerciseProgress(
             exerciseKey = key,
             exerciseName = snapshots.first().name,
             entries = snapshots.map { snapshot ->
-                ExerciseProgressEntry(
-                    sessionId = snapshot.sessionId,
-                    finishedAt = snapshot.finishedAt,
-                    volumeKg = snapshot.exercise.sets.sumOf { set -> set.volumeKg() },
-                    maxWeightKg = snapshot.exercise.sets.maxOfOrNull { set -> set.weightKg } ?: 0.0,
-                    totalReps = snapshot.exercise.sets.sumOf { set -> set.reps },
-                    estimatedOneRepMaxKg = snapshot.exercise.sets.maxOfOrNull { set ->
-                        set.estimatedOneRepMaxKg()
-                    } ?: 0.0
-                )
+                snapshot.toProgressEntry()
             }
         )
     }.sortedBy { progress -> progress.exerciseName.lowercase() }
+}
 
-    val exerciseRecords = exerciseGroups.map { (key, snapshots) ->
-        val records = snapshots.flatMap { snapshot ->
-            snapshot.exercise.sets.map { set ->
-                set.toRecord(
-                    sessionId = snapshot.sessionId,
-                    finishedAt = snapshot.finishedAt
-                )
-            }
-        }
+private fun ExerciseSnapshot.toProgressEntry(): ExerciseProgressEntry {
+    return ExerciseProgressEntry(
+        sessionId = sessionId,
+        finishedAt = finishedAt,
+        volumeKg = exercise.sets.sumOf { set -> set.volumeKg() },
+        maxWeightKg = exercise.sets.maxOfOrNull { set -> set.weightKg } ?: 0.0,
+        totalReps = exercise.sets.sumOf { set -> set.reps },
+        estimatedOneRepMaxKg = exercise.sets.maxOfOrNull { set ->
+            set.estimatedOneRepMaxKg()
+        } ?: 0.0
+    )
+}
+
+private fun Map<String, List<ExerciseSnapshot>>.toExerciseRecords(): List<ExerciseRecords> {
+    return map { (key, snapshots) ->
+        val records = snapshots.toSetRecords()
         ExerciseRecords(
             exerciseKey = key,
             exerciseName = snapshots.first().name,
@@ -118,12 +167,17 @@ private fun List<WorkoutSessionWithExercises>.toWorkoutStats(): WorkoutStats {
                 .maxByOrNull { record -> record.estimatedOneRepMaxKg }
         )
     }.sortedBy { records -> records.exerciseName.lowercase() }
+}
 
-    return WorkoutStats(
-        sessionVolumes = sessionVolumes,
-        exerciseProgress = exerciseProgress,
-        exerciseRecords = exerciseRecords
-    )
+private fun List<ExerciseSnapshot>.toSetRecords(): List<ExerciseSetRecord> {
+    return flatMap { snapshot ->
+        snapshot.exercise.sets.map { set ->
+            set.toRecord(
+                sessionId = snapshot.sessionId,
+                finishedAt = snapshot.finishedAt
+            )
+        }
+    }
 }
 
 private data class FinishedSession(

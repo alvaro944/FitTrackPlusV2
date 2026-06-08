@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitTrackPlus — Splash Screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;500;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 100vw; height: 100vh;
+  background: #2A2D2A;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* ── Phone ─────────────────────────────────────────────────── */
+.phone {
+  width: 390px; height: 844px;
+  border-radius: 50px;
+  overflow: hidden;
+  border: 7px solid rgba(80,90,84,0.45);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.06),
+    0 50px 110px rgba(0,0,0,0.55);
+  position: relative;
+  background: #F2F0EC;
+  flex-shrink: 0;
+}
+
+/* Status bar */
+.status {
+  position: absolute; top: 0; left: 0; right: 0; height: 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 22px 0; z-index: 100; pointer-events: none;
+}
+.status-time {
+  font-size: 13px; font-weight: 500;
+  color: rgba(22,24,22,0.38); letter-spacing: 0.03em;
+}
+.status-right { display: flex; align-items: center; gap: 5px; }
+.notch {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  width: 22px; height: 22px; border-radius: 50%; background: #1A1C1A; z-index: 101;
+}
+.gesture {
+  position: absolute; bottom: 7px; left: 50%; transform: translateX(-50%);
+  width: 98px; height: 4px; border-radius: 2px;
+  background: rgba(22,24,22,0.14); z-index: 100;
+}
+
+/* ── Splash ─────────────────────────────────────────────────── */
+.splash {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  overflow: hidden;
+}
+
+/* Mineral background — warm, clean, barely-there texture */
+.splash-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%,
+      #FAFAF7 0%, #F2F0EC 55%, #ECEAE5 100%);
+}
+
+/* Edge vignette — very subtle, frames the composition */
+.vignette {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(ellipse 90% 90% at 50% 50%,
+    transparent 55%,
+    rgba(22,24,22,0.06) 80%,
+    rgba(22,24,22,0.14) 100%
+  );
+}
+
+/* Ambient emerald cast below the gem */
+.glow-em {
+  position: absolute; z-index: 2;
+  width: 260px; height: 200px;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -60%);
+  background: radial-gradient(ellipse at 50% 70%,
+    rgba(31,107,87,0.12) 0%,
+    rgba(31,107,87,0.04) 40%,
+    transparent 68%
+  );
+  border-radius: 50%;
+  opacity: 0;
+  animation: fadeIn 1s ease 0.7s forwards, breathe 3s ease-in-out 1.7s infinite;
+  pointer-events: none;
+}
+
+/* Warm copper undertone */
+.glow-cu {
+  position: absolute; z-index: 2;
+  width: 220px; height: 80px;
+  top: 50%; left: 50%;
+  transform: translate(-50%, 18px);
+  background: radial-gradient(ellipse, rgba(196,122,73,0.07) 0%, transparent 70%);
+  opacity: 0;
+  animation: fadeIn 0.8s ease 1.0s forwards;
+  pointer-events: none;
+}
+
+@keyframes fadeIn { to { opacity: 1; } }
+@keyframes breathe {
+  0%,100% { opacity: 0.8; transform: translate(-50%, -60%) scale(1); }
+  50%     { opacity: 1;   transform: translate(-50%, -60%) scale(1.12); }
+}
+
+/* Canvas layers */
+canvas { position: absolute; inset: 0; pointer-events: none; }
+#smoke { z-index: 4; }
+#arcs  { z-index: 12; }
+
+/* ── Logo stage ─────────────────────────────────────────────── */
+.logo-stage {
+  position: relative; z-index: 10;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 30px;
+  margin-top: -20px;
+}
+
+/* Reveal animation */
+.logo-wrap {
+  position: relative;
+  opacity: 0;
+  animation: logoIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
+}
+@keyframes logoIn {
+  0%   { opacity: 0; transform: scale(0.85) translateY(18px); }
+  100% { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+/* Clip to remove PNG whitespace — image is 1408×768
+   At height=268px: width = 268*(1408/768) = 491px
+   Center in 390px phone → overflow hidden clips ±50px sides
+   Logo symbol ≈ 32% wide = 157px, centered                     */
+.logo-clip {
+  width: 390px; height: 220px;
+  overflow: hidden; position: relative;
+}
+.logo-img {
+  height: 268px; width: auto;
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -46%);
+}
+
+/* Diamond glow on top */
+.gem-glow {
+  position: absolute;
+  top: 4px; left: 50%;
+  transform: translateX(-50%);
+  width: 88px; height: 72px;
+  background: radial-gradient(ellipse at 50% 68%,
+    rgba(31,107,87,0.45) 0%,
+    rgba(31,107,87,0.14) 38%,
+    transparent 65%
+  );
+  opacity: 0;
+  animation: fadeIn 0.4s ease 0.88s forwards, gemPulse 2.6s ease-in-out 1.3s infinite;
+  pointer-events: none; z-index: 11;
+}
+@keyframes gemPulse {
+  0%,100% { opacity: 0.8;  transform: translateX(-50%) scale(1); }
+  50%     { opacity: 1;    transform: translateX(-50%) scale(1.14); }
+}
+
+/* Shimmer sweep */
+.shimmer {
+  position: absolute; inset: 0;
+  overflow: hidden; z-index: 13; pointer-events: none;
+  animation: shimFade 0.65s ease 1.06s both;
+}
+.shimmer::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(110deg,
+    transparent 20%,
+    rgba(255,255,255,0.0)  44%,
+    rgba(255,255,255,0.22) 50%,
+    rgba(255,255,255,0.0)  56%,
+    transparent 80%
+  );
+  transform: translateX(-140%);
+  animation: shimSlide 0.65s cubic-bezier(0.4,0,0.6,1) 1.06s both;
+}
+@keyframes shimFade  { 0%{opacity:1} 85%{opacity:1} 100%{opacity:0} }
+@keyframes shimSlide { 0%{transform:translateX(-140%)} 100%{transform:translateX(140%)} }
+
+/* ── Wordmark ────────────────────────────────────────────────── */
+.wordmark {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  opacity: 0; transform: translateY(10px);
+  animation: wordIn 0.55s cubic-bezier(0.16,1,0.3,1) 1.1s forwards;
+}
+@keyframes wordIn { to { opacity:1; transform:translateY(0); } }
+
+.wm-name {
+  font-size: 20px; font-weight: 800;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: #161816;
+}
+.wm-name em {
+  font-style: normal;
+  color: #1F6B57;
+}
+.wm-rule {
+  width: 24px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(31,107,87,0.5), transparent);
+}
+.wm-sub {
+  font-size: 9.5px; font-weight: 500;
+  letter-spacing: 0.26em; text-transform: uppercase;
+  color: rgba(22,24,22,0.28);
+}
+
+/* ── Progress ────────────────────────────────────────────────── */
+.loader {
+  position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
+  z-index: 20; opacity: 0;
+  animation: fadeIn 0.4s ease 1.35s forwards;
+}
+.loader-track {
+  width: 34px; height: 1.5px;
+  background: rgba(22,24,22,0.1); border-radius: 1px; overflow: hidden;
+}
+.loader-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, #1F6B57, #3A8870);
+  border-radius: 1px;
+  animation: loadFill 1.7s cubic-bezier(0.4,0,0.2,1) 1.35s forwards;
+}
+@keyframes loadFill { 0%{width:0%} 55%{width:72%} 100%{width:100%} }
+
+/* ── Replay ──────────────────────────────────────────────────── */
+.replay-btn {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  padding: 9px 22px; border-radius: 100px;
+  background: rgba(31,107,87,0.12);
+  border: 1px solid rgba(31,107,87,0.28);
+  color: rgba(31,107,87,0.7);
+  font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.replay-btn:hover {
+  background: rgba(31,107,87,0.22);
+  color: rgba(31,107,87,0.95);
+}
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+
+  <!-- Status bar -->
+  <div class="status">
+    <span class="status-time">9:41</span>
+    <div class="status-right">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+        <path d="M8 9a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" fill="rgba(22,24,22,0.35)"/>
+        <path d="M3.2 5.8a6.8 6.8 0 019.6 0" stroke="rgba(22,24,22,0.35)"
+              stroke-width="1.3" stroke-linecap="round" fill="none"/>
+        <path d="M0.5 3.2a11.2 11.2 0 0115 0" stroke="rgba(22,24,22,0.2)"
+              stroke-width="1.3" stroke-linecap="round" fill="none"/>
+      </svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+        <rect x="0.6" y="0.6" width="20.8" height="10.8" rx="2.6"
+              stroke="rgba(22,24,22,0.35)" stroke-width="1.2"/>
+        <rect x="2.2" y="2.2" width="15.5" height="7.6" rx="1.4"
+              fill="rgba(22,24,22,0.35)"/>
+        <path d="M22.5 4.5v3a1.8 1.8 0 000-3z" fill="rgba(22,24,22,0.2)"/>
+      </svg>
+    </div>
+  </div>
+  <div class="notch"></div>
+
+  <!-- Splash -->
+  <div class="splash" id="splash">
+    <div class="splash-bg"></div>
+    <div class="vignette"></div>
+    <div class="glow-em"></div>
+    <div class="glow-cu"></div>
+
+    <canvas id="smoke" width="390" height="844"></canvas>
+    <canvas id="arcs"  width="390" height="844"></canvas>
+
+    <div class="logo-stage">
+      <div class="logo-wrap">
+        <div class="gem-glow"></div>
+        <div class="logo-clip">
+          <img class="logo-img" id="logoImg" src="uploads/logo.png" alt="">
+        </div>
+        <div class="shimmer"></div>
+      </div>
+
+      <div class="wordmark">
+        <div class="wm-name">Fit<em>Track</em>Plus</div>
+        <div class="wm-rule"></div>
+        <div class="wm-sub">Entrena · Progresa · Supera</div>
+      </div>
+    </div>
+
+    <div class="loader">
+      <div class="loader-track"><div class="loader-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="gesture"></div>
+</div>
+
+<button class="replay-btn" onclick="replay()">↺ Reproducir</button>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// COORDINATES on 390×844 canvas
+//
+// Image: 1408×768, displayed height=268px → width=491px
+// logo-clip: 390×208, centers the 491×268 img (offset -50px horiz)
+//
+// logo-stage layout:
+//   total height ≈ 208 + 30 + 50 = 288px
+//   stage top    ≈ 422 - 144 - 20 = 258px (center - half - margin)
+//   logo-clip top ≈ 258px
+//
+// In the PNG, symbol occupies roughly:
+//   x: 34%–66%  → 1408*0.34=479 to 1408*0.66=929 → center 704
+//   y: 14%–84%  → 768*0.14=107 to 768*0.84=645
+//
+// Scaled to height=268: scale=268/768=0.349
+//   Symbol x range: 479*0.349=167 to 929*0.349=324 → width 157, center 245px in 491px image
+//   Shifted by clip: 245-50=195 on screen ✓
+//
+//   Diamond tip y: 107*0.349 = 37px from img top
+//   img is centered in 208px clip: img.top = (208-268)/2 = -30px
+//   Diamond tip on canvas: 258 + (-30) + 37 = 265px
+//
+//   Pillar bases y: 645*0.349 = 225px from img top
+//   Pillar base on canvas: 258 + (-30) + 225 = 453px
+//
+//   Symbol x in img: center=245px; L edge: 167px, R edge: 324px
+//   On screen: L=167-50=117, R=324-50=274
+//   L pillar center: ~117+(274-117)*0.2 = 148, R: ~274-31 = 243
+// ─────────────────────────────────────────────────────────────
+
+const W = 390, H = 844;
+
+const GEM_TIP = { x:195, y:265 };
+const L_FAC   = { x:155, y:292 };
+const R_FAC   = { x:235, y:292 };
+const L_BASE  = { x:150, y:450 };
+const R_BASE  = { x:240, y:450 };
+
+// ── Smoke (dark wisps rising from pillar bases) ───────────────
+const sCtx = document.getElementById('smoke').getContext('2d');
+const mists = [];
+let smokeOn = false;
+setTimeout(() => smokeOn = true, 680);
+
+class Mist {
+  constructor(src) {
+    this.x = src.x + (Math.random() - 0.5) * 22;
+    this.y = src.y + Math.random() * 8;
+    this.vx = (Math.random() - 0.5) * 0.46;
+    this.vy = -(0.4 + Math.random() * 0.5);
+    this.r  = 20 + Math.random() * 32;
+    this.maxO = 0.007 + Math.random() * 0.009; // very subtle on light bg
+    this.o = 0; this.age = 0;
+    this.life = 130 + Math.random() * 90;
+    this.hue  = Math.random() > 0.6; // emerald tint vs neutral dark
+  }
+  tick() {
+    this.age++;
+    this.x += this.vx + Math.sin(this.age * 0.042) * 0.18;
+    this.y += this.vy;
+    this.r  += 0.18;
+    const p = this.age / this.life;
+    this.o = p < 0.2 ? (p/0.2)*this.maxO
+           : p > 0.7 ? ((1-p)/0.3)*this.maxO
+           : this.maxO;
+    return this.age < this.life;
+  }
+  draw(ctx) {
+    const g = ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.r);
+    g.addColorStop(0, this.hue
+      ? `rgba(22,60,40,${this.o})`
+      : `rgba(22,24,22,${this.o * 1.3})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+    ctx.fillStyle = g; ctx.fill();
+  }
+}
+
+function loopSmoke() {
+  sCtx.clearRect(0,0,W,H);
+  if (smokeOn) {
+    if (Math.random() < 0.24) mists.push(new Mist(L_BASE));
+    if (Math.random() < 0.24) mists.push(new Mist(R_BASE));
+  }
+  for (let i = mists.length-1; i>=0; i--) {
+    if (!mists[i].tick()) { mists.splice(i,1); continue; }
+    mists[i].draw(sCtx);
+  }
+  requestAnimationFrame(loopSmoke);
+}
+loopSmoke();
+
+// ── Electric arcs ─────────────────────────────────────────────
+const aCtx = document.getElementById('arcs').getContext('2d');
+
+function branch(x1,y1,x2,y2,sp,d=0) {
+  const segs=[], n=4+Math.floor(Math.random()*3);
+  let px=x1, py=y1;
+  for (let i=1;i<=n;i++) {
+    const t=i/n;
+    const nx = x1+(x2-x1)*t + (Math.random()-0.5)*sp*2.2;
+    const ny = y1+(y2-y1)*t + (Math.random()-0.5)*sp*2.2;
+    segs.push([px,py,nx,ny]);
+    if (d<1 && Math.random()<0.28 && i>1) {
+      const bx=nx+(Math.random()-0.5)*sp*2;
+      const by=ny-Math.random()*sp*1.8;
+      segs.push(...branch(nx,ny,bx,by,sp*.6,d+1));
+    }
+    px=nx; py=ny;
+  }
+  return segs;
+}
+
+function radTo(p, deg, len) {
+  const a = deg*Math.PI/180;
+  return { x: p.x+Math.sin(a)*len, y: p.y-Math.cos(a)*len };
+}
+
+function buildEvent() {
+  const all=[];
+  const n = 2+Math.floor(Math.random()*2);
+  for (let i=0;i<n;i++) {
+    const e = radTo(GEM_TIP, (Math.random()-0.5)*70, 12+Math.random()*20);
+    all.push(branch(GEM_TIP.x,GEM_TIP.y,e.x,e.y, 3.2));
+  }
+  if (Math.random()>0.4) {
+    const e = radTo(L_FAC, -30-Math.random()*22, 8+Math.random()*12);
+    all.push(branch(L_FAC.x,L_FAC.y,e.x,e.y,2.2));
+  }
+  if (Math.random()>0.4) {
+    const e = radTo(R_FAC, 30+Math.random()*22, 8+Math.random()*12);
+    all.push(branch(R_FAC.x,R_FAC.y,e.x,e.y,2.2));
+  }
+  return all;
+}
+
+function renderArcs(all, alpha) {
+  aCtx.save();
+  all.forEach(group => {
+    group.forEach(([x1,y1,x2,y2]) => {
+      // soft halo
+      aCtx.beginPath(); aCtx.moveTo(x1,y1); aCtx.lineTo(x2,y2);
+      aCtx.strokeStyle = `rgba(31,107,87,${alpha*0.22})`;
+      aCtx.lineWidth = 4; aCtx.stroke();
+      // core
+      aCtx.beginPath(); aCtx.moveTo(x1,y1); aCtx.lineTo(x2,y2);
+      aCtx.strokeStyle = `rgba(15,90,65,${alpha*0.9})`;
+      aCtx.lineWidth  = 0.7;
+      aCtx.shadowBlur = 5; aCtx.shadowColor = 'rgba(31,107,87,0.7)';
+      aCtx.stroke(); aCtx.shadowBlur = 0;
+    });
+  });
+  aCtx.restore();
+}
+
+let arcState='idle', arcSegs=[], arcT0=0, lastArc=0;
+const ARC_GAP=1400, ARC_DUR=220;
+
+function flashEnv(t) {
+  if (t<80)  return (t/80)*0.9;
+  if (t<110) return 0.06;
+  if (t<165) return ((t-110)/55)*0.72;
+  return Math.max(0, (1-(t-165)/55)*0.72);
+}
+
+let arcOn = false;
+setTimeout(() => arcOn = true, 900);
+
+function loopArcs(ts) {
+  aCtx.clearRect(0,0,W,H);
+  if (arcOn) {
+    if (arcState==='idle' && ts-lastArc>ARC_GAP) {
+      lastArc=ts; arcState='flash'; arcT0=ts; arcSegs=buildEvent();
+    }
+    if (arcState==='flash') {
+      const el = ts-arcT0;
+      if (el>ARC_DUR) arcState='idle';
+      else renderArcs(arcSegs, flashEnv(el));
+    }
+  }
+  requestAnimationFrame(loopArcs);
+}
+requestAnimationFrame(loopArcs);
+
+// ── Replay ────────────────────────────────────────────────────
+function replay() {
+  const splash = document.getElementById('splash');
+  const fresh  = splash.cloneNode(true);
+  splash.parentNode.replaceChild(fresh, splash);
+  mists.length = 0;
+  smokeOn = false; setTimeout(() => smokeOn = true, 680);
+  arcOn   = false; arcState = 'idle';
+  setTimeout(() => arcOn = true, 900);
+}
+</script>
+</body>
+</html>

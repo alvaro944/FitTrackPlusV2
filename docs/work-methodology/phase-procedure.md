@@ -1,111 +1,113 @@
-# Procedimiento Por Fases
+# Procedimiento Por Iteraciones
 
-Este procedimiento describe como avanzar una fase de FitTrackPlus v2 sin mezclar alcance, manteniendo aprendizaje y trazabilidad.
+Este procedimiento define una forma de abrir, desarrollar, verificar y cerrar trabajo sin depender demasiado del tipo de proyecto.
 
-## 1. Abrir Fase
+La palabra "fase" puede significar una fase grande, una feature, un fix o una iteracion corta. Lo importante no es el nombre, sino que el alcance quede bien acotado.
 
-1. Leer documentacion base:
-   - `README.md`
-   - `AGENTS.md`
-   - `docs/development-workflow.md`
-   - `docs/project-plan.md`
-   - `docs/project-progress.md`
-   - `docs/phase-log.md`
-   - `docs/architecture.md`
-   - `CLAUDE.md` o documentos equivalentes de coordinacion, si existen
-2. Revisar el area concreta que se va a tocar.
-3. Confirmar rama actual y estado de Git.
-4. Si vienes de otra plataforma o editor, releer tambien:
-   - archivos tocados en la iteracion anterior
-   - backlog o notas externas que esten actuando como contexto
-   - cualquier regla operativa nueva dejada en `docs/work-methodology/` o `CLAUDE.md`
-5. Crear rama de fase:
+## 1. Abrir
 
-```powershell
-git switch -c codex/phase-nombre
-```
+Antes de tocar nada:
 
-## 2. Desarrollar
+1. leer la documentacion base
+2. revisar el estado real del repo
+3. confirmar el alcance de la iteracion
+4. distinguir que es contexto, que es backlog y que es decision ya tomada
 
-1. Tocar solo el alcance de la fase.
-2. Mantener Compose como capa de UI:
-   - pinta estado
-   - envia eventos
-   - no contiene logica de negocio
-3. Mantener ViewModels con:
-   - `UiState`
-   - `StateFlow`
-   - funciones de evento claras
-4. Usar repositorios para ocultar Room/DataStore.
-5. Evitar refactors no necesarios.
-6. Si se necesitan datos demo, hacerlos controlados:
-   - solo debug
-   - solo base vacia
-   - sin Firebase ni sync
-7. En fases de UX funcional, separar pulido minimo de redisenio visual:
-   - mejorar textos, estados, confirmaciones y accesibilidad basica
-   - no rehacer tema, navegacion ni componentes si pertenecen a una fase visual
-8. Verificar pronto con compilacion o tests cuando aparezcan cambios relevantes.
-9. En fases visuales, bajar primero el diseno a tokens y componentes compartidos antes de reescribir pantallas:
-   - tema
-   - tipografia
-   - superficies
-   - estados reutilizables
-   - navegacion
-10. Si hay varias herramientas proponiendo cambios:
-   - revisar primero que es propuesta y que es decision ya validada
-   - elegir un solo agente como ejecutor del cambio
-   - anotar en metodologia cualquier regla nueva de coordinacion que haya funcionado
-11. Si se alternan plataformas:
-   - no asumir que la memoria de una conversacion refleja el estado real actual
-   - usar `git status` y la documentacion viva como punto de resincronizacion
-   - evitar editar la misma zona sin una nueva lectura del codigo ya modificado
+Lectura minima recomendada:
 
-## 3. Verificar
+- `README.md`
+- `AGENTS.md` o equivalente
+- `docs/development-workflow.md`
+- `docs/project-progress.md`
+- `docs/phase-log.md`
+- `docs/work-methodology/`
+- el area concreta que se va a tocar
 
-Para cambios de codigo:
+Si vienes de otra plataforma o editor, relee tambien:
 
-```powershell
-.\gradlew.bat test
-.\gradlew.bat build --no-daemon --console=plain
-```
+- cambios recientes
+- notas de relevo
+- archivos tocados en la iteracion anterior
 
-Si Gradle queda atascado o deja daemons vivos:
+## 2. Acotar
 
-```powershell
-.\gradlew.bat --stop
-```
+Antes de implementar, fijar:
 
-Para cambios visibles de UI:
+- que entra
+- que no entra
+- que riesgo tiene
+- que verificacion exigira
 
-- Probar en emulador o dispositivo si esta disponible.
-- Si no se puede probar manualmente, dejarlo anotado como pendiente.
-- Si la fase nace de una referencia externa de diseno, validar la app contra el comportamiento real y no contra el HTML/JSX original.
+Reglas practicas:
 
-## 4. Cerrar Fase
+- una iteracion = una responsabilidad principal
+- no mezclar feature nueva con refactor transversal si no es imprescindible
+- si el cambio tiene partes muy distintas, dividirlo
 
-Antes de cerrar:
+## 3. Implementar
 
-1. Revisar `git status`.
-2. Revisar archivos modificados.
-3. Confirmar que tests/build pasan.
-4. Actualizar:
-   - `README.md` si cambia el estado general
-   - `docs/project-plan.md` si cambia el estado de fases
-   - `docs/project-progress.md` con avances y siguiente paso
-   - `docs/phase-log.md` con cambios, problemas, decisiones y verificacion
-   - `docs/work-methodology/` con aprendizajes del proceso
-5. Comentar al usuario que se hizo y que queda pendiente.
-6. Hacer commit local de cierre.
+Durante el desarrollo:
 
-## Checklist De Cierre
+- tocar solo el alcance comprometido
+- verificar pronto si el cambio afecta a compilacion, tipado o build
+- evitar arreglar "ya que estamos" fuera del objetivo principal
+- dejar clara la separacion entre UI, coordinacion y persistencia
 
-- [ ] Alcance de fase implementado.
-- [ ] Fuera de alcance respetado.
-- [ ] Tests ejecutados.
-- [ ] Build ejecutado.
-- [ ] Prueba manual hecha o pendiente anotado.
-- [ ] Progreso actualizado.
-- [ ] Bitacora actualizada.
-- [ ] Guia de metodologia actualizada.
-- [ ] Commit local creado.
+Si la iteracion es visual:
+
+- bajar antes el diseno a tokens, jerarquia y componentes reutilizables
+- usar referencias externas como direccion visual, no como runtime
+- simplificar efectos que encarezcan mantenimiento sin aportar valor real
+
+Si la iteracion viene de varias herramientas:
+
+- elegir un ejecutor principal
+- tratar el resto como apoyo
+- no editar la misma zona desde dos plataformas sin nueva lectura del estado real
+
+## 4. Verificar
+
+La verificacion debe ser proporcional al riesgo del cambio.
+
+### Minimo
+
+- tests si hay logica afectada
+- build si hay cambios de codigo
+- comprobacion manual si el cambio es visible o de flujo
+
+### Reglas utiles
+
+- si la toolchain tiene estados fragiles, ejecutar comandos de forma estable y documentar el patron
+- si una verificacion manual no puede hacerse, dejar el pendiente por escrito
+- si el cambio nace de un prototipo externo, validar contra el producto real y no solo contra la referencia
+
+## 5. Documentar
+
+Antes de cerrar una iteracion:
+
+- actualizar el estado actual del proyecto
+- anotar que se hizo y que no
+- registrar problemas y decisiones
+- guardar patrones reutilizables en metodologia
+
+La documentacion no es solo memoria; tambien evita releer todo el repo en la siguiente sesion.
+
+## 6. Cerrar
+
+Una iteracion se considera bien cerrada cuando:
+
+- el alcance esta implementado
+- lo fuera de alcance se ha respetado
+- la verificacion relevante esta hecha o anotada como pendiente
+- la documentacion ya refleja el nuevo estado
+- el siguiente paso esta claro
+
+## Checklist
+
+- [ ] Contexto releido
+- [ ] Alcance acotado
+- [ ] Implementacion sin deriva
+- [ ] Verificacion proporcional ejecutada
+- [ ] Estado actualizado
+- [ ] Bitacora actualizada
+- [ ] Metodologia enriquecida si aparecio un patron reusable

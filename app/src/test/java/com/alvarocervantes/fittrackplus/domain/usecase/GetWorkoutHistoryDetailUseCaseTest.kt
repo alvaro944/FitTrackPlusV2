@@ -8,6 +8,7 @@ import com.alvarocervantes.fittrackplus.data.local.relation.WorkoutSessionWithEx
 import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDaySnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDeltaDirection
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
@@ -90,6 +91,125 @@ class GetWorkoutHistoryDetailUseCaseTest {
         assertNull(useCase(42))
     }
 
+    @Test
+    fun comparesAgainstMostRecentPreviousFinishedSessionWithSameRoutineAndDaySnapshots() = runBlocking {
+        val current = sessionWithSingleSet(
+            sessionId = 5,
+            routineName = "Push Pull Legs",
+            dayName = "Push",
+            startedAt = 10_000,
+            finishedAt = 20_000,
+            weightKg = 100.0,
+            reps = 8
+        )
+        val previousComparable = sessionWithSingleSet(
+            sessionId = 4,
+            routineName = "Push Pull Legs",
+            dayName = "Push",
+            startedAt = 2_000,
+            finishedAt = 8_000,
+            weightKg = 90.0,
+            reps = 8
+        )
+        val olderComparable = sessionWithSingleSet(
+            sessionId = 3,
+            routineName = "Push Pull Legs",
+            dayName = "Push",
+            startedAt = 500,
+            finishedAt = 1_500,
+            weightKg = 200.0,
+            reps = 1
+        )
+        val openSameDay = sessionWithSingleSet(
+            sessionId = 6,
+            routineName = "Push Pull Legs",
+            dayName = "Push",
+            startedAt = 21_000,
+            finishedAt = null,
+            weightKg = 200.0,
+            reps = 10
+        )
+        val otherDay = sessionWithSingleSet(
+            sessionId = 2,
+            routineName = "Push Pull Legs",
+            dayName = "Pull",
+            startedAt = 3_000,
+            finishedAt = 9_000,
+            weightKg = 10.0,
+            reps = 1
+        )
+        val otherRoutine = sessionWithSingleSet(
+            sessionId = 1,
+            routineName = "Upper Lower",
+            dayName = "Push",
+            startedAt = 3_000,
+            finishedAt = 9_000,
+            weightKg = 10.0,
+            reps = 1
+        )
+        val useCase = GetWorkoutHistoryDetailUseCase(
+            HistoryDetailWorkoutRepository(
+                detail = current,
+                finishedSessions = listOf(
+                    current,
+                    olderComparable,
+                    previousComparable,
+                    openSameDay,
+                    otherDay,
+                    otherRoutine
+                )
+            )
+        )
+
+        val comparison = useCase(5)?.comparison
+
+        assertEquals(4L, comparison?.previousSessionId)
+        assertEquals(800.0, comparison?.totalVolumeDelta?.currentValue ?: -1.0, 0.0)
+        assertEquals(720.0, comparison?.totalVolumeDelta?.previousValue ?: -1.0, 0.0)
+        assertEquals(80.0, comparison?.totalVolumeDelta?.deltaValue ?: -1.0, 0.0)
+        assertEquals(WorkoutHistoryDeltaDirection.Up, comparison?.totalVolumeDelta?.direction)
+        assertEquals(10_000.0, comparison?.durationMillisDelta?.currentValue ?: -1.0, 0.0)
+        assertEquals(6_000.0, comparison?.durationMillisDelta?.previousValue ?: -1.0, 0.0)
+        assertEquals(WorkoutHistoryDeltaDirection.Up, comparison?.durationMillisDelta?.direction)
+        assertEquals(1.0, comparison?.setCountDelta?.currentValue ?: -1.0, 0.0)
+        assertEquals(WorkoutHistoryDeltaDirection.Same, comparison?.setCountDelta?.direction)
+        assertEquals("Bench Press", comparison?.bestSet?.current?.exerciseName)
+        assertEquals(800.0, comparison?.bestSet?.delta?.currentValue ?: -1.0, 0.0)
+        assertEquals(720.0, comparison?.bestSet?.delta?.previousValue ?: -1.0, 0.0)
+    }
+
+    @Test
+    fun exposesNoComparisonWhenThereIsNoPreviousComparableSession() = runBlocking {
+        val current = sessionWithSingleSet(
+            sessionId = 5,
+            routineName = "Push Pull Legs",
+            dayName = "Push",
+            startedAt = 10_000,
+            finishedAt = 20_000,
+            weightKg = 100.0,
+            reps = 8
+        )
+        val useCase = GetWorkoutHistoryDetailUseCase(
+            HistoryDetailWorkoutRepository(
+                detail = current,
+                finishedSessions = listOf(
+                    current,
+                    sessionWithSingleSet(
+                        sessionId = 4,
+                        routineName = "Push Pull Legs",
+                        dayName = "Pull",
+                        startedAt = 2_000,
+                        finishedAt = 8_000,
+                        weightKg = 100.0,
+                        reps = 8
+                    )
+                )
+            )
+        )
+
+        assertNull(useCase(5)?.comparison)
+    }
+
     private fun exerciseWithSets(
         id: Long,
         position: Int,
@@ -126,12 +246,58 @@ class GetWorkoutHistoryDetailUseCaseTest {
     }
 }
 
+private fun sessionWithSingleSet(
+    sessionId: Long,
+    routineName: String,
+    dayName: String,
+    startedAt: Long,
+    finishedAt: Long?,
+    weightKg: Double,
+    reps: Int
+): WorkoutSessionWithExercises {
+    return WorkoutSessionWithExercises(
+        session = WorkoutSessionEntity(
+            id = sessionId,
+            routineId = 7,
+            routineNameSnapshot = routineName,
+            routineDayId = 8,
+            dayNameSnapshot = dayName,
+            startedAt = startedAt,
+            finishedAt = finishedAt,
+            weekNumber = 1
+        ),
+        exercises = listOf(
+            WorkoutExerciseWithSets(
+                exercise = WorkoutExerciseEntity(
+                    id = sessionId * 10,
+                    sessionId = sessionId,
+                    exerciseTemplateId = 100,
+                    exerciseNameSnapshot = "Bench Press",
+                    targetRepsSnapshot = "8",
+                    position = 0
+                ),
+                sets = listOf(
+                    WorkoutSetEntity(
+                        id = sessionId * 100,
+                        workoutExerciseId = sessionId * 10,
+                        setNumber = 1,
+                        weightKg = weightKg,
+                        reps = reps
+                    )
+                )
+            )
+        )
+    )
+}
+
 private class HistoryDetailWorkoutRepository(
-    private val detail: WorkoutSessionWithExercises?
+    private val detail: WorkoutSessionWithExercises?,
+    private val finishedSessions: List<WorkoutSessionWithExercises> = emptyList()
 ) : WorkoutRepository {
     override fun observeSessions(): Flow<List<WorkoutSessionEntity>> = flowOf(emptyList())
     override fun observeFinishedSessions(): Flow<List<WorkoutSessionEntity>> = flowOf(emptyList())
-    override fun observeFinishedSessionsWithExercises(): Flow<List<WorkoutSessionWithExercises>> = flowOf(emptyList())
+    override fun observeFinishedSessionsWithExercises(): Flow<List<WorkoutSessionWithExercises>> = flowOf(finishedSessions)
+    override fun observeActiveSession(): Flow<WorkoutSessionWithExercises?> = flowOf(null)
     override suspend fun getActiveSessionWithExercises(): WorkoutSessionWithExercises? = null
     override suspend fun getSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises? = detail
     override suspend fun getFinishedSessionWithExercises(sessionId: Long): WorkoutSessionWithExercises? = detail
@@ -145,4 +311,7 @@ private class HistoryDetailWorkoutRepository(
 
     override suspend fun updateSet(setId: Long, weightKg: Double, reps: Int) = error("Not used")
     override suspend fun finishSession(sessionId: Long, notes: String?) = error("Not used")
+    override suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double? = null
+    override suspend fun getMaxWeightForExercise(exerciseName: String): Double? = null
+    override suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double? = null
 }

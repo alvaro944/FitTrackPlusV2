@@ -6,6 +6,12 @@ data class WorkoutStats(
     val exerciseRecords: List<ExerciseRecords>
 )
 
+enum class WorkoutStatsPeriod {
+    All,
+    LastFourWeeks,
+    LastTwelveWeeks
+}
+
 data class WorkoutSessionVolume(
     val sessionId: Long,
     val routineName: String,
@@ -37,6 +43,12 @@ data class ExerciseRecords(
     val maxReps: ExerciseSetRecord?,
     val bestSetVolume: ExerciseSetRecord?,
     val bestEstimatedOneRepMax: ExerciseSetRecord?
+)
+
+data class HeatmapDay(
+    val epochDay: Long,
+    val totalVolumeKg: Double,
+    val intensityLevel: Int  // 0 = sin actividad, 1-4 = cuartiles del rango con actividad
 )
 
 data class ExerciseSetRecord(

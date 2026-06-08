@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>LongMethod:DebugDemoDataSeeder.kt$DebugDemoDataSeeder$private suspend fun seedDemoData()</ID>
+    <ID>LongMethod:ObserveWorkoutStatsUseCase.kt$private fun List&lt;WorkoutSessionWithExercises&gt;.toWorkoutStats(): WorkoutStats</ID>
+    <ID>MatchingDeclarationName:Routes.kt$AppRoute</ID>
+    <ID>MatchingDeclarationName:Spacing.kt$FitSpacing</ID>
+    <ID>MaxLineLength:RoutinesScreen.kt$text = "La rutina \"${routine.name}\" dejara de aparecer en la lista principal. Los entrenamientos antiguos no cambiaran."</ID>
+    <ID>TooManyFunctions:WorkoutDao.kt$WorkoutDao</ID>
+  </CurrentIssues>
+</SmellBaseline>

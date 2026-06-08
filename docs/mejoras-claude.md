@@ -1,5 +1,7 @@
 # Mejoras Propuestas Por Claude
 
+> Estado: documento historico. El roadmap vigente post-v1 vive en `docs/roadmap-2.1.md`, que sustituye a `docs/future-improvements.md`.
+
 Este documento es un backlog de mejoras que Claude detecto tras revisar el codigo y la documentacion del proyecto. **No son decisiones tomadas**. Cada entrada esta pensada para que el usuario la valide, descarte o mueva a otra fase.
 
 Las entradas estan priorizadas segun su utilidad ante la Fase 6 (UI visual con herramienta externa, que llega ya y se esta trabajando en paralelo) y el objetivo del proyecto (aprender + portfolio, con uso real secundario).
@@ -269,7 +271,7 @@ Las mejoras de abajo son las que propuse antes de ver la Fase 6. Mantenidas por 
 
 - **Problema**: actualmente se guarda "8-12" como String. Funciona para mostrar, pero no se puede validar rango, comparar ni filtrar.
 - **Propuesta**: dos enteros opcionales mas migracion Room. Adaptar `RoutineExerciseEntity`, DAOs, mappers, ViewModels y la pantalla de editar rutina. Los snapshots historicos pueden seguir siendo String (son pasado inmutable).
-- **Esfuerzo**: medio. Solo justificado si Phase 6 rediseña el editor de rutinas o la UI de logging. Si Phase 6 no toca esas pantallas, mover a `future-improvements.md`.
+- **Esfuerzo**: medio. Solo justificado si Phase 6 rediseña el editor de rutinas o la UI de logging. Si Phase 6 no toca esas pantallas, mover al roadmap vigente si se valida.
 - **Cuando**: a decidir tras ver el diseno visual.
 - **Archivos afectados**: `data/local/entity/RoutineExerciseEntity.kt`, migraciones en `core/database/`, mappers en `data/repository/`, `feature/routines/RoutinesViewModel.kt` y pantalla.
 
@@ -295,7 +297,7 @@ Las mejoras de abajo son las que propuse antes de ver la Fase 6. Mantenidas por 
 
 ---
 
-## BAJA - Mover a `future-improvements.md` cuando el usuario valide
+## BAJA - Historico de ideas no priorizadas
 
 ### 12. Type-safe nav con `@Serializable`
 
@@ -325,4 +327,4 @@ Las mejoras de abajo son las que propuse antes de ver la Fase 6. Mantenidas por 
 
 ## Siguiente paso sugerido
 
-El usuario revisa entrada por entrada y marca cuales entran en el backlog real. Las descartadas se dejan aqui como registro. Las aceptadas se repriorizan y las BAJA validas se migran a `docs/future-improvements.md` con el mismo nivel de detalle.
+El usuario revisa entrada por entrada y marca cuales entran en el backlog real. Las descartadas se dejan aqui como registro. Las aceptadas se repriorizan en `docs/roadmap-2.1.md` cuando pasan a ser direccion vigente.

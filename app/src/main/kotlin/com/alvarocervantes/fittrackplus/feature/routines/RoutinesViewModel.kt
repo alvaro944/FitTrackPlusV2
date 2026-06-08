@@ -32,23 +32,34 @@ class RoutinesViewModel @Inject constructor(
     init {
         combine(
             routineRepository.observeRoutines(),
+            routineRepository.observeArchivedRoutines(),
             userPreferencesRepository.activeRoutineId
-        ) { routines, activeRoutineId ->
+        ) { routines, archivedRoutines, activeRoutineId ->
             val activeId = activeRoutineId?.takeIf { id -> routines.any { it.id == id } }
-            routines.map { routine ->
+            val activeItems = routines.map { routine ->
                 RoutineListItemUiState(
                     id = routine.id,
                     name = routine.name,
                     dayCount = routine.dayCount,
                     isActive = routine.id == activeId
                 )
-            } to activeId
+            }
+            val archivedItems = archivedRoutines.map { routine ->
+                RoutineListItemUiState(
+                    id = routine.id,
+                    name = routine.name,
+                    dayCount = routine.dayCount,
+                    isActive = false
+                )
+            }
+            Triple(activeItems, archivedItems, activeId)
         }
-            .onEach { (routines, activeRoutineId) ->
+            .onEach { (routines, archivedRoutines, activeRoutineId) ->
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
                         routines = routines,
+                        archivedRoutines = archivedRoutines,
                         activeRoutineId = activeRoutineId
                     )
                 }
@@ -62,11 +73,24 @@ class RoutinesViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+
+        userPreferencesRepository.hasSeenSnapshotInfo
+            .onEach { seen ->
+                _uiState.update { state -> state.copy(hasSeenSnapshotInfo = seen) }
+            }
+            .launchIn(viewModelScope)
     }
 
     fun startCreateRoutine() {
         _uiState.update { state ->
             state.copy(editor = RoutineEditorUiState())
+        }
+    }
+
+    fun startCreateRoutineFromTemplate(templateId: String) {
+        val template = routineTemplates.firstOrNull { template -> template.id == templateId } ?: return
+        _uiState.update { state ->
+            state.copy(editor = template.toEditorState().copy(isDirty = true))
         }
     }
 
@@ -79,8 +103,21 @@ class RoutinesViewModel @Inject constructor(
         }
     }
 
-    fun closeEditor() {
-        _uiState.update { state -> state.copy(editor = null) }
+    fun requestCloseEditor() {
+        val editor = _uiState.value.editor ?: return
+        if (editor.isDirty) {
+            _uiState.update { state -> state.copy(editor = editor.copy(showCloseConfirmation = true)) }
+        } else {
+            _uiState.update { state -> state.copy(editor = null) }
+        }
+    }
+
+    fun resolveCloseConfirmation(discard: Boolean) {
+        if (discard) {
+            _uiState.update { state -> state.copy(editor = null) }
+        } else {
+            updateEditor { editor -> editor.copy(showCloseConfirmation = false) }
+        }
     }
 
     fun updateRoutineName(name: String) {
@@ -116,19 +153,27 @@ class RoutinesViewModel @Inject constructor(
     }
 
     fun updateExerciseName(dayIndex: Int, exerciseIndex: Int, name: String) {
-        updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(name = name) }
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(name = name) }
+        }
     }
 
     fun updateExerciseSets(dayIndex: Int, exerciseIndex: Int, targetSets: String) {
-        updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(targetSets = targetSets) }
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(targetSets = targetSets) }
+        }
     }
 
     fun updateExerciseReps(dayIndex: Int, exerciseIndex: Int, targetRepsText: String) {
-        updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(targetRepsText = targetRepsText) }
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(targetRepsText = targetRepsText) }
+        }
     }
 
     fun updateExerciseNotes(dayIndex: Int, exerciseIndex: Int, notes: String) {
-        updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(notes = notes) }
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(notes = notes) }
+        }
     }
 
     fun removeExercise(dayIndex: Int, exerciseIndex: Int) {
@@ -138,6 +183,21 @@ class RoutinesViewModel @Inject constructor(
                     if (day.exercises.size <= 1) day else day.copy(exercises = day.exercises.removeAt(exerciseIndex))
                 }
             )
+        }
+    }
+
+    fun applyEditorOperation(operation: RoutineEditorOperation) {
+        updateEditor { editor ->
+            when (operation) {
+                is RoutineEditorOperation.DuplicateDay -> editor.duplicateDay(operation.dayIndex)
+                is RoutineEditorOperation.MoveDay -> editor.moveDay(operation.dayIndex, operation.direction)
+                is RoutineEditorOperation.DuplicateExercise -> {
+                    editor.duplicateExercise(operation.dayIndex, operation.exerciseIndex)
+                }
+                is RoutineEditorOperation.MoveExercise -> {
+                    editor.moveExercise(operation.dayIndex, operation.exerciseIndex, operation.direction)
+                }
+            }
         }
     }
 
@@ -187,39 +247,56 @@ class RoutinesViewModel @Inject constructor(
         }
     }
 
-    fun clearMessage() {
-        _uiState.update { state -> state.copy(message = null) }
+    fun setShowArchived(show: Boolean) {
+        _uiState.update { state -> state.copy(showArchived = show) }
     }
 
-    private fun updateExercise(
-        dayIndex: Int,
-        exerciseIndex: Int,
-        transform: (RoutineExerciseEditorUiState) -> RoutineExerciseEditorUiState
-    ) {
-        updateEditor { editor ->
-            editor.copy(
-                days = editor.days.replaceAt(dayIndex) { day ->
-                    day.copy(exercises = day.exercises.replaceAt(exerciseIndex, transform))
-                }
-            )
+    fun dismissSnapshotInfo() {
+        viewModelScope.launch {
+            userPreferencesRepository.dismissSnapshotInfo()
         }
+    }
+
+    fun restoreRoutine(routineId: Long) {
+        viewModelScope.launch {
+            routineRepository.restoreRoutine(routineId)
+        }
+    }
+
+    fun clearMessage() {
+        _uiState.update { state -> state.copy(message = null) }
     }
 
     private fun updateEditor(transform: (RoutineEditorUiState) -> RoutineEditorUiState) {
         _uiState.update { state ->
             val editor = state.editor ?: return@update state
-            state.copy(editor = transform(editor))
+            state.copy(editor = transform(editor).copy(isDirty = true))
         }
     }
+}
+
+private fun RoutineEditorUiState.updateExercise(
+    dayIndex: Int,
+    exerciseIndex: Int,
+    transform: (RoutineExerciseEditorUiState) -> RoutineExerciseEditorUiState
+): RoutineEditorUiState {
+    return copy(
+        days = days.replaceAt(dayIndex) { day ->
+            day.copy(exercises = day.exercises.replaceAt(exerciseIndex, transform))
+        }
+    )
 }
 
 data class RoutinesUiState(
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val routines: List<RoutineListItemUiState> = emptyList(),
+    val archivedRoutines: List<RoutineListItemUiState> = emptyList(),
     val activeRoutineId: Long? = null,
     val editor: RoutineEditorUiState? = null,
-    val message: String? = null
+    val message: String? = null,
+    val showArchived: Boolean = false,
+    val hasSeenSnapshotInfo: Boolean = false
 )
 
 data class RoutineListItemUiState(
@@ -232,18 +309,33 @@ data class RoutineListItemUiState(
 data class RoutineEditorUiState(
     val routineId: Long? = null,
     val name: String = "",
-    val days: List<RoutineDayEditorUiState> = listOf(RoutineDayEditorUiState())
+    val days: List<RoutineDayEditorUiState> = listOf(RoutineDayEditorUiState()),
+    val isDirty: Boolean = false,
+    val showCloseConfirmation: Boolean = false
 ) {
     val title: String = if (routineId == null) "Nueva rutina" else "Editar rutina"
+    val routineNameError: String?
+        get() = if (name.isBlank()) "Pon un nombre para la rutina." else null
+    val validationMessage: String?
+        get() = when {
+            routineNameError != null -> routineNameError
+            days.any { it.nameError != null } -> "Revisa los nombres de los dias."
+            days.any { day -> day.exercises.isEmpty() } -> "Cada dia necesita al menos un ejercicio."
+            days.any { day -> day.exercises.any { it.nameError != null } } -> "Revisa los nombres de los ejercicios."
+            days.any { day -> day.exercises.any { it.targetSetsError != null } } -> "Las series deben estar entre 1 y 99."
+            days.any { day -> day.exercises.any { it.targetRepsError != null } } -> "Revisa las reps objetivo."
+            else -> null
+        }
     val canSave: Boolean
-        get() = name.isNotBlank() &&
+        get() = routineNameError == null &&
             days.isNotEmpty() &&
             days.all { day ->
+                day.nameError == null &&
                 day.exercises.isNotEmpty() &&
                     day.exercises.all { exercise ->
-                        exercise.name.isNotBlank() &&
-                            exercise.targetSets.toIntOrNull()?.let { it in 1..99 } == true &&
-                            exercise.targetRepsText.isNotBlank()
+                        exercise.nameError == null &&
+                            exercise.targetSetsError == null &&
+                            exercise.targetRepsError == null
                     }
             }
 }
@@ -251,14 +343,54 @@ data class RoutineEditorUiState(
 data class RoutineDayEditorUiState(
     val name: String = "Dia 1",
     val exercises: List<RoutineExerciseEditorUiState> = listOf(RoutineExerciseEditorUiState())
-)
+) {
+    val nameError: String?
+        get() = if (name.isBlank()) "Pon un nombre para el dia." else null
+}
 
 data class RoutineExerciseEditorUiState(
     val name: String = "",
     val targetSets: String = "3",
     val targetRepsText: String = "8-12",
     val notes: String = ""
-)
+) {
+    val nameError: String?
+        get() = if (name.isBlank()) "Pon un nombre para el ejercicio." else null
+    val targetSetsError: String?
+        get() = if (targetSets.toIntOrNull()?.let { it in 1..99 } == true) {
+            null
+        } else {
+            "Usa entre 1 y 99 series."
+        }
+    val targetRepsError: String?
+        get() = if (isValidTargetReps(targetRepsText)) {
+            null
+        } else {
+            "Usa 8, 8-12, AMRAP o RPE 8."
+        }
+}
+
+internal fun isValidTargetReps(value: String): Boolean {
+    val normalized = value.trim()
+    if (normalized.isEmpty()) return false
+    return when {
+        normalized.equals("AMRAP", ignoreCase = true) -> true
+        normalized.toIntOrNull()?.let { it in 1..99 } == true -> true
+        else -> {
+            val rangeMatch = Regex("""^(\d{1,2})\s*-\s*(\d{1,2})$""").matchEntire(normalized)
+            val rpeMatch = Regex("""^RPE\s*(\d{1,2})$""", RegexOption.IGNORE_CASE).matchEntire(normalized)
+            when {
+                rangeMatch != null -> {
+                    val start = rangeMatch.groupValues[1].toInt()
+                    val end = rangeMatch.groupValues[2].toInt()
+                    start in 1..99 && end in 1..99 && start <= end
+                }
+                rpeMatch != null -> rpeMatch.groupValues[1].toInt() in 1..10
+                else -> false
+            }
+        }
+    }
+}
 
 private fun RoutineSnapshot.toEditorState(): RoutineEditorUiState {
     return RoutineEditorUiState(

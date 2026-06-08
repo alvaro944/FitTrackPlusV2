@@ -3,7 +3,9 @@ package com.alvarocervantes.fittrackplus.feature.history
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDetail
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDeltaDirection
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryExercise
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryMetricDelta
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySet
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySummary
 import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHistoryDetailUseCase
@@ -18,6 +20,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val DAY_MILLIS: Long = 86_400_000
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
@@ -37,9 +41,15 @@ class HistoryViewModel @Inject constructor(
                 }
 
                 _uiState.update { state ->
+                    val allSessions = sessions.map { it.toUiState() }
                     state.copy(
                         isLoading = false,
-                        sessions = sessions.map { it.toUiState() },
+                        allSessions = allSessions,
+                        sessions = allSessions.applyHistoryFilters(
+                            period = state.selectedPeriod,
+                            sort = state.selectedSort,
+                            nowMillis = System.currentTimeMillis()
+                        ),
                         selectedSessionId = nextSelectedId,
                         selectedDetail = if (nextSelectedId == null) null else state.selectedDetail,
                         message = null
@@ -105,16 +115,57 @@ class HistoryViewModel @Inject constructor(
     fun clearMessage() {
         _uiState.update { state -> state.copy(message = null) }
     }
+
+    fun setPeriodFilter(period: HistoryPeriodFilter) {
+        _uiState.update { state ->
+            state.copy(
+                selectedPeriod = period,
+                sessions = state.allSessions.applyHistoryFilters(
+                    period = period,
+                    sort = state.selectedSort,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    fun setSortOrder(sort: HistorySortOrder) {
+        _uiState.update { state ->
+            state.copy(
+                selectedSort = sort,
+                sessions = state.allSessions.applyHistoryFilters(
+                    period = state.selectedPeriod,
+                    sort = sort,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
+        }
+    }
 }
 
 data class HistoryUiState(
     val isLoading: Boolean = true,
     val isDetailLoading: Boolean = false,
+    val allSessions: List<HistorySessionUiState> = emptyList(),
     val sessions: List<HistorySessionUiState> = emptyList(),
+    val selectedPeriod: HistoryPeriodFilter = HistoryPeriodFilter.All,
+    val selectedSort: HistorySortOrder = HistorySortOrder.Recent,
     val selectedSessionId: Long? = null,
     val selectedDetail: HistoryDetailUiState? = null,
     val message: String? = null
 )
+
+enum class HistoryPeriodFilter(val label: String) {
+    All("Todo"),
+    LastFourWeeks("4 semanas"),
+    LastTwelveWeeks("12 semanas")
+}
+
+enum class HistorySortOrder(val label: String) {
+    Recent("Reciente"),
+    Oldest("Antiguo"),
+    HighestVolume("Mayor volumen")
+}
 
 data class HistorySessionUiState(
     val sessionId: Long,
@@ -122,7 +173,10 @@ data class HistorySessionUiState(
     val dayName: String,
     val startedAt: Long,
     val finishedAt: Long,
-    val weekNumber: Int
+    val weekNumber: Int,
+    val totalVolumeKg: Double,
+    val durationMillis: Long,
+    val setCount: Int
 )
 
 data class HistoryDetailUiState(
@@ -133,10 +187,56 @@ data class HistoryDetailUiState(
     val finishedAt: Long,
     val weekNumber: Int,
     val notes: String?,
-    val exercises: List<HistoryExerciseUiState>
+    val exercises: List<HistoryExerciseUiState>,
+    val comparison: HistoryComparisonUiState? = null
 ) {
     val totalSetCount: Int = exercises.sumOf { it.sets.size }
+    val durationMillis: Long = (finishedAt - startedAt).coerceAtLeast(0)
+    val totalVolumeKg: Double = exercises.sumOf { exercise ->
+        exercise.sets.sumOf { set -> set.weightKg * set.reps }
+    }
+    val bestSet: HistoryBestSetUiState? = exercises
+        .flatMap { exercise ->
+            exercise.sets.map { set ->
+                HistoryBestSetUiState(
+                    exerciseName = exercise.name,
+                    weightKg = set.weightKg,
+                    reps = set.reps,
+                    volumeKg = set.weightKg * set.reps
+                )
+            }
+        }
+        .filter { set -> set.volumeKg > 0.0 }
+        .maxByOrNull { set -> set.volumeKg }
 }
+
+data class HistoryComparisonUiState(
+    val previousFinishedAt: Long,
+    val totalVolumeDelta: HistoryMetricDeltaUiState,
+    val durationMillisDelta: HistoryMetricDeltaUiState,
+    val setCountDelta: HistoryMetricDeltaUiState,
+    val bestSet: HistoryBestSetComparisonUiState
+)
+
+data class HistoryMetricDeltaUiState(
+    val currentValue: Double,
+    val previousValue: Double,
+    val deltaValue: Double,
+    val direction: WorkoutHistoryDeltaDirection
+)
+
+data class HistoryBestSetComparisonUiState(
+    val current: HistoryBestSetUiState?,
+    val previous: HistoryBestSetUiState?,
+    val delta: HistoryMetricDeltaUiState
+)
+
+data class HistoryBestSetUiState(
+    val exerciseName: String,
+    val weightKg: Double,
+    val reps: Int,
+    val volumeKg: Double
+)
 
 data class HistoryExerciseUiState(
     val exerciseId: Long,
@@ -160,8 +260,39 @@ private fun WorkoutHistorySummary.toUiState(): HistorySessionUiState {
         dayName = dayName,
         startedAt = startedAt,
         finishedAt = finishedAt,
-        weekNumber = weekNumber
+        weekNumber = weekNumber,
+        totalVolumeKg = totalVolumeKg,
+        durationMillis = durationMillis,
+        setCount = setCount
     )
+}
+
+fun List<HistorySessionUiState>.applyHistoryFilters(
+    period: HistoryPeriodFilter,
+    sort: HistorySortOrder,
+    nowMillis: Long
+): List<HistorySessionUiState> {
+    return filterByPeriod(period, nowMillis).sortByOrder(sort)
+}
+
+private fun List<HistorySessionUiState>.filterByPeriod(
+    period: HistoryPeriodFilter,
+    nowMillis: Long
+): List<HistorySessionUiState> {
+    val cutoff = when (period) {
+        HistoryPeriodFilter.All -> return this
+        HistoryPeriodFilter.LastFourWeeks -> nowMillis - 4 * 7 * DAY_MILLIS
+        HistoryPeriodFilter.LastTwelveWeeks -> nowMillis - 12 * 7 * DAY_MILLIS
+    }
+    return filter { session -> session.finishedAt >= cutoff }
+}
+
+private fun List<HistorySessionUiState>.sortByOrder(sort: HistorySortOrder): List<HistorySessionUiState> {
+    return when (sort) {
+        HistorySortOrder.Recent -> sortedByDescending { session -> session.finishedAt }
+        HistorySortOrder.Oldest -> sortedBy { session -> session.finishedAt }
+        HistorySortOrder.HighestVolume -> sortedByDescending { session -> session.totalVolumeKg }
+    }
 }
 
 private fun WorkoutHistoryDetail.toUiState(): HistoryDetailUiState {
@@ -173,7 +304,43 @@ private fun WorkoutHistoryDetail.toUiState(): HistoryDetailUiState {
         finishedAt = finishedAt,
         weekNumber = weekNumber,
         notes = notes,
-        exercises = exercises.map { it.toUiState() }
+        exercises = exercises.map { it.toUiState() },
+        comparison = comparison?.let { domainComparison ->
+            HistoryComparisonUiState(
+                previousFinishedAt = domainComparison.previousFinishedAt,
+                totalVolumeDelta = domainComparison.totalVolumeDelta.toUiState(),
+                durationMillisDelta = domainComparison.durationMillisDelta.toUiState(),
+                setCountDelta = domainComparison.setCountDelta.toUiState(),
+                bestSet = HistoryBestSetComparisonUiState(
+                    current = domainComparison.bestSet.current?.let { bestSet ->
+                        HistoryBestSetUiState(
+                            exerciseName = bestSet.exerciseName,
+                            weightKg = bestSet.weightKg,
+                            reps = bestSet.reps,
+                            volumeKg = bestSet.volumeKg
+                        )
+                    },
+                    previous = domainComparison.bestSet.previous?.let { bestSet ->
+                        HistoryBestSetUiState(
+                            exerciseName = bestSet.exerciseName,
+                            weightKg = bestSet.weightKg,
+                            reps = bestSet.reps,
+                            volumeKg = bestSet.volumeKg
+                        )
+                    },
+                    delta = domainComparison.bestSet.delta.toUiState()
+                )
+            )
+        }
+    )
+}
+
+private fun WorkoutHistoryMetricDelta.toUiState(): HistoryMetricDeltaUiState {
+    return HistoryMetricDeltaUiState(
+        currentValue = currentValue,
+        previousValue = previousValue,
+        deltaValue = deltaValue,
+        direction = direction
     )
 }
 
