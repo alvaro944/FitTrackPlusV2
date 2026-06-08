@@ -2,6 +2,75 @@
 
 Bitacora viva del proyecto. Cada fase debe anadir aqui lo que se hizo, lo que se verifico, problemas encontrados y decisiones tomadas.
 
+## Iteracion - Final form sidebar shell y release preview
+
+Estado:
+
+- Completada tecnicamente.
+
+Rama:
+
+- `codex/final-form-sidebar-shell`
+
+Objetivo:
+
+- Llevar a la app el shell principal del diseno final usando menu hamburguesa lateral.
+- Sacar `Ajustes` de la bottom bar.
+- Dejar visibles en UI las acciones futuras del diseno sin implementar backend falso.
+- Preparar distribucion preview desde GitHub Releases.
+
+Fuera de alcance:
+
+- widget real nuevo
+- export real de datos
+- release firmada
+- cambios de dominio, Room o snapshots historicos
+
+Cambios principales:
+
+- Se creo una shell compartida Compose en `core/design/AppShell.kt`.
+- Se movio la navegacion principal a una bottom bar de 5 tabs: `Inicio`, `Rutinas`, `Entrenar`, `Historial`, `Datos`.
+- `Ajustes` deja de ocupar una tab y pasa a abrirse desde un drawer lateral.
+- El drawer integra:
+  - acceso real a `Ajustes`
+  - selector de tema real
+  - selector de unidad `kg/lb` real
+  - acciones visibles de futuro: `Widget & atajos` y `Exportar datos`
+- Se creo `AppShellViewModel` para coordinar preferencias y feedback breve.
+- Se creo `NavigationShellConfig.kt` para fijar configuracion reusable del shell.
+- Se anadio `NavigationShellConfigTest` para evitar regresiones estructurales del shell.
+- Se actualizo `README.md` con el canal de descarga de APK preview.
+- Se anadio `.github/workflows/release-preview.yml` para publicar `FitTrackPlus-preview.apk` al subir tags `v*-preview*`.
+- Se anadieron al repo los artefactos de referencia de `docs/Final form Fit track 2/` y se excluyeron del versionado el `.zip` y `.thumbnail` locales.
+
+Problemas encontrados:
+
+- La primera verificacion pesada se lanzo en paralelo y disparo errores intermitentes de cache/KSP; la solucion estable fue ejecutar `test` y `build` en secuencia.
+- El release de Gradle sigue saliendo `unsigned`; por eso el flujo publico se monto sobre un preview debug honesto en vez de fingir una release de produccion.
+
+Decisiones:
+
+- Mantener la logica actual de rutinas, entreno, historial y stats intacta.
+- Mostrar acciones futuras del drawer solo como superficie visual y feedback de "fase futura".
+- No publicar `app-release-unsigned.apk` como descarga publica.
+- Usar GitHub Releases para previews y reservar la release firmada para una fase posterior con keystore real.
+
+Verificacion:
+
+```bash
+./gradlew test --no-daemon --console=plain
+./gradlew build --no-daemon --console=plain
+./gradlew assembleDebug --no-daemon --console=plain
+```
+
+Resultado:
+
+- Verificacion automatica correcta.
+
+Pendiente:
+
+- Pasada manual en emulador/dispositivo para validar shell, drawer, tabs y ajustes visuales finos.
+
 ## Fase 0 - Mobile foundation
 
 Rama:

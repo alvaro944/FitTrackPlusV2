@@ -10,6 +10,34 @@
 
 ---
 
+## Download APK
+
+- **GitHub Releases:** [Latest release](https://github.com/alvaro944/FitTrackPlusV2/releases/latest)
+- **Recommended artifact name:** `FitTrackPlus-preview.apk`
+
+At the moment, the ready-to-share build is the **debug preview APK**. It is installable on Android devices and is the artifact intended for GitHub downloads until a signed release pipeline is configured.
+
+The current Gradle release output is `app-release-unsigned.apk`, which is useful for packaging workflows but not suitable as the public download artifact until signing is added.
+
+### Publish a preview release
+
+Preview releases are published automatically by GitHub Actions when you push a tag that matches:
+
+```text
+v*-preview*
+```
+
+Example:
+
+```bash
+git tag v2.1.0-preview1
+git push origin v2.1.0-preview1
+```
+
+That workflow builds the debug APK, renames it to `FitTrackPlus-preview.apk`, uploads it to the GitHub Release, and also stores it as a workflow artifact.
+
+---
+
 ## Screenshots
 
 > _Screenshots taken on a Pixel 8 emulator running Android 14 (API 34)._

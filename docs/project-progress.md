@@ -4,7 +4,8 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 
 ## Estado Actual
 
-- Rama actual: `codex/phase-2.1c-c-shortcuts-widget-notification`.
+- Rama base de produccion: `main`.
+- Rama de esta iteracion: `codex/final-form-sidebar-shell`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
 - Commit de cierre de Fase 1: `9df5a44 Complete phase 1 routines`.
 - Commit de cierre de Fase 2: `7cf2c02 Complete phase 2 workout logging`.
@@ -12,7 +13,6 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 - Commit de cierre de Fase 4: `Complete phase 4 statistics MVP`.
 - Commit de cierre de Fase 5: `Complete phase 5 UX polish`.
 - Remoto configurado: `https://github.com/alvaro944/FitTrackPlusV2.git`.
-- Rama local alineada con `origin/codex/v2-mejoras` al iniciar Bloque 7; este pass anade solo CI + docs y queda pendiente de commit/push.
 - Primera version funcional completa cerrada tecnicamente.
 - Roadmap post-v1 canonico creado en `docs/roadmap-2.1.md`; sustituye a `docs/future-improvements.md`.
 - Fase 6 cerrada tecnicamente.
@@ -101,8 +101,26 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
   - los sprints A, B y C pasan `test` + `build`
   - la app esta practicamente en nivel de cierre funcional local
   - queda pendiente validacion manual en dispositivo para cierre oficial
+- Iteracion `final form sidebar shell` implementada y verificada en rama `codex/final-form-sidebar-shell`:
+  - `Ajustes` sale de la bottom bar y pasa a un menu hamburguesa lateral
+  - la navegacion inferior queda en 5 tabs: `Inicio`, `Rutinas`, `Entrenar`, `Historial`, `Datos`
+  - se anade shell compartida con drawer lateral, boton hamburguesa y snackbar comun
+  - el drawer conecta `Ajustes` reales, selector de tema real y unidad `kg/lb` real
+  - `Widget & atajos` y `Exportar datos` quedan visibles como futuras implementaciones, sin backend falso
+  - se crea `NavigationShellConfigTest` para fijar la composicion de tabs y drawer
+- Distribucion preview preparada:
+  - `README.md` documenta descarga por GitHub Releases
+  - `.github/workflows/release-preview.yml` publica `FitTrackPlus-preview.apk` al subir tags `v*-preview*`
+  - el artefacto publico actual es preview debug; el release firmado sigue pendiente
+- Verificacion reciente de esta iteracion:
+  - `test` OK
+  - `build` OK
+  - `assembleDebug` OK
+- Pendiente real antes de dar por cerrada toda la linea visual:
+  - pasada manual en emulador/dispositivo del shell final y drawer lateral
+  - pipeline de release firmada cuando exista keystore de produccion
 - Backlog visual separado creado en `docs/visual-improvements.md`.
-- Siguiente foco real de producto: validacion manual final y cierre oficial de 2.1C antes de abrir sync/cloud o nuevas features grandes.
+- Siguiente foco real de producto: validacion manual final del shell/diseno integrado y, despues, cierre oficial de 2.1C antes de abrir sync/cloud o nuevas features grandes.
 - Migracion GPT-5.5 aplicada a agentes/docs: no hay integracion runtime OpenAI en la app, asi que no habia modelo de API que cambiar.
 
 ## Hecho Hasta Ahora

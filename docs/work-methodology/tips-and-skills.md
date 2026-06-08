@@ -129,6 +129,26 @@ Si `compileDebugJavaWithJavac` falla con muchos simbolos faltantes de KSP/Hilt y
 .\gradlew.bat :app:compileDebugKotlin --rerun-tasks --no-daemon --console=plain
 ```
 
+### APK Preview Y Releases
+
+Para este repo, una preview descargable y una release de produccion no son lo mismo:
+
+- `assembleDebug` puede generar un APK instalable y valido para compartir previews
+- `assembleRelease` sigue produciendo `app-release-unsigned.apk` hasta que exista firma real
+- no conviene publicar una `unsigned release` como si fuera el canal oficial para usuarios
+
+Patron reusable que ha funcionado aqui:
+
+- documentar en `README.md` que el artefacto publico actual es preview
+- publicar previews con GitHub Releases mediante tags (`v*-preview*`)
+- renombrar el asset a un nombre estable como `FitTrackPlus-preview.apk`
+- dejar la release firmada para una fase separada con keystore, secretos y pipeline propios
+
+Regla practica:
+
+- si no hay firma real, hablar de preview
+- si se publica en GitHub, que el nombre del asset y la documentacion no oculten esa realidad
+
 ### Kotlin Y Estado De UI
 
 Si el estado delegado impide smart cast, conviene asignar primero a una variable local clara antes de bifurcar la UI.
