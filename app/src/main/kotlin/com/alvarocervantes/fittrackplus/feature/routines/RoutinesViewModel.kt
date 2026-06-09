@@ -121,7 +121,7 @@ class RoutinesViewModel @Inject constructor(
     }
 
     fun updateRoutineName(name: String) {
-        updateEditor { editor -> editor.copy(name = name) }
+        updateEditor { editor -> editor.copy(name = normalizeEditorNameInput(name)) }
     }
 
     fun addDay() {
@@ -132,7 +132,11 @@ class RoutinesViewModel @Inject constructor(
 
     fun updateDayName(dayIndex: Int, name: String) {
         updateEditor { editor ->
-            editor.copy(days = editor.days.replaceAt(dayIndex) { it.copy(name = name) })
+            editor.copy(
+                days = editor.days.replaceAt(dayIndex) {
+                    it.copy(name = normalizeEditorNameInput(name))
+                }
+            )
         }
     }
 
@@ -154,7 +158,9 @@ class RoutinesViewModel @Inject constructor(
 
     fun updateExerciseName(dayIndex: Int, exerciseIndex: Int, name: String) {
         updateEditor { editor ->
-            editor.updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(name = name) }
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
+                exercise.copy(name = normalizeEditorNameInput(name))
+            }
         }
     }
 
@@ -388,6 +394,17 @@ internal fun isValidTargetReps(value: String): Boolean {
                 rpeMatch != null -> rpeMatch.groupValues[1].toInt() in 1..10
                 else -> false
             }
+        }
+    }
+}
+
+internal fun normalizeEditorNameInput(value: String): String {
+    if (value.isEmpty()) return value
+    return value.replaceFirstChar { char ->
+        if (char.isLowerCase()) {
+            char.titlecase()
+        } else {
+            char.toString()
         }
     }
 }
