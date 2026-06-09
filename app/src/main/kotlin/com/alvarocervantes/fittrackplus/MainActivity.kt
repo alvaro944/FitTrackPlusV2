@@ -8,12 +8,18 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPlusTheme
+import com.alvarocervantes.fittrackplus.core.design.resolveDarkTheme
+import com.alvarocervantes.fittrackplus.core.design.systemBarAppearance
 import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.feature.launch.FitTrackPlusAppRoot
@@ -40,8 +46,20 @@ class MainActivity : ComponentActivity() {
             val themeMode by userPreferencesRepository.themeMode.collectAsStateWithLifecycle(
                 initialValue = AppThemeMode.System
             )
+            val systemDarkTheme = isSystemInDarkTheme()
+            val darkTheme = resolveDarkTheme(themeMode, systemDarkTheme)
             val hasSeenOnboarding by userPreferencesRepository.hasSeenOnboarding
                 .collectAsStateWithLifecycle(initialValue = false)
+            val systemBars = systemBarAppearance(darkTheme)
+
+            SideEffect {
+                window.statusBarColor = systemBars.statusBarBackground.toArgb()
+                window.navigationBarColor = systemBars.navigationBarBackground.toArgb()
+                WindowCompat.getInsetsController(window, window.decorView).apply {
+                    isAppearanceLightStatusBars = systemBars.useDarkStatusBarIcons
+                    isAppearanceLightNavigationBars = systemBars.useDarkNavigationBarIcons
+                }
+            }
 
             val notificationPermissionLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.RequestPermission()
