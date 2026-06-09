@@ -25,6 +25,7 @@ data class WorkoutExerciseEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val sessionId: Long,
     val exerciseTemplateId: Long?,
+    val performedVariantKey: String = "",
     val exerciseNameSnapshot: String,
     val targetRepsSnapshot: String,
     val position: Int

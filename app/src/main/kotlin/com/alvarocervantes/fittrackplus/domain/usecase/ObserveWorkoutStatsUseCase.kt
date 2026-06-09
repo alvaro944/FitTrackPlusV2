@@ -11,7 +11,6 @@ import com.alvarocervantes.fittrackplus.domain.model.ExerciseSetRecord
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutSessionVolume
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStats
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
-import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -108,7 +107,9 @@ private fun List<FinishedSession>.toExerciseGroups(): Map<String, List<ExerciseS
 private fun FinishedSession.toExerciseSnapshot(
     exercise: WorkoutExerciseWithSets
 ): ExerciseSnapshot? {
-    val key = exercise.exercise.exerciseNameSnapshot.normalizedExerciseKey()
+    val key = exercise.exercise.performedVariantKey
+        .trim()
+        .ifBlank { exercise.exercise.exerciseNameSnapshot.trim().lowercase() }
     return if (key.isBlank()) {
         null
     } else {
@@ -192,10 +193,6 @@ private data class ExerciseSnapshot(
     val finishedAt: Long,
     val exercise: WorkoutExerciseWithSets
 )
-
-private fun String.normalizedExerciseKey(): String {
-    return trim().lowercase(Locale.ROOT)
-}
 
 private fun WorkoutSetEntity.volumeKg(): Double {
     return weightKg * reps

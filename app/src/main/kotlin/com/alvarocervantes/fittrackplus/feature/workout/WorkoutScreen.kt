@@ -31,6 +31,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -151,6 +152,21 @@ fun WorkoutScreen(
         }
     }
 
+    state.alternativePicker?.let { picker ->
+        ExerciseAlternativesDialog(
+            picker = picker,
+            onDismiss = viewModel::dismissExerciseAlternatives,
+            onApplyVariant = viewModel::applyExerciseVariant,
+            onStartCreating = viewModel::startCreatingExerciseAlternative,
+            onCancelCreating = viewModel::cancelCreatingExerciseAlternative,
+            onDraftNameChange = viewModel::updateAlternativeDraftName,
+            onDraftSetsChange = viewModel::updateAlternativeDraftSets,
+            onDraftRepsChange = viewModel::updateAlternativeDraftReps,
+            onDraftNotesChange = viewModel::updateAlternativeDraftNotes,
+            onSaveAlternative = viewModel::saveExerciseAlternative
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -169,6 +185,7 @@ fun WorkoutScreen(
                 onResetRestTimer = viewModel::resetRestTimer,
                 onCancelRestTimer = viewModel::cancelRestTimer,
                 onAutoStartRestTimerChange = viewModel::setAutoStartRestTimerEnabled,
+                onOpenExerciseAlternatives = viewModel::openExerciseAlternatives,
                 onGoToRoutines = onGoToRoutines
             )
         }
@@ -217,6 +234,7 @@ private fun WorkoutContent(
     onResetRestTimer: () -> Unit,
     onCancelRestTimer: () -> Unit,
     onAutoStartRestTimerChange: (Boolean) -> Unit,
+    onOpenExerciseAlternatives: (Long) -> Unit,
     onGoToRoutines: () -> Unit
 ) {
     LazyColumn(
@@ -281,6 +299,7 @@ private fun WorkoutContent(
                 ) { exercise ->
                     WorkoutExerciseCard(
                         exercise = exercise,
+                        onOpenAlternatives = onOpenExerciseAlternatives,
                         onSetWeightChange = onSetWeightChange,
                         onSetRepsChange = onSetRepsChange
                     )
@@ -696,6 +715,7 @@ private fun isRestTimerUrgent(timer: RestTimerUiState): Boolean {
 @Composable
 private fun WorkoutExerciseCard(
     exercise: WorkoutExerciseUiState,
+    onOpenAlternatives: (Long) -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit
 ) {
@@ -706,12 +726,28 @@ private fun WorkoutExerciseCard(
             Column(
                 verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
             ) {
-                Text(
-                    text = exercise.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text(
+                        text = exercise.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = { onOpenAlternatives(exercise.id) },
+                        modifier = Modifier.minimumInteractiveComponentSize()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = "Ver ejercicios alternativos para ${exercise.name}"
+                        )
+                    }
+                }
                 Text(
                     text = "Objetivo: ${exercise.targetRepsText} reps",
                     style = MaterialTheme.typography.bodyMedium,
@@ -725,6 +761,136 @@ private fun WorkoutExerciseCard(
                     onSetWeightChange = onSetWeightChange,
                     onSetRepsChange = onSetRepsChange
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExerciseAlternativesDialog(
+    picker: ExerciseAlternativesUiState,
+    onDismiss: () -> Unit,
+    onApplyVariant: (String) -> Unit,
+    onStartCreating: () -> Unit,
+    onCancelCreating: () -> Unit,
+    onDraftNameChange: (String) -> Unit,
+    onDraftSetsChange: (String) -> Unit,
+    onDraftRepsChange: (String) -> Unit,
+    onDraftNotesChange: (String) -> Unit,
+    onSaveAlternative: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(FitSpacing.cardPadding),
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
+            ) {
+                Text(
+                    text = "Ejercicios alternativos",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    text = picker.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (picker.draft == null) {
+                    picker.options.forEach { option ->
+                        FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = option.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (option.isDefault) {
+                                        FitTrackBadge(
+                                            label = "PREDET.",
+                                            tone = FitTrackBadgeTone.Active
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "${option.targetSets} series · ${option.targetRepsText} reps",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    TextButton(
+                                        onClick = { onApplyVariant(option.variantKey) },
+                                        enabled = !option.isCurrent
+                                    ) {
+                                        Text(if (option.isCurrent) "Usando ahora" else "Usar hoy")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    FilledTonalButton(
+                        onClick = onStartCreating,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Crear alternativa")
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = picker.draft.name,
+                        onValueChange = onDraftNameChange,
+                        label = { Text("Nombre") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                        OutlinedTextField(
+                            value = picker.draft.targetSets,
+                            onValueChange = onDraftSetsChange,
+                            label = { Text("Series") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = picker.draft.targetRepsText,
+                            onValueChange = onDraftRepsChange,
+                            label = { Text("Reps") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    OutlinedTextField(
+                        value = picker.draft.notes,
+                        onValueChange = onDraftNotesChange,
+                        label = { Text("Notas") },
+                        minLines = 2,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = onCancelCreating) {
+                            Text("Cancelar")
+                        }
+                        TextButton(
+                            onClick = onSaveAlternative,
+                            enabled = picker.draft.canSave && !picker.isSaving
+                        ) {
+                            Text("Guardar y usar")
+                        }
+                    }
+                }
             }
         }
     }

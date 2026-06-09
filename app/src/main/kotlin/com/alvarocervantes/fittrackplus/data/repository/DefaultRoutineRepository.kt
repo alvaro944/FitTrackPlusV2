@@ -5,14 +5,18 @@ import com.alvarocervantes.fittrackplus.core.database.FitTrackPlusDatabase
 import com.alvarocervantes.fittrackplus.data.local.dao.RoutineDao
 import com.alvarocervantes.fittrackplus.data.local.entity.RoutineDayEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.RoutineEntity
+import com.alvarocervantes.fittrackplus.data.local.entity.RoutineExerciseAlternativeEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.RoutineExerciseEntity
 import com.alvarocervantes.fittrackplus.data.local.relation.RoutineWithDays
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDayDraft
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDaySnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDraft
+import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseAlternativeDraft
+import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseAlternativeSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSummary
+import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -83,6 +87,41 @@ class DefaultRoutineRepository @Inject constructor(
         }
     }
 
+    override suspend fun createExerciseAlternative(
+        routineExerciseId: Long,
+        draft: RoutineExerciseAlternativeDraft
+    ): RoutineExerciseAlternativeSnapshot {
+        return database.withTransaction {
+            val routine = routineDao.getRoutineWithDaysForExercise(routineExerciseId)
+                ?: error("No se encontro el ejercicio base para crear una alternativa.")
+            val exerciseWithAlternatives = routine.days
+                .flatMap { it.exercises }
+                .firstOrNull { it.exercise.id == routineExerciseId }
+                ?: error("No se encontro el ejercicio base para crear una alternativa.")
+
+            val alternative = RoutineExerciseAlternativeEntity(
+                routineExerciseId = routineExerciseId,
+                variantKey = draft.variantKey ?: newVariantKey(),
+                name = draft.name.trim(),
+                targetSets = draft.targetSets,
+                targetRepsText = draft.targetRepsText.trim(),
+                position = exerciseWithAlternatives.alternatives.size,
+                notes = draft.notes?.trim()?.ifBlank { null }
+            )
+            val alternativeId = routineDao.insertExerciseAlternative(alternative)
+            alternative.toSnapshot(id = alternativeId)
+        }
+    }
+
+    override suspend fun setExerciseDefaultVariant(routineExerciseId: Long, variantKey: String) {
+        database.withTransaction {
+            routineDao.updateExerciseDefaultVariant(
+                routineExerciseId = routineExerciseId,
+                defaultVariantKey = variantKey
+            )
+        }
+    }
+
     override suspend fun archiveRoutine(routineId: Long) {
         routineDao.archiveRoutine(
             routineId = routineId,
@@ -108,9 +147,12 @@ class DefaultRoutineRepository @Inject constructor(
             )
 
             dayDraft.exercises.forEachIndexed { exerciseIndex, exerciseDraft ->
-                routineDao.insertExercise(
+                val variantKey = exerciseDraft.variantKey ?: newVariantKey()
+                val exerciseId = routineDao.insertExercise(
                     RoutineExerciseEntity(
                         routineDayId = dayId,
+                        variantKey = variantKey,
+                        defaultVariantKey = exerciseDraft.defaultVariantKey ?: variantKey,
                         name = exerciseDraft.name.trim(),
                         targetSets = exerciseDraft.targetSets,
                         targetRepsText = exerciseDraft.targetRepsText.trim(),
@@ -118,6 +160,19 @@ class DefaultRoutineRepository @Inject constructor(
                         notes = exerciseDraft.notes?.trim()?.ifBlank { null }
                     )
                 )
+                exerciseDraft.alternatives.forEachIndexed { alternativeIndex, alternativeDraft ->
+                    routineDao.insertExerciseAlternative(
+                        RoutineExerciseAlternativeEntity(
+                            routineExerciseId = exerciseId,
+                            variantKey = alternativeDraft.variantKey ?: newVariantKey(),
+                            name = alternativeDraft.name.trim(),
+                            targetSets = alternativeDraft.targetSets,
+                            targetRepsText = alternativeDraft.targetRepsText.trim(),
+                            position = alternativeIndex,
+                            notes = alternativeDraft.notes?.trim()?.ifBlank { null }
+                        )
+                    )
+                }
             }
         }
     }
@@ -135,18 +190,40 @@ private fun RoutineWithDays.toSnapshot(): RoutineSnapshot {
                     name = dayWithExercises.day.name,
                     position = dayWithExercises.day.position,
                     exercises = dayWithExercises.exercises
-                        .sortedBy { it.position }
-                        .map { exercise ->
+                        .sortedBy { it.exercise.position }
+                        .map { exerciseWithAlternatives ->
+                            val exercise = exerciseWithAlternatives.exercise
                             RoutineExerciseSnapshot(
                                 id = exercise.id,
+                                variantKey = exercise.variantKey,
+                                defaultVariantKey = exercise.defaultVariantKey,
                                 name = exercise.name,
                                 targetSets = exercise.targetSets,
                                 targetRepsText = exercise.targetRepsText,
                                 position = exercise.position,
-                                notes = exercise.notes
+                                notes = exercise.notes,
+                                alternatives = exerciseWithAlternatives.alternatives
+                                    .sortedBy { it.position }
+                                    .map { alternative ->
+                                        alternative.toSnapshot()
+                                    }
                             )
                         }
                 )
             }
     )
 }
+
+private fun RoutineExerciseAlternativeEntity.toSnapshot(id: Long = this.id): RoutineExerciseAlternativeSnapshot {
+    return RoutineExerciseAlternativeSnapshot(
+        id = id,
+        variantKey = variantKey,
+        name = name,
+        targetSets = targetSets,
+        targetRepsText = targetRepsText,
+        position = position,
+        notes = notes
+    )
+}
+
+private fun newVariantKey(): String = UUID.randomUUID().toString()

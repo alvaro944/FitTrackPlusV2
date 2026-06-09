@@ -8,6 +8,8 @@ import com.alvarocervantes.fittrackplus.data.local.entity.WorkoutSessionEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.WorkoutSetEntity
 import com.alvarocervantes.fittrackplus.data.local.relation.WorkoutSessionWithExercises
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDaySnapshot
+import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseAlternativeSnapshot
+import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -73,17 +75,19 @@ class DefaultWorkoutRepository @Inject constructor(
             )
 
             day.exercises.forEach { exercise ->
+                val activeVariant = exercise.activeVariant()
                 val workoutExerciseId = workoutDao.insertExercise(
                     WorkoutExerciseEntity(
                         sessionId = sessionId,
                         exerciseTemplateId = exercise.id,
-                        exerciseNameSnapshot = exercise.name,
-                        targetRepsSnapshot = exercise.targetRepsText,
+                        performedVariantKey = activeVariant.variantKey,
+                        exerciseNameSnapshot = activeVariant.name,
+                        targetRepsSnapshot = activeVariant.targetRepsText,
                         position = exercise.position
                     )
                 )
 
-                repeat(exercise.targetSets) { setIndex ->
+                repeat(activeVariant.targetSets) { setIndex ->
                     workoutDao.insertSet(
                         WorkoutSetEntity(
                             workoutExerciseId = workoutExerciseId,
@@ -96,6 +100,43 @@ class DefaultWorkoutRepository @Inject constructor(
             }
 
             sessionId
+        }
+    }
+
+    override suspend fun replaceWorkoutExerciseVariant(
+        workoutExerciseId: Long,
+        variantKey: String,
+        exerciseName: String,
+        targetRepsText: String,
+        targetSets: Int
+    ): Boolean {
+        return database.withTransaction {
+            val workoutExercise = workoutDao.getExercise(workoutExerciseId) ?: return@withTransaction false
+            val currentSets = workoutDao.getSetsForExercise(workoutExerciseId)
+            val hasRecordedData = currentSets.any { it.weightKg > 0.0 || it.reps > 0 }
+            if (hasRecordedData) {
+                return@withTransaction false
+            }
+
+            workoutDao.updateExercise(
+                workoutExercise.copy(
+                    performedVariantKey = variantKey,
+                    exerciseNameSnapshot = exerciseName,
+                    targetRepsSnapshot = targetRepsText
+                )
+            )
+            workoutDao.deleteSetsForExercise(workoutExerciseId)
+            repeat(targetSets) { setIndex ->
+                workoutDao.insertSet(
+                    WorkoutSetEntity(
+                        workoutExerciseId = workoutExerciseId,
+                        setNumber = setIndex + 1,
+                        weightKg = 0.0,
+                        reps = 0
+                    )
+                )
+            }
+            true
         }
     }
 
@@ -119,15 +160,45 @@ class DefaultWorkoutRepository @Inject constructor(
         )
     }
 
-    override suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double? {
-        return workoutDao.getLastWeightKgForExerciseSet(exerciseName, setNumber)
+    override suspend fun getLastWeightKgForExerciseSet(variantKey: String, setNumber: Int): Double? {
+        return workoutDao.getLastWeightKgForExerciseSet(variantKey, setNumber)
     }
 
-    override suspend fun getMaxWeightForExercise(exerciseName: String): Double? {
-        return workoutDao.getMaxWeightForExercise(exerciseName)
+    override suspend fun getMaxWeightForExercise(variantKey: String): Double? {
+        return workoutDao.getMaxWeightForExercise(variantKey)
     }
 
-    override suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double? {
-        return workoutDao.getMaxSetVolumeForExercise(exerciseName)
+    override suspend fun getMaxSetVolumeForExercise(variantKey: String): Double? {
+        return workoutDao.getMaxSetVolumeForExercise(variantKey)
     }
+}
+
+private data class ActiveRoutineVariant(
+    val variantKey: String,
+    val name: String,
+    val targetSets: Int,
+    val targetRepsText: String
+)
+
+private fun RoutineExerciseSnapshot.activeVariant(): ActiveRoutineVariant {
+    val selectedAlternative = alternatives.firstOrNull { it.variantKey == defaultVariantKey }
+    return if (selectedAlternative != null) {
+        selectedAlternative.toActiveVariant()
+    } else {
+        ActiveRoutineVariant(
+            variantKey = variantKey,
+            name = name,
+            targetSets = targetSets,
+            targetRepsText = targetRepsText
+        )
+    }
+}
+
+private fun RoutineExerciseAlternativeSnapshot.toActiveVariant(): ActiveRoutineVariant {
+    return ActiveRoutineVariant(
+        variantKey = variantKey,
+        name = name,
+        targetSets = targetSets,
+        targetRepsText = targetRepsText
+    )
 }

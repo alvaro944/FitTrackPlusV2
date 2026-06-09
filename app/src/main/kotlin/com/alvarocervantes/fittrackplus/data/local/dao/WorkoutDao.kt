@@ -61,6 +61,9 @@ interface WorkoutDao {
     suspend fun updateSet(set: WorkoutSetEntity)
 
     @Update
+    suspend fun updateExercise(exercise: WorkoutExerciseEntity)
+
+    @Update
     suspend fun updateSession(session: WorkoutSessionEntity)
 
     @Query("SELECT * FROM workout_sessions WHERE id = :sessionId")
@@ -69,36 +72,45 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_sets WHERE id = :setId")
     suspend fun getSet(setId: Long): WorkoutSetEntity?
 
+    @Query("SELECT * FROM workout_exercises WHERE id = :workoutExerciseId")
+    suspend fun getExercise(workoutExerciseId: Long): WorkoutExerciseEntity?
+
+    @Query("SELECT * FROM workout_sets WHERE workoutExerciseId = :workoutExerciseId ORDER BY setNumber ASC")
+    suspend fun getSetsForExercise(workoutExerciseId: Long): List<WorkoutSetEntity>
+
+    @Query("DELETE FROM workout_sets WHERE workoutExerciseId = :workoutExerciseId")
+    suspend fun deleteSetsForExercise(workoutExerciseId: Long)
+
     @Query("""
         SELECT ws.weightKg FROM workout_sets ws
         INNER JOIN workout_exercises we ON ws.workoutExerciseId = we.id
         INNER JOIN workout_sessions sess ON we.sessionId = sess.id
-        WHERE we.exerciseNameSnapshot = :exerciseName
+        WHERE we.performedVariantKey = :variantKey
         AND sess.finishedAt IS NOT NULL
         AND ws.setNumber = :setNumber
         ORDER BY sess.startedAt DESC
         LIMIT 1
     """)
-    suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double?
+    suspend fun getLastWeightKgForExerciseSet(variantKey: String, setNumber: Int): Double?
 
     @Query("""
         SELECT MAX(ws.weightKg) FROM workout_sets ws
         INNER JOIN workout_exercises we ON ws.workoutExerciseId = we.id
         INNER JOIN workout_sessions sess ON we.sessionId = sess.id
-        WHERE LOWER(TRIM(we.exerciseNameSnapshot)) = LOWER(TRIM(:exerciseName))
+        WHERE we.performedVariantKey = :variantKey
         AND sess.finishedAt IS NOT NULL
         AND ws.reps > 0
     """)
-    suspend fun getMaxWeightForExercise(exerciseName: String): Double?
+    suspend fun getMaxWeightForExercise(variantKey: String): Double?
 
     @Query("""
         SELECT MAX(ws.weightKg * ws.reps) FROM workout_sets ws
         INNER JOIN workout_exercises we ON ws.workoutExerciseId = we.id
         INNER JOIN workout_sessions sess ON we.sessionId = sess.id
-        WHERE LOWER(TRIM(we.exerciseNameSnapshot)) = LOWER(TRIM(:exerciseName))
+        WHERE we.performedVariantKey = :variantKey
         AND sess.finishedAt IS NOT NULL
         AND ws.reps > 0
         AND ws.weightKg > 0
     """)
-    suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double?
+    suspend fun getMaxSetVolumeForExercise(variantKey: String): Double?
 }

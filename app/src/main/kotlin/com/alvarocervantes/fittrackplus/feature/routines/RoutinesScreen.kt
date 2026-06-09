@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
@@ -183,6 +184,13 @@ fun RoutinesScreen(
                 onExerciseSetsChange = viewModel::updateExerciseSets,
                 onExerciseRepsChange = viewModel::updateExerciseReps,
                 onExerciseNotesChange = viewModel::updateExerciseNotes,
+                onAddExerciseAlternative = viewModel::addExerciseAlternative,
+                onExerciseAlternativeNameChange = viewModel::updateExerciseAlternativeName,
+                onExerciseAlternativeSetsChange = viewModel::updateExerciseAlternativeSets,
+                onExerciseAlternativeRepsChange = viewModel::updateExerciseAlternativeReps,
+                onExerciseAlternativeNotesChange = viewModel::updateExerciseAlternativeNotes,
+                onRemoveExerciseAlternative = viewModel::removeExerciseAlternative,
+                onSetExerciseDefaultVariant = viewModel::setExerciseDefaultVariant,
                 onDuplicateExercise = { dayIndex, exerciseIndex ->
                     viewModel.applyEditorOperation(
                         RoutineEditorOperation.DuplicateExercise(dayIndex, exerciseIndex)
@@ -653,6 +661,13 @@ private fun RoutineEditorContent(
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
+    onAddExerciseAlternative: (Int, Int) -> Unit,
+    onExerciseAlternativeNameChange: (Int, Int, Int, String) -> Unit,
+    onExerciseAlternativeSetsChange: (Int, Int, Int, String) -> Unit,
+    onExerciseAlternativeRepsChange: (Int, Int, Int, String) -> Unit,
+    onExerciseAlternativeNotesChange: (Int, Int, Int, String) -> Unit,
+    onRemoveExerciseAlternative: (Int, Int, Int) -> Unit,
+    onSetExerciseDefaultVariant: (Int, Int, String?) -> Unit,
     onDuplicateExercise: (Int, Int) -> Unit,
     onMoveExercise: (Int, Int, MoveDirection) -> Unit,
     onRemoveExercise: (Int, Int) -> Unit
@@ -725,6 +740,13 @@ private fun RoutineEditorContent(
                 onExerciseSetsChange = onExerciseSetsChange,
                 onExerciseRepsChange = onExerciseRepsChange,
                 onExerciseNotesChange = onExerciseNotesChange,
+                onAddExerciseAlternative = onAddExerciseAlternative,
+                onExerciseAlternativeNameChange = onExerciseAlternativeNameChange,
+                onExerciseAlternativeSetsChange = onExerciseAlternativeSetsChange,
+                onExerciseAlternativeRepsChange = onExerciseAlternativeRepsChange,
+                onExerciseAlternativeNotesChange = onExerciseAlternativeNotesChange,
+                onRemoveExerciseAlternative = onRemoveExerciseAlternative,
+                onSetExerciseDefaultVariant = onSetExerciseDefaultVariant,
                 onDuplicateExercise = onDuplicateExercise,
                 onMoveExercise = onMoveExercise,
                 onRemoveExercise = onRemoveExercise
@@ -806,6 +828,13 @@ private fun RoutineDayEditor(
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
+    onAddExerciseAlternative: (Int, Int) -> Unit,
+    onExerciseAlternativeNameChange: (Int, Int, Int, String) -> Unit,
+    onExerciseAlternativeSetsChange: (Int, Int, Int, String) -> Unit,
+    onExerciseAlternativeRepsChange: (Int, Int, Int, String) -> Unit,
+    onExerciseAlternativeNotesChange: (Int, Int, Int, String) -> Unit,
+    onRemoveExerciseAlternative: (Int, Int, Int) -> Unit,
+    onSetExerciseDefaultVariant: (Int, Int, String?) -> Unit,
     onDuplicateExercise: (Int, Int) -> Unit,
     onMoveExercise: (Int, Int, MoveDirection) -> Unit,
     onRemoveExercise: (Int, Int) -> Unit
@@ -887,6 +916,13 @@ private fun RoutineDayEditor(
                 onExerciseSetsChange = onExerciseSetsChange,
                 onExerciseRepsChange = onExerciseRepsChange,
                 onExerciseNotesChange = onExerciseNotesChange,
+                onAddExerciseAlternative = onAddExerciseAlternative,
+                onExerciseAlternativeNameChange = onExerciseAlternativeNameChange,
+                onExerciseAlternativeSetsChange = onExerciseAlternativeSetsChange,
+                onExerciseAlternativeRepsChange = onExerciseAlternativeRepsChange,
+                onExerciseAlternativeNotesChange = onExerciseAlternativeNotesChange,
+                onRemoveExerciseAlternative = onRemoveExerciseAlternative,
+                onSetExerciseDefaultVariant = onSetExerciseDefaultVariant,
                 onDuplicateExercise = onDuplicateExercise,
                 onMoveExercise = onMoveExercise,
                 onRemoveExercise = onRemoveExercise
@@ -922,6 +958,13 @@ private fun RoutineExerciseEditor(
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
+    onAddExerciseAlternative: (Int, Int) -> Unit,
+    onExerciseAlternativeNameChange: (Int, Int, Int, String) -> Unit,
+    onExerciseAlternativeSetsChange: (Int, Int, Int, String) -> Unit,
+    onExerciseAlternativeRepsChange: (Int, Int, Int, String) -> Unit,
+    onExerciseAlternativeNotesChange: (Int, Int, Int, String) -> Unit,
+    onRemoveExerciseAlternative: (Int, Int, Int) -> Unit,
+    onSetExerciseDefaultVariant: (Int, Int, String?) -> Unit,
     onDuplicateExercise: (Int, Int) -> Unit,
     onMoveExercise: (Int, Int, MoveDirection) -> Unit,
     onRemoveExercise: (Int, Int) -> Unit
@@ -932,6 +975,8 @@ private fun RoutineExerciseEditor(
     var customRepsDraft by remember { mutableStateOf("") }
     var showNotesDialog by remember { mutableStateOf(false) }
     var notesDraft by remember { mutableStateOf("") }
+    var showAlternativesDialog by remember { mutableStateOf(false) }
+    var editingAlternativeIndex by remember { mutableStateOf<Int?>(null) }
 
     if (showCustomRepsDialog) {
         val customRepsError = customRepsDraft
@@ -1019,6 +1064,46 @@ private fun RoutineExerciseEditor(
         )
     }
 
+    if (showAlternativesDialog) {
+        ExerciseAlternativesEditorDialog(
+            exercise = exercise,
+            editingAlternativeIndex = editingAlternativeIndex,
+            onDismiss = {
+                showAlternativesDialog = false
+                editingAlternativeIndex = null
+            },
+            onSetBaseAsDefault = { onSetExerciseDefaultVariant(dayIndex, exerciseIndex, null) },
+            onSetAlternativeAsDefault = { variantKey ->
+                onSetExerciseDefaultVariant(dayIndex, exerciseIndex, variantKey)
+            },
+            onStartCreateAlternative = {
+                val nextIndex = exercise.alternatives.size
+                onAddExerciseAlternative(dayIndex, exerciseIndex)
+                editingAlternativeIndex = nextIndex
+            },
+            onEditAlternative = { alternativeIndex ->
+                editingAlternativeIndex = alternativeIndex
+            },
+            onRemoveAlternative = { alternativeIndex ->
+                onRemoveExerciseAlternative(dayIndex, exerciseIndex, alternativeIndex)
+                if (editingAlternativeIndex == alternativeIndex) editingAlternativeIndex = null
+            },
+            onAlternativeNameChange = { alternativeIndex, value ->
+                onExerciseAlternativeNameChange(dayIndex, exerciseIndex, alternativeIndex, value)
+            },
+            onAlternativeSetsChange = { alternativeIndex, value ->
+                onExerciseAlternativeSetsChange(dayIndex, exerciseIndex, alternativeIndex, value)
+            },
+            onAlternativeRepsChange = { alternativeIndex, value ->
+                onExerciseAlternativeRepsChange(dayIndex, exerciseIndex, alternativeIndex, value)
+            },
+            onAlternativeNotesChange = { alternativeIndex, value ->
+                onExerciseAlternativeNotesChange(dayIndex, exerciseIndex, alternativeIndex, value)
+            },
+            onCloseEditor = { editingAlternativeIndex = null }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1063,6 +1148,15 @@ private fun RoutineExerciseEditor(
                     Icon(
                         imageVector = Icons.Filled.ContentCopy,
                         contentDescription = "Duplicar ejercicio ${exerciseIndex + 1}"
+                    )
+                }
+                IconButton(
+                    onClick = { showAlternativesDialog = true },
+                    modifier = Modifier.minimumInteractiveComponentSize()
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Refresh,
+                        contentDescription = "Ver ejercicios alternativos para ${exercise.name.ifBlank { "este ejercicio" }}"
                     )
                 }
                 IconButton(
@@ -1127,6 +1221,138 @@ private fun RoutineExerciseEditor(
             }
         )
     }
+}
+
+@Composable
+private fun ExerciseAlternativesEditorDialog(
+    exercise: RoutineExerciseEditorUiState,
+    editingAlternativeIndex: Int?,
+    onDismiss: () -> Unit,
+    onSetBaseAsDefault: () -> Unit,
+    onSetAlternativeAsDefault: (String?) -> Unit,
+    onStartCreateAlternative: () -> Unit,
+    onEditAlternative: (Int) -> Unit,
+    onRemoveAlternative: (Int) -> Unit,
+    onAlternativeNameChange: (Int, String) -> Unit,
+    onAlternativeSetsChange: (Int, String) -> Unit,
+    onAlternativeRepsChange: (Int, String) -> Unit,
+    onAlternativeNotesChange: (Int, String) -> Unit,
+    onCloseEditor: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Ejercicios alternativos") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                        Text(
+                            text = exercise.name.ifBlank { "Ejercicio base" },
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "${exercise.targetSets} series · ${exercise.targetRepsText} reps",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(onClick = onSetBaseAsDefault) {
+                                Text(
+                                    if (exercise.defaultVariantKey == null || exercise.defaultVariantKey == exercise.variantKey) {
+                                        "Predeterminada"
+                                    } else {
+                                        "Usar por defecto"
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                exercise.alternatives.forEachIndexed { index, alternative ->
+                    val isEditing = editingAlternativeIndex == index
+                    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                            if (isEditing) {
+                                OutlinedTextField(
+                                    value = alternative.name,
+                                    onValueChange = { onAlternativeNameChange(index, it) },
+                                    label = { Text("Nombre") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                                    OutlinedTextField(
+                                        value = alternative.targetSets,
+                                        onValueChange = { onAlternativeSetsChange(index, it) },
+                                        label = { Text("Series") },
+                                        singleLine = true,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    OutlinedTextField(
+                                        value = alternative.targetRepsText,
+                                        onValueChange = { onAlternativeRepsChange(index, it) },
+                                        label = { Text("Reps") },
+                                        singleLine = true,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                OutlinedTextField(
+                                    value = alternative.notes,
+                                    onValueChange = { onAlternativeNotesChange(index, it) },
+                                    label = { Text("Notas") },
+                                    minLines = 2,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                    TextButton(onClick = onCloseEditor) {
+                                        Text("Listo")
+                                    }
+                                }
+                            } else {
+                                Text(text = alternative.name, style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    text = "${alternative.targetSets} series · ${alternative.targetRepsText} reps",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                    TextButton(onClick = { onEditAlternative(index) }) {
+                                        Text("Editar")
+                                    }
+                                    TextButton(onClick = { onSetAlternativeAsDefault(alternative.variantKey) }) {
+                                        Text(
+                                            if (exercise.defaultVariantKey == alternative.variantKey) {
+                                                "Predeterminada"
+                                            } else {
+                                                "Usar por defecto"
+                                            }
+                                        )
+                                    }
+                                    TextButton(onClick = { onRemoveAlternative(index) }) {
+                                        Text("Eliminar")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                FilledTonalButton(
+                    onClick = onStartCreateAlternative,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Crear alternativa")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cerrar")
+            }
+        },
+        dismissButton = {}
+    )
 }
 
 @Composable

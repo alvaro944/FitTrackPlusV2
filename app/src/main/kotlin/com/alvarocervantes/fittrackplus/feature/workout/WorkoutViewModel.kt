@@ -8,6 +8,9 @@ import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesReposito
 import com.alvarocervantes.fittrackplus.data.repository.RoutineRepository
 import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
 import com.alvarocervantes.fittrackplus.domain.model.PrType
+import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseAlternativeDraft
+import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseSnapshot
+import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutPreview
 import com.alvarocervantes.fittrackplus.domain.usecase.DetectPersonalRecordUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.FinishWorkoutSessionUseCase
@@ -31,6 +34,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@Suppress("TooManyFunctions")
 @HiltViewModel
 class WorkoutViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
@@ -89,6 +93,141 @@ class WorkoutViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             loadWorkoutState(_uiState.value.activeRoutineId)
+        }
+    }
+
+    fun openExerciseAlternatives(workoutExerciseId: Long) {
+        viewModelScope.launch {
+            val picker = buildAlternativePicker(workoutExerciseId)
+            if (picker == null) {
+                _uiState.update { state ->
+                    state.copy(message = "No se pudieron cargar las alternativas de este ejercicio.")
+                }
+            } else {
+                _uiState.update { state -> state.copy(alternativePicker = picker) }
+            }
+        }
+    }
+
+    fun dismissExerciseAlternatives() {
+        _uiState.update { state -> state.copy(alternativePicker = null) }
+    }
+
+    fun startCreatingExerciseAlternative() {
+        _uiState.update { state ->
+            val picker = state.alternativePicker ?: return@update state
+            val seed = picker.currentOption
+            state.copy(
+                alternativePicker = picker.copy(
+                    draft = ExerciseAlternativeDraftUiState(
+                        name = seed.name,
+                        targetSets = seed.targetSets.toString(),
+                        targetRepsText = seed.targetRepsText,
+                        notes = seed.notes.orEmpty()
+                    )
+                )
+            )
+        }
+    }
+
+    fun cancelCreatingExerciseAlternative() {
+        _uiState.update { state ->
+            val picker = state.alternativePicker ?: return@update state
+            state.copy(alternativePicker = picker.copy(draft = null, isSaving = false))
+        }
+    }
+
+    fun updateAlternativeDraftName(name: String) {
+        updateAlternativeDraft { draft -> draft.copy(name = normalizeWorkoutAlternativeNameInput(name)) }
+    }
+
+    fun updateAlternativeDraftSets(targetSets: String) {
+        updateAlternativeDraft { draft -> draft.copy(targetSets = targetSets) }
+    }
+
+    fun updateAlternativeDraftReps(targetRepsText: String) {
+        updateAlternativeDraft { draft -> draft.copy(targetRepsText = targetRepsText) }
+    }
+
+    fun updateAlternativeDraftNotes(notes: String) {
+        updateAlternativeDraft { draft -> draft.copy(notes = notes) }
+    }
+
+    fun saveExerciseAlternative() {
+        val picker = _uiState.value.alternativePicker ?: return
+        val draft = picker.draft ?: return
+        if (!draft.canSave) return
+
+        viewModelScope.launch {
+            _uiState.update { state ->
+                state.copy(alternativePicker = state.alternativePicker?.copy(isSaving = true))
+            }
+            runCatching {
+                val alternative = routineRepository.createExerciseAlternative(
+                    routineExerciseId = picker.routineExerciseId,
+                    draft = RoutineExerciseAlternativeDraft(
+                        name = draft.name.trim(),
+                        targetSets = draft.targetSets.toInt(),
+                        targetRepsText = draft.targetRepsText.trim(),
+                        notes = draft.notes.trim().ifBlank { null }
+                    )
+                )
+                val applied = workoutRepository.replaceWorkoutExerciseVariant(
+                    workoutExerciseId = picker.workoutExerciseId,
+                    variantKey = alternative.variantKey,
+                    exerciseName = alternative.name,
+                    targetRepsText = alternative.targetRepsText,
+                    targetSets = alternative.targetSets
+                )
+                applied
+            }.onSuccess { applied ->
+                if (applied) {
+                    refreshActiveSessionFromRepository()
+                    _uiState.update { state ->
+                        state.copy(
+                            alternativePicker = null,
+                            message = "Alternativa creada y aplicada para este entrenamiento."
+                        )
+                    }
+                } else {
+                    _uiState.update { state ->
+                        state.copy(
+                            alternativePicker = state.alternativePicker?.copy(isSaving = false),
+                            message = "Cambia la variante antes de registrar series en este ejercicio."
+                        )
+                    }
+                }
+            }.onFailure { throwable ->
+                _uiState.update { state ->
+                    state.copy(
+                        alternativePicker = state.alternativePicker?.copy(isSaving = false),
+                        message = throwable.message ?: "No se pudo crear la alternativa."
+                    )
+                }
+            }
+        }
+    }
+
+    fun applyExerciseVariant(variantKey: String) {
+        val picker = _uiState.value.alternativePicker ?: return
+        val option = picker.options.firstOrNull { it.variantKey == variantKey } ?: return
+
+        viewModelScope.launch {
+            val applied = workoutRepository.replaceWorkoutExerciseVariant(
+                workoutExerciseId = picker.workoutExerciseId,
+                variantKey = option.variantKey,
+                exerciseName = option.name,
+                targetRepsText = option.targetRepsText,
+                targetSets = option.targetSets
+            )
+            if (applied) {
+                refreshActiveSessionFromRepository()
+                _uiState.update { state -> state.copy(alternativePicker = null) }
+            } else {
+                _uiState.update { state ->
+                    state.copy(message = "Cambia la variante antes de registrar series en este ejercicio.")
+                }
+            }
         }
     }
 
@@ -155,8 +294,8 @@ class WorkoutViewModel @Inject constructor(
     fun updateSetReps(setId: Long, repsText: String) {
         val set = _uiState.value.activeSession?.findSet(setId) ?: return
         val previousRepsWasZero = (set.repsText.toIntOrNull() ?: 0) == 0
-        val exerciseName = _uiState.value.activeSession?.exercises
-            ?.firstOrNull { ex -> ex.sets.any { it.id == setId } }?.name
+        val exercise = _uiState.value.activeSession?.exercises
+            ?.firstOrNull { ex -> ex.sets.any { it.id == setId } }
         val shouldAutoStartTimer = shouldAutoStartRestTimer(
             previousRepsText = set.repsText,
             nextRepsText = repsText,
@@ -170,7 +309,8 @@ class WorkoutViewModel @Inject constructor(
             setId = setId,
             weightText = set.weightText,
             repsText = repsText,
-            exerciseName = exerciseName,
+            exerciseName = exercise?.name,
+            variantKey = exercise?.variantKey,
             previousRepsWasZero = previousRepsWasZero
         )
     }
@@ -256,6 +396,7 @@ class WorkoutViewModel @Inject constructor(
         weightText: String,
         repsText: String,
         exerciseName: String? = null,
+        variantKey: String? = null,
         previousRepsWasZero: Boolean = false
     ) {
         viewModelScope.launch {
@@ -266,10 +407,10 @@ class WorkoutViewModel @Inject constructor(
                     repsText = repsText
                 )
             }.onSuccess {
-                if (previousRepsWasZero && exerciseName != null) {
+                if (previousRepsWasZero && exerciseName != null && variantKey != null) {
                     val reps = repsText.toIntOrNull() ?: 0
                     val weightKg = weightText.toDoubleOrNull() ?: 0.0
-                    detectPrIfEligible(setId, exerciseName, weightKg, reps)
+                    detectPrIfEligible(setId, variantKey, weightKg, reps)
                 }
             }.onFailure { throwable ->
                 _uiState.update { state ->
@@ -281,12 +422,12 @@ class WorkoutViewModel @Inject constructor(
 
     private suspend fun detectPrIfEligible(
         setId: Long,
-        exerciseName: String,
+        variantKey: String,
         weightKg: Double,
         reps: Int
     ) {
         if (reps <= 0 || weightKg <= 0.0) return
-        val prType = detectPersonalRecord(exerciseName, weightKg, reps)
+        val prType = detectPersonalRecord(variantKey, weightKg, reps)
         if (prType != null) {
             updateSetState(setId) { it.copy(prType = prType) }
             _uiState.update { state ->
@@ -346,7 +487,7 @@ class WorkoutViewModel @Inject constructor(
                 exercise.copy(
                     sets = exercise.sets.map { set ->
                         val prevKg = workoutRepository.getLastWeightKgForExerciseSet(
-                            exerciseName = exercise.name,
+                            variantKey = exercise.variantKey,
                             setNumber = set.setNumber
                         )
                         set.copy(previousWeight = prevKg?.toInputText())
@@ -390,6 +531,43 @@ class WorkoutViewModel @Inject constructor(
         restTimerJob?.cancel()
         restTimerJob = null
     }
+
+    private fun updateAlternativeDraft(
+        transform: (ExerciseAlternativeDraftUiState) -> ExerciseAlternativeDraftUiState
+    ) {
+        _uiState.update { state ->
+            val picker = state.alternativePicker ?: return@update state
+            val draft = picker.draft ?: return@update state
+            state.copy(alternativePicker = picker.copy(draft = transform(draft)))
+        }
+    }
+
+    private suspend fun refreshActiveSessionFromRepository() {
+        val sessionId = _uiState.value.activeSession?.sessionId ?: return
+        val refreshed = workoutRepository.getSessionWithExercises(sessionId)
+            ?.toUiState()
+            ?.let { enrichWithPreviousWeights(it) }
+        _uiState.update { state -> state.copy(activeSession = refreshed) }
+    }
+
+    @Suppress("ReturnCount")
+    private suspend fun buildAlternativePicker(workoutExerciseId: Long): ExerciseAlternativesUiState? {
+        val currentState = _uiState.value
+        val session = currentState.activeSession ?: return null
+        val routineId = currentState.activeRoutineId ?: return null
+        val workoutExercise = session.exercises.firstOrNull { it.id == workoutExerciseId } ?: return null
+        val routineExerciseId = workoutExercise.exerciseTemplateId ?: return null
+        val routine = routineRepository.getRoutineSnapshot(routineId) ?: return null
+        val routineExercise = routine.findExercise(routineExerciseId) ?: return null
+        return ExerciseAlternativesUiState(
+            workoutExerciseId = workoutExerciseId,
+            routineExerciseId = routineExerciseId,
+            title = workoutExercise.name,
+            currentVariantKey = workoutExercise.variantKey,
+            defaultVariantKey = routineExercise.defaultVariantKey,
+            options = routineExercise.toVariantOptions(currentVariantKey = workoutExercise.variantKey)
+        )
+    }
 }
 
 data class WorkoutUiState(
@@ -399,6 +577,7 @@ data class WorkoutUiState(
     val activeRoutineId: Long? = null,
     val preview: WorkoutPreviewUiState? = null,
     val activeSession: ActiveWorkoutSessionUiState? = null,
+    val alternativePicker: ExerciseAlternativesUiState? = null,
     val restTimer: RestTimerUiState = RestTimerUiState(),
     val celebration: CelebrationData? = null,
     val message: String? = null
@@ -430,6 +609,8 @@ data class ActiveWorkoutSessionUiState(
 
 data class WorkoutExerciseUiState(
     val id: Long,
+    val exerciseTemplateId: Long?,
+    val variantKey: String,
     val name: String,
     val targetRepsText: String,
     val sets: List<WorkoutSetUiState>
@@ -443,6 +624,42 @@ data class WorkoutSetUiState(
     val previousWeight: String? = null,
     val prType: PrType? = null
 )
+
+data class ExerciseAlternativesUiState(
+    val workoutExerciseId: Long,
+    val routineExerciseId: Long,
+    val title: String,
+    val currentVariantKey: String,
+    val defaultVariantKey: String,
+    val options: List<ExerciseVariantOptionUiState>,
+    val draft: ExerciseAlternativeDraftUiState? = null,
+    val isSaving: Boolean = false
+) {
+    val currentOption: ExerciseVariantOptionUiState
+        get() = options.firstOrNull { it.variantKey == currentVariantKey } ?: options.first()
+}
+
+data class ExerciseVariantOptionUiState(
+    val variantKey: String,
+    val name: String,
+    val targetSets: Int,
+    val targetRepsText: String,
+    val notes: String?,
+    val isDefault: Boolean,
+    val isCurrent: Boolean
+)
+
+data class ExerciseAlternativeDraftUiState(
+    val name: String = "",
+    val targetSets: String = "3",
+    val targetRepsText: String = "8-12",
+    val notes: String = ""
+) {
+    val canSave: Boolean
+        get() = name.isNotBlank() &&
+            targetSets.toIntOrNull()?.let { it in 1..99 } == true &&
+            com.alvarocervantes.fittrackplus.feature.routines.isValidTargetReps(targetRepsText)
+}
 
 private fun WorkoutPreview.toUiState(): WorkoutPreviewUiState {
     return WorkoutPreviewUiState(
@@ -465,6 +682,8 @@ private fun WorkoutSessionWithExercises.toUiState(): ActiveWorkoutSessionUiState
             .map { exerciseWithSets ->
                 WorkoutExerciseUiState(
                     id = exerciseWithSets.exercise.id,
+                    exerciseTemplateId = exerciseWithSets.exercise.exerciseTemplateId,
+                    variantKey = exerciseWithSets.exercise.performedVariantKey,
                     name = exerciseWithSets.exercise.exerciseNameSnapshot,
                     targetRepsText = exerciseWithSets.exercise.targetRepsSnapshot,
                     sets = exerciseWithSets.sets
@@ -493,5 +712,44 @@ private fun Double.toInputText(): String {
         toInt().toString()
     } else {
         toString()
+    }
+}
+
+private fun RoutineSnapshot.findExercise(routineExerciseId: Long): RoutineExerciseSnapshot? {
+    return days.flatMap { it.exercises }.firstOrNull { it.id == routineExerciseId }
+}
+
+private fun RoutineExerciseSnapshot.toVariantOptions(currentVariantKey: String): List<ExerciseVariantOptionUiState> {
+    val baseOption = ExerciseVariantOptionUiState(
+        variantKey = variantKey,
+        name = name,
+        targetSets = targetSets,
+        targetRepsText = targetRepsText,
+        notes = notes,
+        isDefault = defaultVariantKey == variantKey,
+        isCurrent = currentVariantKey == variantKey
+    )
+    return buildList {
+        add(baseOption)
+        alternatives.sortedBy { it.position }.forEach { alternative ->
+            add(
+                ExerciseVariantOptionUiState(
+                    variantKey = alternative.variantKey,
+                    name = alternative.name,
+                    targetSets = alternative.targetSets,
+                    targetRepsText = alternative.targetRepsText,
+                    notes = alternative.notes,
+                    isDefault = defaultVariantKey == alternative.variantKey,
+                    isCurrent = currentVariantKey == alternative.variantKey
+                )
+            )
+        }
+    }
+}
+
+private fun normalizeWorkoutAlternativeNameInput(value: String): String {
+    if (value.isEmpty()) return value
+    return value.replaceFirstChar { char ->
+        if (char.isLowerCase()) char.titlecase() else char.toString()
     }
 }

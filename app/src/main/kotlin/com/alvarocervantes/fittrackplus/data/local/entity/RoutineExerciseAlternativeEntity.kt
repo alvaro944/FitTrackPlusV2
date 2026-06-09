@@ -6,25 +6,25 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "routine_exercises",
+    tableName = "routine_exercise_alternatives",
     foreignKeys = [
         ForeignKey(
-            entity = RoutineDayEntity::class,
+            entity = RoutineExerciseEntity::class,
             parentColumns = ["id"],
-            childColumns = ["routineDayId"],
+            childColumns = ["routineExerciseId"],
             onDelete = ForeignKey.CASCADE
         )
     ],
     indices = [
-        Index("routineDayId"),
-        Index(value = ["routineDayId", "position"], unique = true)
+        Index("routineExerciseId"),
+        Index(value = ["routineExerciseId", "position"], unique = true),
+        Index(value = ["variantKey"], unique = true)
     ]
 )
-data class RoutineExerciseEntity(
+data class RoutineExerciseAlternativeEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val routineDayId: Long,
-    val variantKey: String = "",
-    val defaultVariantKey: String = "",
+    val routineExerciseId: Long,
+    val variantKey: String,
     val name: String,
     val targetSets: Int,
     val targetRepsText: String,

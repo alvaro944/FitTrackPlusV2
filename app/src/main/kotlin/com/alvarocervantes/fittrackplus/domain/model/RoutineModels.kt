@@ -18,6 +18,17 @@ data class RoutineDayDraft(
 )
 
 data class RoutineExerciseDraft(
+    val variantKey: String? = null,
+    val name: String,
+    val targetSets: Int,
+    val targetRepsText: String,
+    val notes: String? = null,
+    val defaultVariantKey: String? = null,
+    val alternatives: List<RoutineExerciseAlternativeDraft> = emptyList()
+)
+
+data class RoutineExerciseAlternativeDraft(
+    val variantKey: String? = null,
     val name: String,
     val targetSets: Int,
     val targetRepsText: String,
@@ -39,6 +50,19 @@ data class RoutineDaySnapshot(
 
 data class RoutineExerciseSnapshot(
     val id: Long,
+    val variantKey: String,
+    val defaultVariantKey: String,
+    val name: String,
+    val targetSets: Int,
+    val targetRepsText: String,
+    val position: Int,
+    val notes: String?,
+    val alternatives: List<RoutineExerciseAlternativeSnapshot>
+)
+
+data class RoutineExerciseAlternativeSnapshot(
+    val id: Long,
+    val variantKey: String,
     val name: String,
     val targetSets: Int,
     val targetRepsText: String,
