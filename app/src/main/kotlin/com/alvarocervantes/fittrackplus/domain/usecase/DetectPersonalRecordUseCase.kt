@@ -5,7 +5,7 @@ import com.alvarocervantes.fittrackplus.domain.model.PrType
 import javax.inject.Inject
 
 /**
- * Detecta si (exerciseName, weightKg, reps) supera estrictamente el mejor
+ * Detecta si (variantKey, weightKg, reps) supera estrictamente el mejor
  * registro histórico del ejercicio en sesiones **finalizadas**.
  * Devuelve el tipo de PR que se bate, o null si no hay nuevo record.
  */
@@ -13,7 +13,7 @@ class DetectPersonalRecordUseCase @Inject constructor(
     private val workoutRepository: WorkoutRepository
 ) {
     suspend operator fun invoke(
-        exerciseName: String,
+        variantKey: String,
         weightKg: Double,
         reps: Int
     ): PrType? {
@@ -21,8 +21,8 @@ class DetectPersonalRecordUseCase @Inject constructor(
 
         val setVolume = weightKg * reps
 
-        val prevMaxWeight = workoutRepository.getMaxWeightForExercise(exerciseName) ?: 0.0
-        val prevMaxVolume = workoutRepository.getMaxSetVolumeForExercise(exerciseName) ?: 0.0
+        val prevMaxWeight = workoutRepository.getMaxWeightForExercise(variantKey) ?: 0.0
+        val prevMaxVolume = workoutRepository.getMaxSetVolumeForExercise(variantKey) ?: 0.0
 
         return when {
             weightKg > prevMaxWeight -> PrType.MaxWeight

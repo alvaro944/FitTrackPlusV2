@@ -22,9 +22,16 @@ interface WorkoutRepository {
         day: RoutineDaySnapshot,
         weekNumber: Int
     ): Long
+    suspend fun replaceWorkoutExerciseVariant(
+        workoutExerciseId: Long,
+        variantKey: String,
+        exerciseName: String,
+        targetRepsText: String,
+        targetSets: Int
+    ): Boolean = error("Not implemented")
     suspend fun updateSet(setId: Long, weightKg: Double, reps: Int)
     suspend fun finishSession(sessionId: Long, notes: String? = null)
-    suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double?
-    suspend fun getMaxWeightForExercise(exerciseName: String): Double?
-    suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double?
+    suspend fun getLastWeightKgForExerciseSet(variantKey: String, setNumber: Int): Double?
+    suspend fun getMaxWeightForExercise(variantKey: String): Double?
+    suspend fun getMaxSetVolumeForExercise(variantKey: String): Double?
 }

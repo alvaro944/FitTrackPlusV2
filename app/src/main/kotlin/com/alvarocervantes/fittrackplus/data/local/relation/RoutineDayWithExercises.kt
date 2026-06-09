@@ -8,8 +8,9 @@ import com.alvarocervantes.fittrackplus.data.local.entity.RoutineExerciseEntity
 data class RoutineDayWithExercises(
     @Embedded val day: RoutineDayEntity,
     @Relation(
+        entity = RoutineExerciseEntity::class,
         parentColumn = "id",
         entityColumn = "routineDayId"
     )
-    val exercises: List<RoutineExerciseEntity>
+    val exercises: List<RoutineExerciseWithAlternatives>
 )

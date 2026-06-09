@@ -6,6 +6,7 @@ import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesReposito
 import com.alvarocervantes.fittrackplus.data.repository.RoutineRepository
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDayDraft
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDraft
+import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseAlternativeDraft
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseDraft
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@Suppress("TooManyFunctions")
 @HiltViewModel
 class RoutinesViewModel @Inject constructor(
     private val routineRepository: RoutineRepository,
@@ -182,6 +184,94 @@ class RoutinesViewModel @Inject constructor(
         }
     }
 
+    fun addExerciseAlternative(dayIndex: Int, exerciseIndex: Int) {
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
+                exercise.copy(
+                    alternatives = exercise.alternatives + RoutineExerciseAlternativeEditorUiState(
+                        name = exercise.name,
+                        targetSets = exercise.targetSets,
+                        targetRepsText = exercise.targetRepsText,
+                        notes = exercise.notes
+                    )
+                )
+            }
+        }
+    }
+
+    fun updateExerciseAlternativeName(dayIndex: Int, exerciseIndex: Int, alternativeIndex: Int, name: String) {
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
+                exercise.copy(
+                    alternatives = exercise.alternatives.replaceAt(alternativeIndex) { alternative ->
+                        alternative.copy(name = normalizeEditorNameInput(name))
+                    }
+                )
+            }
+        }
+    }
+
+    fun updateExerciseAlternativeSets(dayIndex: Int, exerciseIndex: Int, alternativeIndex: Int, targetSets: String) {
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
+                exercise.copy(
+                    alternatives = exercise.alternatives.replaceAt(alternativeIndex) { alternative ->
+                        alternative.copy(targetSets = targetSets)
+                    }
+                )
+            }
+        }
+    }
+
+    fun updateExerciseAlternativeReps(dayIndex: Int, exerciseIndex: Int, alternativeIndex: Int, targetRepsText: String) {
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
+                exercise.copy(
+                    alternatives = exercise.alternatives.replaceAt(alternativeIndex) { alternative ->
+                        alternative.copy(targetRepsText = targetRepsText)
+                    }
+                )
+            }
+        }
+    }
+
+    fun updateExerciseAlternativeNotes(dayIndex: Int, exerciseIndex: Int, alternativeIndex: Int, notes: String) {
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
+                exercise.copy(
+                    alternatives = exercise.alternatives.replaceAt(alternativeIndex) { alternative ->
+                        alternative.copy(notes = notes)
+                    }
+                )
+            }
+        }
+    }
+
+    fun removeExerciseAlternative(dayIndex: Int, exerciseIndex: Int, alternativeIndex: Int) {
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
+                val alternative = exercise.alternatives.getOrNull(alternativeIndex)
+                val updatedDefault = if (alternative?.variantKey != null && exercise.defaultVariantKey == alternative.variantKey) {
+                    exercise.variantKey
+                } else {
+                    exercise.defaultVariantKey
+                }
+                exercise.copy(
+                    defaultVariantKey = updatedDefault,
+                    alternatives = exercise.alternatives.removeAt(alternativeIndex)
+                )
+            }
+        }
+    }
+
+    fun setExerciseDefaultVariant(dayIndex: Int, exerciseIndex: Int, variantKey: String?) {
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
+                exercise.copy(defaultVariantKey = variantKey ?: exercise.variantKey)
+            }
+        }
+    }
+
     fun removeExercise(dayIndex: Int, exerciseIndex: Int) {
         updateEditor { editor ->
             editor.copy(
@@ -330,6 +420,15 @@ data class RoutineEditorUiState(
             days.any { day -> day.exercises.any { it.nameError != null } } -> "Revisa los nombres de los ejercicios."
             days.any { day -> day.exercises.any { it.targetSetsError != null } } -> "Las series deben estar entre 1 y 99."
             days.any { day -> day.exercises.any { it.targetRepsError != null } } -> "Revisa las reps objetivo."
+            days.any { day -> day.exercises.any { exercise -> exercise.alternatives.any { it.nameError != null } } } -> {
+                "Revisa los nombres de las alternativas."
+            }
+            days.any { day -> day.exercises.any { exercise -> exercise.alternatives.any { it.targetSetsError != null } } } -> {
+                "Las series de las alternativas deben estar entre 1 y 99."
+            }
+            days.any { day -> day.exercises.any { exercise -> exercise.alternatives.any { it.targetRepsError != null } } } -> {
+                "Revisa las reps objetivo de las alternativas."
+            }
             else -> null
         }
     val canSave: Boolean
@@ -341,7 +440,12 @@ data class RoutineEditorUiState(
                     day.exercises.all { exercise ->
                         exercise.nameError == null &&
                             exercise.targetSetsError == null &&
-                            exercise.targetRepsError == null
+                            exercise.targetRepsError == null &&
+                            exercise.alternatives.all { alternative ->
+                                alternative.nameError == null &&
+                                    alternative.targetSetsError == null &&
+                                    alternative.targetRepsError == null
+                            }
                     }
             }
 }
@@ -355,13 +459,41 @@ data class RoutineDayEditorUiState(
 }
 
 data class RoutineExerciseEditorUiState(
+    val routineExerciseId: Long? = null,
+    val variantKey: String? = null,
+    val defaultVariantKey: String? = null,
+    val name: String = "",
+    val targetSets: String = "3",
+    val targetRepsText: String = "8-12",
+    val notes: String = "",
+    val alternatives: List<RoutineExerciseAlternativeEditorUiState> = emptyList()
+) {
+    val nameError: String?
+        get() = if (name.isBlank()) "Pon un nombre para el ejercicio." else null
+    val targetSetsError: String?
+        get() = if (targetSets.toIntOrNull()?.let { it in 1..99 } == true) {
+            null
+        } else {
+            "Usa entre 1 y 99 series."
+        }
+    val targetRepsError: String?
+        get() = if (isValidTargetReps(targetRepsText)) {
+            null
+        } else {
+            "Usa 8, 8-12, AMRAP o RPE 8."
+        }
+}
+
+data class RoutineExerciseAlternativeEditorUiState(
+    val alternativeId: Long? = null,
+    val variantKey: String? = null,
     val name: String = "",
     val targetSets: String = "3",
     val targetRepsText: String = "8-12",
     val notes: String = ""
 ) {
     val nameError: String?
-        get() = if (name.isBlank()) "Pon un nombre para el ejercicio." else null
+        get() = if (name.isBlank()) "Pon un nombre para la alternativa." else null
     val targetSetsError: String?
         get() = if (targetSets.toIntOrNull()?.let { it in 1..99 } == true) {
             null
@@ -418,10 +550,23 @@ private fun RoutineSnapshot.toEditorState(): RoutineEditorUiState {
                 name = day.name,
                 exercises = day.exercises.map { exercise ->
                     RoutineExerciseEditorUiState(
+                        routineExerciseId = exercise.id,
+                        variantKey = exercise.variantKey,
+                        defaultVariantKey = exercise.defaultVariantKey,
                         name = exercise.name,
                         targetSets = exercise.targetSets.toString(),
                         targetRepsText = exercise.targetRepsText,
-                        notes = exercise.notes.orEmpty()
+                        notes = exercise.notes.orEmpty(),
+                        alternatives = exercise.alternatives.map { alternative ->
+                            RoutineExerciseAlternativeEditorUiState(
+                                alternativeId = alternative.id,
+                                variantKey = alternative.variantKey,
+                                name = alternative.name,
+                                targetSets = alternative.targetSets.toString(),
+                                targetRepsText = alternative.targetRepsText,
+                                notes = alternative.notes.orEmpty()
+                            )
+                        }
                     )
                 }.ifEmpty { listOf(RoutineExerciseEditorUiState()) }
             )
@@ -437,10 +582,21 @@ private fun RoutineEditorUiState.toDraft(): RoutineDraft {
                 name = day.name.trim(),
                 exercises = day.exercises.map { exercise ->
                     RoutineExerciseDraft(
+                        variantKey = exercise.variantKey,
                         name = exercise.name.trim(),
                         targetSets = exercise.targetSets.toInt(),
                         targetRepsText = exercise.targetRepsText.trim(),
-                        notes = exercise.notes.trim().ifBlank { null }
+                        notes = exercise.notes.trim().ifBlank { null },
+                        defaultVariantKey = exercise.defaultVariantKey ?: exercise.variantKey,
+                        alternatives = exercise.alternatives.map { alternative ->
+                            RoutineExerciseAlternativeDraft(
+                                variantKey = alternative.variantKey,
+                                name = alternative.name.trim(),
+                                targetSets = alternative.targetSets.toInt(),
+                                targetRepsText = alternative.targetRepsText.trim(),
+                                notes = alternative.notes.trim().ifBlank { null }
+                            )
+                        }
                     )
                 }
             )

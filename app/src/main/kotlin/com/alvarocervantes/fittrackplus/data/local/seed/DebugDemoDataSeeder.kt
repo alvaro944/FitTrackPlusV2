@@ -50,101 +50,52 @@ class DebugDemoDataSeeder @Inject constructor(
     private suspend fun seedDemoData() {
         val now = System.currentTimeMillis()
         val dayMillis = 24L * 60L * 60L * 1000L
+        val catalog = buildDebugSeedCatalog()
 
         var activeRoutineId: Long? = null
         database.withTransaction {
-            val routineId = routineDao.insertRoutine(
-                RoutineEntity(
-                    name = "PPL Demo",
-                    createdAt = now - 12L * dayMillis,
-                    updatedAt = now - 2L * dayMillis
+            catalog.routines.forEach { routine ->
+                val routineId = routineDao.insertRoutine(
+                    RoutineEntity(
+                        name = routine.name,
+                        createdAt = now - (routine.createdDaysAgo * dayMillis),
+                        updatedAt = now - (routine.updatedDaysAgo * dayMillis)
+                    )
                 )
-            )
-            activeRoutineId = routineId
+                if (routine.name == catalog.activeRoutineName) {
+                    activeRoutineId = routineId
+                }
 
-            val push = insertDay(
-                routineId = routineId,
-                name = "Push",
-                position = 0,
-                exercises = listOf(
-                    DemoExercise("Press banca", 3, "8-10"),
-                    DemoExercise("Press militar", 3, "8-10"),
-                    DemoExercise("Fondos asistidos", 2, "10-12")
-                )
-            )
-            val pull = insertDay(
-                routineId = routineId,
-                name = "Pull",
-                position = 1,
-                exercises = listOf(
-                    DemoExercise("Dominadas asistidas", 3, "6-8"),
-                    DemoExercise("Remo con barra", 3, "8-10"),
-                    DemoExercise("Curl biceps", 2, "10-12")
-                )
-            )
-            val legs = insertDay(
-                routineId = routineId,
-                name = "Legs",
-                position = 2,
-                exercises = listOf(
-                    DemoExercise("Sentadilla", 3, "6-8"),
-                    DemoExercise("Peso muerto rumano", 3, "8-10"),
-                    DemoExercise("Prensa", 2, "10-12")
-                )
-            )
+                val seededDays = routine.days.mapIndexed { dayIndex, day ->
+                    insertDay(
+                        routineId = routineId,
+                        name = day.name,
+                        position = dayIndex,
+                        exercises = day.exercises.map { exercise ->
+                            DemoExercise(
+                                name = exercise.name,
+                                targetSets = exercise.targetSets,
+                                targetReps = exercise.targetReps
+                            )
+                        }
+                    )
+                }
 
-            insertFinishedSession(
-                routineId = routineId,
-                routineName = "PPL Demo",
-                day = push,
-                weekNumber = 1,
-                startedAt = now - 9L * dayMillis,
-                minutes = 58,
-                setValues = listOf(
-                    listOf(60.0 to 10, 62.5 to 9, 62.5 to 8),
-                    listOf(35.0 to 10, 37.5 to 9, 37.5 to 8),
-                    listOf(0.0 to 12, 0.0 to 11)
-                )
-            )
-            insertFinishedSession(
-                routineId = routineId,
-                routineName = "PPL Demo",
-                day = pull,
-                weekNumber = 1,
-                startedAt = now - 7L * dayMillis,
-                minutes = 52,
-                setValues = listOf(
-                    listOf(0.0 to 8, 0.0 to 7, 0.0 to 7),
-                    listOf(50.0 to 10, 52.5 to 9, 52.5 to 8),
-                    listOf(12.5 to 12, 12.5 to 11)
-                )
-            )
-            insertFinishedSession(
-                routineId = routineId,
-                routineName = "PPL Demo",
-                day = legs,
-                weekNumber = 1,
-                startedAt = now - 5L * dayMillis,
-                minutes = 64,
-                setValues = listOf(
-                    listOf(80.0 to 8, 82.5 to 7, 82.5 to 6),
-                    listOf(65.0 to 10, 67.5 to 9, 67.5 to 8),
-                    listOf(140.0 to 12, 145.0 to 10)
-                )
-            )
-            insertFinishedSession(
-                routineId = routineId,
-                routineName = "PPL Demo",
-                day = push.copy(name = "Push snapshot antiguo"),
-                weekNumber = 2,
-                startedAt = now - 2L * dayMillis,
-                minutes = 56,
-                setValues = listOf(
-                    listOf(62.5 to 10, 65.0 to 9, 65.0 to 8),
-                    listOf(37.5 to 10, 40.0 to 8, 40.0 to 8),
-                    listOf(0.0 to 12, 0.0 to 12)
-                )
-            )
+                routine.finishedSessions.forEach { session ->
+                    val baseDay = seededDays[session.dayIndex]
+                    insertFinishedSession(
+                        routineId = routineId,
+                        routineName = routine.name,
+                        day = session.snapshotDayName?.let { snapshotName ->
+                            baseDay.copy(name = snapshotName)
+                        } ?: baseDay,
+                        weekNumber = session.weekNumber,
+                        startedAt = now - (session.startedDaysAgo * dayMillis),
+                        minutes = session.minutes,
+                        setValues = session.setValues
+                    )
+                }
+            }
         }
 
         activeRoutineId?.let { userPreferencesRepository.setActiveRoutineId(it) }
@@ -167,6 +118,8 @@ class DebugDemoDataSeeder @Inject constructor(
             val exerciseId = routineDao.insertExercise(
                 RoutineExerciseEntity(
                     routineDayId = dayId,
+                    variantKey = "exercise-$dayId-$index",
+                    defaultVariantKey = "exercise-$dayId-$index",
                     name = exercise.name,
                     targetSets = exercise.targetSets,
                     targetRepsText = exercise.targetReps,
@@ -215,6 +168,7 @@ class DebugDemoDataSeeder @Inject constructor(
                 WorkoutExerciseEntity(
                     sessionId = sessionId,
                     exerciseTemplateId = exercise.id,
+                    performedVariantKey = "exercise-${exercise.id}",
                     exerciseNameSnapshot = exercise.name,
                     targetRepsSnapshot = exercise.targetReps,
                     position = exercise.position

@@ -151,8 +151,8 @@ fun SettingsScreen(
                     FitTrackCard {
                         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
                             Text(
-                                text = "Rellena la base de datos con una rutina PPL y sesiones de ejemplo. " +
-                                    "Elimina todos los datos actuales.",
+                                text = "Limpia la base de datos y deja activa tu Rutina Álvaro, " +
+                                    "junto con una demo PPL de apoyo con sesiones de ejemplo.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
