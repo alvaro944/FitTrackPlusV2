@@ -1,117 +1,89 @@
-# Trabajo Con Agentes Y Herramientas
+# Colaboracion Claude / Codex
 
-Esta guia describe como colaborar con varias IAs, editores, herramientas de diseno y plataformas de trabajo sin perder control sobre el proyecto.
+Referencia canonica del modelo de trabajo. Leer antes de ejecutar cualquier cosa.
 
-No esta pensada solo para este repo. La idea es fijar reglas que sigan siendo utiles aunque cambie el stack o el agente principal.
+## El modelo en una frase
 
-## Objetivo
+Claude disena y especifica. Codex implementa y verifica. El usuario decide y aprueba.
 
-Coordinar varias fuentes de ayuda sin caer en estos errores:
+---
 
-- mezclar propuesta y decision
-- editar sobre contexto desactualizado
-- duplicar trabajo entre herramientas
-- perder trazabilidad de por que se hizo algo
+## Que hace Claude
 
-## Roles Recomendados
+- Lee el repo, los docs y el estado actual
+- Analiza opciones y propone
+- Escribe specs de diseno en `docs/superpowers/specs/`
+- Escribe planes de implementacion en `docs/superpowers/plans/`
+- Revisa codigo ya escrito por Codex
 
-Conviene distinguir cuatro roles:
+Claude NO escribe codigo de produccion salvo encargo explicito del usuario.
+Claude NO hace commits, no crea ramas, no hace push.
 
-- **usuario**: fija prioridades, valida direccion y autoriza ejecucion
-- **agente ejecutor**: implementa en el repo y deja verificacion/documentacion
-- **agentes auxiliares**: investigan, revisan, resumen o proponen
-- **herramientas visuales/prototipos**: aportan referencia, no autoridad tecnica
+## Que hace Codex
 
-La regla importante es esta:
+- Lee la spec y el plan antes de empezar
+- Crea la rama indicada en el plan
+- Implementa segun la spec
+- Verifica localmente: `./gradlew test` + `./gradlew build`
+- Hace pasada manual en emulador cuando es posible
+- Hace commit solo cuando el codigo esta verificado y funciona
+- Hace push y avisa al usuario
 
-- una sola herramienta ejecuta cambios sobre el repo compartido en cada iteracion
+Codex NO hace commits de WIP.
+Codex NO cambia de rama sin motivo.
+Codex NO amplia el alcance de la spec sin confirmar con el usuario.
 
-## Regla De Oro
+---
 
-Una propuesta externa no es una instruccion de ejecucion.
+## Estrategia de ramas
 
-Antes de implementar algo propuesto por otra IA, prototipo o backlog:
+- Una rama por grupo de mejoras relacionadas: `codex/<nombre-descriptivo>`
+- Todo el trabajo del grupo va en esa rama hasta que esta completo
+- No se crean ramas por micro-cambios o fixes puntuales
+- El merge a main ocurre cuando el grupo entero esta verificado
 
-1. releer el estado real del repo
-2. contrastar la propuesta con la documentacion viva
-3. confirmar que el usuario realmente quiere ese cambio ahora
+## Disciplina de commits
 
-## Modos De Trabajo
+- Solo se hace commit cuando el codigo compila, los tests pasan y el flujo manual esta ok
+- Un commit = una unidad logica completa, no un estado intermedio
+- El mensaje describe que se hizo, no que se intento
+- Los schemas de Room se commitean junto con los cambios de entidad
 
-Conviene pensar cada iteracion en uno de estos modos:
+---
 
-- **leer**
-- **analizar**
-- **proponer**
-- **implementar**
-- **verificar**
-- **cerrar**
+## Flujo completo de una mejora
 
-No todas las herramientas deben tener permiso para todos los modos.
+```
+1. Claude lee el estado del repo y los docs
+2. Claude escribe spec en docs/superpowers/specs/<fecha>-<nombre>.md
+3. Claude escribe plan en docs/superpowers/plans/<fecha>-<nombre>.md
+4. Usuario revisa y aprueba
+5. Codex crea rama: codex/<nombre>
+6. Codex implementa segun spec y plan
+7. Codex verifica localmente (test + build + emulador)
+8. Codex hace commit limpio
+9. Codex hace push y avisa
+10. Usuario revisa en emulador
+11. Usuario aprueba merge a main
+```
 
-Ejemplo de reparto sano:
+---
 
-- una herramienta visual: analizar/proponer
-- un agente tecnico: implementar/verificar
-- el usuario: decidir y priorizar
+## Al cambiar de sesion o plataforma
 
-## Fuente De Verdad
+Antes de continuar cualquier trabajo:
 
-Para coordinar sin deriva:
+1. `git status` — ver estado real del repo
+2. `git log --oneline -5` — ver ultimos commits
+3. Releer la spec y el plan de la mejora en curso
+4. Abrir los archivos concretos que se van a tocar
 
-- el repo dice lo que existe
-- la documentacion viva dice en que estado esta
-- la metodologia dice como conviene trabajar
-- las notas externas solo aportan contexto
+No continuar desde memoria conversacional sin contrastar con el repo.
 
-Si una conversacion recuerda algo que el repo no refleja, gana el repo.
+---
 
-## Relevo Entre Plataformas
+## Cuando hay duda
 
-Cuando se cambia de app, editor o agente:
-
-- revisar `git status`
-- releer docs de estado
-- abrir de nuevo la zona a modificar
-- identificar que cambios siguen sin verificar
-- no continuar a ciegas por memoria conversacional
-
-## Cuando Varias Herramientas Trabajan Sobre El Mismo Tema
-
-Patron recomendado:
-
-1. una herramienta explora o propone
-2. otra contrasta con el repo
-3. el usuario decide
-4. un unico ejecutor implementa
-5. ese mismo ejecutor verifica y actualiza docs
-
-Esto evita solapes y respuestas inconsistentes.
-
-## Gestion De Propuestas Externas
-
-Cuando una herramienta deja backlog, comentarios o planes:
-
-- tratarlos como entrada
-- no tratarlos como verdad final
-- extraer solo lo que encaja con el alcance real
-- registrar la decision final en los docs del proyecto, no solo en la conversacion
-
-## Permiso De Ejecucion
-
-Regla portable y segura:
-
-- leer, analizar y proponer suele requerir menos riesgo
-- editar, ejecutar comandos pesados, crear ramas o cerrar fases requiere encargo claro
-
-Cuando haya duda entre seguir o preguntar, conviene preguntar antes de tocar partes sensibles del repo.
-
-## Cierre Correcto
-
-Una iteracion multiagente esta bien cerrada si:
-
-- queda claro quien ejecuto
-- queda claro que se decidio realmente
-- la verificacion esta hecha o explicitamente pendiente
-- la documentacion refleja el nuevo estado
-- el siguiente paso no depende de reconstruir el contexto desde cero
+Si el alcance no esta claro, preguntar al usuario antes de implementar.
+Si algo en la spec parece incompleto o contradictorio, avisar antes de inventar.
+Si aparece un bug o mejora fuera de alcance, anotarlo y continuar — no arreglarlo de pasada.

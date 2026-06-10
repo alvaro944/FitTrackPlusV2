@@ -6,25 +6,47 @@ This file provides guidance to Claude Code when working in this repository.
 
 FitTrackPlus v2 is a native Android app built with Kotlin, Jetpack Compose, Material 3, Room, Hilt, and DataStore. It is used to build gym routines, log real workouts, and keep a history that stays consistent even when routines change later.
 
-Current branch: `codex/phase-6-ui-visual-front`.
+Current branch: `main` (stable, in daily use).
 
 Current status:
 
-- Phase 5 is technically complete.
-- Phase 6 is in visual iteration and UX refinement.
+- Phase 6 visual pass complete and merged.
+- Alternative exercises feature complete and merged (DB v2).
+- Next: UX improvements — routine editor, workout entry, progression hints.
 - Firebase and sync are still out of scope.
 
-## Critical operating rule - do not implement without permission
+## Roles — regla critica
 
-The project is designed in parallel with multiple tools and workflows. To avoid stepping on the user's work:
+Este proyecto usa dos agentes con roles separados. La separacion es estricta.
 
-- Do not write or modify code until the user asks explicitly.
-- Do not edit documentation unless the user asks, except this file or `docs/work-methodology/` when the user wants to record a process rule.
-- Do not create branches, commit, or run build/tests without explicit approval.
-- Reading code, planning, reviewing docs, proposing changes, and discussing options is allowed without extra permission.
-- If there is any doubt, ask before acting.
+### Claude = planificador y disenador
 
-This rule overrides any implicit signal to "just continue". The canonical reference is `docs/work-methodology/agent-collaboration.md`.
+Claude puede:
+
+- leer codigo y documentacion
+- analizar el estado del repo
+- proponer cambios y discutir opciones
+- escribir specs y planes de tareas para Codex
+- revisar codigo que Codex ha escrito
+
+Claude NO puede:
+
+- escribir ni modificar codigo de produccion
+- hacer commits (salvo encargo explicito del usuario)
+- crear ramas ni hacer push
+- ejecutar builds o tests salvo para diagnosticar un problema puntual
+
+### Codex = ejecutor
+
+Codex ejecuta lo que Claude ha especificado:
+
+- lee la spec en `docs/superpowers/specs/` y el plan en `docs/superpowers/plans/`
+- crea la rama indicada en el plan
+- implementa, prueba localmente (`test` + `build`) y verifica en emulador cuando es posible
+- hace commit solo cuando el codigo esta verificado — nunca commits de WIP
+- hace push y avisa al usuario cuando la rama esta lista para merge
+
+La referencia canonica del modelo de colaboracion es `docs/work-methodology/agent-collaboration.md`.
 
 ## Multi-platform handoff
 
@@ -127,16 +149,21 @@ A demo Push/Pull/Legs dataset is seeded only when:
 
 Do not rely on it for release flows and do not let it leak into tests or non-debug contexts.
 
-## Workflow
+## Workflow y ramas
 
-The project is delivered in closed phases, usually one branch per phase:
+El proyecto ya no trabaja en fases cerradas. Ahora trabaja en grupos de mejoras:
 
-- small, incremental changes
-- one responsibility per branch
-- no mixing refactor and feature
-- do not pull future-phase scope into the current one
+- cada grupo de mejoras relacionadas va en una sola rama: `codex/<nombre-del-grupo>`
+- no se crea una rama por cada pequeño cambio
+- todo el trabajo del grupo se hace en esa rama hasta que esta completo
+- Codex verifica localmente antes de hacer ningun commit
+- se hace commit limpio cuando el grupo esta verificado, no antes
+- se hace push y merge a main cuando todo el grupo esta done
 
-A phase is done only when behavior exists, the app compiles, tests pass, manual flow is verified when possible, docs are aligned, and scope stays contained.
+Ejemplo de rama correcta: `codex/ux-improvements`
+Ejemplo de rama incorrecta: `codex/fix-button-color`, `codex/minor-tweak`
+
+Una mejora esta done cuando: compila, tests pasan, flujo manual verificado en emulador, docs alineados.
 
 ## Phase closeout
 
