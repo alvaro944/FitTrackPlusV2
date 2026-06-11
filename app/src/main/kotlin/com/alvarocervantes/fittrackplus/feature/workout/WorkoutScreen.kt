@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -905,7 +907,10 @@ private fun ExerciseAlternativesDialog(
             tonalElevation = 6.dp
         ) {
             Column(
-                modifier = Modifier.padding(FitSpacing.cardPadding),
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .padding(FitSpacing.cardPadding),
                 verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
             ) {
                 Text(
@@ -1086,10 +1091,11 @@ private fun WorkoutSetRow(
                 .background(rowBackground, MaterialTheme.shapes.large)
                 .padding(FitSpacing.smMd),
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             Box(
                 modifier = Modifier
+                    .padding(top = 6.dp)
                     .size(WORKOUT_SET_INDEX_SIZE)
                     .background(
                         color = if (set.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,

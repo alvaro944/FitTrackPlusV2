@@ -32,8 +32,13 @@ Cambios principales:
   - al completar un ejercicio se colapsa y avanza automaticamente al siguiente pendiente
   - el resumen del header muestra progreso claro por ejercicio y estado completado en colapsado
   - la lista respeta mejor el teclado con `imePadding`
+  - las filas de series alinean peso y reps aunque aparezca `Ultima vez` bajo el peso
   - los campos de peso/reps se ajustan para movil con placeholders y anchos mas estables
   - el input de peso acepta y conserva separador decimal con coma
+- Rutinas:
+  - el editor de rutinas resuelve mejor el teclado con `imePadding` y `contentWindowInsets` a cero
+- Alternativas:
+  - el dialogo de ejercicios alternativos usa scroll vertical e `imePadding` en modo creacion
 - Integridad:
   - finalizar una sesion sin ninguna serie completada la descarta en vez de guardarla como historica
   - stats ignora sesiones finalizadas que no tengan ninguna serie con reps > 0
@@ -69,7 +74,9 @@ Resultado:
 - Pasada manual correcta en emulador para:
   - acordeon de ejercicios y avance visual al siguiente bloque
   - estado colapsado/completado por ejercicio
-  - layout movil de filas de peso/reps dentro de `Entrenar`
+  - layout movil de filas de peso/reps dentro de `Entrenar`, incluida la alineacion con `Ultima vez`
+  - foco usable en campos internos del editor de rutinas sin que el contenido relevante quede inaccesible
+  - dialogo de alternativas estable al entrar en modo creacion y foco de campos
 - El descarte de sesion vacia y el filtrado de stats quedan verificados por logica y tests; no se forzo un flujo manual adicional fuera del alcance visible.
 
 Pendiente:

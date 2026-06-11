@@ -492,7 +492,9 @@ Cambios cerrados:
 - `WorkoutScreen` ahora aplica `imePadding` y deja al `Scaffold` sin insets extra para que el teclado no tape el formulario.
 - El acordeon de ejercicios activos pasa a modo estricto: un solo bloque expandido, cabeceras con progreso (`X/Y series` o `Completado`) y avance automatico al siguiente pendiente.
 - Los campos de peso usan entrada decimal tolerante con coma, muestran valores con `,` y los steppers mantienen el mismo formato.
-- Las filas de series se compactan para movil con placeholders estables y mejor alineacion horizontal.
+- Las filas de series se compactan para movil con placeholders estables, mejor alineacion horizontal y sin desajuste cuando aparece `Ultima vez`.
+- `RoutinesScreen` suma `imePadding` en el editor y `contentWindowInsets` a cero para que el teclado no tape campos al editar dias o ejercicios.
+- `ExerciseAlternativesDialog` envuelve el modo creacion en scroll vertical con `imePadding`.
 - Finalizar una sesion sin ninguna serie completada la descarta de Room en vez de guardarla.
 - Stats ignoran sesiones terminadas sin reps reales, evitando puntos vacios heredados en historico/progreso.
 
@@ -506,7 +508,9 @@ Validacion manual destacada:
 
 - comprobado en emulador que solo queda un ejercicio expandido a la vez
 - comprobado estado colapsado de ejercicios completados y resumen de progreso
-- comprobado layout de filas en movil tras sustituir labels por placeholders
+- comprobado layout de filas en movil tras sustituir labels por placeholders y alinear correctamente las series con `Ultima vez`
+- comprobado foco usable en el editor de rutinas al entrar en campos internos
+- comprobado dialogo de alternativas en modo creacion con campos accesibles
 
 Pendiente:
 

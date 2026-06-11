@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -139,6 +141,7 @@ fun RoutinesScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             when {
@@ -738,7 +741,8 @@ private fun RoutineEditorContent(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(contentPadding),
+            .padding(contentPadding)
+            .imePadding(),
         contentPadding = PaddingValues(
             start = FitSpacing.screenHorizontal,
             top = FitSpacing.screenTop,
