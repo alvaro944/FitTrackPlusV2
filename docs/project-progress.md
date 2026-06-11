@@ -478,3 +478,36 @@ Diferido:
 - supersets/cardio/RPE.
 - import/export avanzado salvo fase dedicada.
 - i18n completa.
+
+## 2026-06-11 - Workout polish + data integrity
+
+Estado:
+
+- implementado en `codex/ux-improvements`
+- verificado con `./gradlew test` y `./gradlew build`
+- pasada manual en emulador completada sobre `Entrenar`
+
+Cambios cerrados:
+
+- `WorkoutScreen` ahora aplica `imePadding` y deja al `Scaffold` sin insets extra para que el teclado no tape el formulario.
+- El acordeon de ejercicios activos pasa a modo estricto: un solo bloque expandido, cabeceras con progreso (`X/Y series` o `Completado`) y avance automatico al siguiente pendiente.
+- Los campos de peso usan entrada decimal tolerante con coma, muestran valores con `,` y los steppers mantienen el mismo formato.
+- Las filas de series se compactan para movil con placeholders estables y mejor alineacion horizontal.
+- Finalizar una sesion sin ninguna serie completada la descarta de Room en vez de guardarla.
+- Stats ignoran sesiones terminadas sin reps reales, evitando puntos vacios heredados en historico/progreso.
+
+Tests anadidos o ampliados:
+
+- `WorkoutInputDefaultsTest`
+- `UpdateWorkoutSetUseCaseTest`
+- `ObserveWorkoutStatsUseCaseTest`
+
+Validacion manual destacada:
+
+- comprobado en emulador que solo queda un ejercicio expandido a la vez
+- comprobado estado colapsado de ejercicios completados y resumen de progreso
+- comprobado layout de filas en movil tras sustituir labels por placeholders
+
+Pendiente:
+
+- ninguno para este bloque; el siguiente trabajo puede partir ya desde esta rama o desde la siguiente fase acordada

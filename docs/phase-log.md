@@ -2,6 +2,80 @@
 
 Bitacora viva del proyecto. Cada fase debe anadir aqui lo que se hizo, lo que se verifico, problemas encontrados y decisiones tomadas.
 
+## Iteracion - Workout screen polish y data integrity
+
+Estado:
+
+- Completada tecnicamente.
+
+Rama:
+
+- `codex/ux-improvements`
+
+Objetivo:
+
+- Ejecutar las 7 tareas del plan de polish de `Entrenar` y de integridad de datos en la rama actual.
+- Mejorar legibilidad y foco del registro por ejercicio sin ampliar el alcance de las specs.
+- Evitar que sesiones vacias contaminen historial de stats y limpiar correctamente una sesion sin series completadas.
+
+Fuera de alcance:
+
+- cambios de schema Room
+- nuevos flujos fuera de `Entrenar`
+- nuevas heuristicas de progreso o cambios de producto no descritos en las specs
+- ajustes visuales generales fuera del area tocada
+
+Cambios principales:
+
+- Entrenar:
+  - la lista de ejercicios pasa a un acordeon estricto dentro de la sesion activa
+  - al completar un ejercicio se colapsa y avanza automaticamente al siguiente pendiente
+  - el resumen del header muestra progreso claro por ejercicio y estado completado en colapsado
+  - la lista respeta mejor el teclado con `imePadding`
+  - los campos de peso/reps se ajustan para movil con placeholders y anchos mas estables
+  - el input de peso acepta y conserva separador decimal con coma
+- Integridad:
+  - finalizar una sesion sin ninguna serie completada la descarta en vez de guardarla como historica
+  - stats ignora sesiones finalizadas que no tengan ninguna serie con reps > 0
+  - se anade borrado de sesion abierta desde repositorio/DAO para soportar el descarte limpio
+- Tests:
+  - se amplian tests de parsing/sanitizado de peso
+  - se cubre separador decimal con coma en el caso de uso de actualizacion
+  - se cubre exclusion de sesiones vacias en stats
+
+Problemas encontrados:
+
+- una primera pasada manual detecto que la etiqueta `Reps` se rompia en vertical en ancho movil; se corrigio sustituyendo labels por placeholders y ajustando tamano de botones
+- ejecutar `test` y `build` a la vez provoco un fallo espurio de salidas generadas/KSP; la verificacion estable se mantuvo en secuencia
+
+Decisiones:
+
+- mantener el comportamiento de acordeon estricto tambien dentro de la sesion de entrenamiento para reducir ruido visual
+- no guardar sesiones vacias en historial ni contarlas en stats; cuando no hay trabajo real, la sesion se descarta
+- aceptar coma y punto al parsear peso, pero normalizar la representacion visible hacia coma en UI
+
+Verificacion:
+
+```bash
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+bash ./gradlew test --no-daemon --console=plain
+bash ./gradlew build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Verificacion automatica correcta.
+- Pasada manual correcta en emulador para:
+  - acordeon de ejercicios y avance visual al siguiente bloque
+  - estado colapsado/completado por ejercicio
+  - layout movil de filas de peso/reps dentro de `Entrenar`
+- El descarte de sesion vacia y el filtrado de stats quedan verificados por logica y tests; no se forzo un flujo manual adicional fuera del alcance visible.
+
+Pendiente:
+
+- commit limpio en la rama actual
+
 ## Iteracion - UX improvements de rutinas y entrenamiento
 
 Estado:

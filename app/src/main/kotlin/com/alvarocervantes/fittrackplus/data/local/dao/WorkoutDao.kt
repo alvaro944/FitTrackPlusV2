@@ -48,6 +48,9 @@ interface WorkoutDao {
     @Query("DELETE FROM workout_sessions")
     suspend fun deleteAllSessions()
 
+    @Query("DELETE FROM workout_sessions WHERE id = :sessionId")
+    suspend fun deleteSession(sessionId: Long)
+
     @Insert
     suspend fun insertSession(session: WorkoutSessionEntity): Long
 

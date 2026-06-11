@@ -44,8 +44,23 @@ class WorkoutInputDefaultsTest {
 
     @Test
     fun adjustWeightTextSupportsDefaultAndLongPressSteps() {
-        assertEquals("2.5", adjustWorkoutWeightInput(currentValue = "", deltaKg = 2.5))
-        assertEquals("7.5", adjustWorkoutWeightInput(currentValue = "2.5", deltaKg = 5.0))
+        assertEquals("2,5", adjustWorkoutWeightInput(currentValue = "", deltaKg = 2.5))
+        assertEquals("7,5", adjustWorkoutWeightInput(currentValue = "2,5", deltaKg = 5.0))
         assertEquals("0", adjustWorkoutWeightInput(currentValue = "2.5", deltaKg = -5.0))
+    }
+
+    @Test
+    fun sanitizeWeightInputKeepsOnlyOneDecimalSeparatorAndNormalizesComma() {
+        assertEquals("12,5", sanitizeWorkoutWeightInput("12.5"))
+        assertEquals("12,5", sanitizeWorkoutWeightInput("12,,5"))
+        assertEquals("12,5", sanitizeWorkoutWeightInput("1a2,5x"))
+        assertEquals(",5", sanitizeWorkoutWeightInput("..5"))
+    }
+
+    @Test
+    fun parseWeightInputAcceptsCommaDecimalSeparator() {
+        assertEquals(12.5, parseWorkoutWeightInput("12,5") ?: -1.0, 0.0)
+        assertEquals(12.5, parseWorkoutWeightInput("12.5") ?: -1.0, 0.0)
+        assertEquals(null, parseWorkoutWeightInput("abc"))
     }
 }

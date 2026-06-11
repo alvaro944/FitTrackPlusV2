@@ -9,8 +9,12 @@ class UpdateWorkoutSetUseCase @Inject constructor(
     suspend operator fun invoke(setId: Long, weightText: String, repsText: String) {
         workoutRepository.updateSet(
             setId = setId,
-            weightKg = weightText.toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0,
+            weightKg = parseWorkoutWeightText(weightText)?.coerceAtLeast(0.0) ?: 0.0,
             reps = repsText.toIntOrNull()?.coerceAtLeast(0) ?: 0
         )
     }
+}
+
+private fun parseWorkoutWeightText(weightText: String): Double? {
+    return weightText.replace(',', '.').toDoubleOrNull()
 }
