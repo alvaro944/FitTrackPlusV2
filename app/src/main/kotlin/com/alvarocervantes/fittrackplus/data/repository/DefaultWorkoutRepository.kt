@@ -171,6 +171,10 @@ class DefaultWorkoutRepository @Inject constructor(
     override suspend fun getMaxSetVolumeForExercise(variantKey: String): Double? {
         return workoutDao.getMaxSetVolumeForExercise(variantKey)
     }
+
+    override suspend fun getRecentAverageRepsForExercise(variantKey: String, limit: Int): List<Double> {
+        return workoutDao.getRecentAverageRepsForExercise(variantKey, limit)
+    }
 }
 
 private data class ActiveRoutineVariant(

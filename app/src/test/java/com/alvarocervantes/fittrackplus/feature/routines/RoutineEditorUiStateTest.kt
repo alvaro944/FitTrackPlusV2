@@ -48,6 +48,31 @@ class RoutineEditorUiStateTest {
         assertFalse(validEditor(targetSets = "abc").canSave)
     }
 
+    @Test
+    fun hasUnsavedChangesReflectsDirtyFlag() {
+        assertFalse(validEditor().hasUnsavedChanges)
+        assertTrue(validEditor().copy(isDirty = true).hasUnsavedChanges)
+    }
+
+    @Test
+    fun toggleDayExpansionKeepsAccordionBehavior() {
+        val editor = validEditor().copy(
+            days = listOf(
+                RoutineDayEditorUiState(name = "Push"),
+                RoutineDayEditorUiState(name = "Pull"),
+                RoutineDayEditorUiState(name = "Legs")
+            )
+        )
+
+        val firstExpanded = editor.toggleDayExpansion(dayIndex = 0)
+        val secondExpanded = firstExpanded.toggleDayExpansion(dayIndex = 1)
+        val collapsedAgain = secondExpanded.toggleDayExpansion(dayIndex = 1)
+
+        assertEquals(0, firstExpanded.expandedDayIndex)
+        assertEquals(1, secondExpanded.expandedDayIndex)
+        assertEquals(null, collapsedAgain.expandedDayIndex)
+    }
+
     private fun validEditor(
         routineName: String = "Push Pull Legs",
         dayName: String = "Push",

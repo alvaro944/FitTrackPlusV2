@@ -2,6 +2,84 @@
 
 Bitacora viva del proyecto. Cada fase debe anadir aqui lo que se hizo, lo que se verifico, problemas encontrados y decisiones tomadas.
 
+## Iteracion - UX improvements de rutinas y entrenamiento
+
+Estado:
+
+- Completada tecnicamente.
+
+Rama:
+
+- `codex/ux-improvements`
+
+Objetivo:
+
+- Ejecutar las 8 tareas del plan UX en una sola rama.
+- Hacer mas seguro el editor de rutinas al navegar y cerrar.
+- Mejorar la edicion diaria del entrenamiento con defaults, steppers y feedback mas claros.
+
+Fuera de alcance:
+
+- cambios de schema Room
+- sync/cloud/Firebase
+- nuevos flujos fuera de las 3 specs acordadas
+- ampliar la heuristica de progresion mas alla de `UP/DOWN/NONE`
+
+Cambios principales:
+
+- Rutinas:
+  - el editor pasa a acordeon estricto con un unico dia expandido
+  - duplicar o anadir dia abre el nuevo bloque y colapsa el anterior
+  - se anade deteccion de cambios sin guardar en el borrador
+  - cerrar editor, back del sistema y cambio de tab/drawer piden confirmacion antes de descartar
+- Shell:
+  - `AppShellViewModel` coordina navegacion pendiente y confirmacion posterior al descarte
+  - la shell navega solo tras aprobacion explicita cuando una pantalla bloquea salida por cambios sin guardar
+- Entrenar:
+  - se anade `ProgressionHint` con `GetProgressionHintUseCase`
+  - cada serie gana stepper de peso `+/- 2.5` con long press `+/- 5.0` y stepper de reps `+/- 1`
+  - los inputs sugieren reps iniciales desde el set completado anterior o desde el minimo del rango objetivo
+  - al completar una serie cambia el estilo visual de la fila y se emite evento de haptic
+- Tests:
+  - se amplian tests del editor de rutinas
+  - se crean tests del caso de uso de progresion
+  - se crean tests de defaults y steppers de entrenamiento
+
+Problemas encontrados:
+
+- `./gradlew` no era ejecutable en este entorno; la verificacion estable se hizo con `bash ./gradlew ...`
+- el entorno Java del shell no apuntaba al JBR de Android Studio; hizo falta fijar `JAVA_HOME` antes de verificar
+- lint marco `ContextCastToActivity` en Compose; la solucion limpia fue usar `LocalActivity.current`
+- el dataset demo de la sesion `Pull` no tenia suficiente historial cerrado por ejercicio para mostrar un badge de progresion visible
+
+Decisiones:
+
+- Mantener el comportamiento del editor en acordeon estricto por decision explicita del usuario
+- No inventar una heuristica nueva para hints cuando no hay historial suficiente; en ese caso se mantiene `NONE`
+- No tocar datos demo ni sembrar historial artificial solo para forzar un badge visual en la pasada manual
+
+Verificacion:
+
+```bash
+bash ./gradlew test --no-daemon --console=plain
+bash ./gradlew build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Verificacion automatica correcta.
+- Pasada manual correcta en emulador para:
+  - acordeon del editor de rutinas
+  - descarte de cambios sin guardar al cerrar o cambiar de tab
+  - steppers de peso/reps
+  - estilo de serie completada tras marcar reps
+- La visibilidad del badge de progresion queda validada por tests; el dataset demo actual no activa un hint visible en la sesion probada.
+
+Pendiente:
+
+- push de la rama y cierre del ciclo en remoto
+- eventual revision/merge de `codex/ux-improvements`
+
 ## Iteracion - Final form sidebar shell y release preview
 
 Estado:

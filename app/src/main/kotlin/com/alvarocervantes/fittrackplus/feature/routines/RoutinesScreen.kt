@@ -1,6 +1,9 @@
 package com.alvarocervantes.fittrackplus.feature.routines
 
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +36,7 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -59,6 +63,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.ViewModelStoreOwner
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
@@ -69,6 +74,8 @@ import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
+import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
+import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 
@@ -78,9 +85,24 @@ private val repsPresetOptions = listOf("5", "6-8", "8-12", "10-15")
 fun RoutinesScreen(
     viewModel: RoutinesViewModel = hiltViewModel()
 ) {
+    val activity = LocalActivity.current
+    val appShellOwner = requireNotNull(activity) as ViewModelStoreOwner
+    val appShellViewModel: AppShellViewModel = hiltViewModel(appShellOwner)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val pendingNavigation by appShellViewModel.pendingNavigation.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var routinePendingArchive by remember { mutableStateOf<RoutineListItemUiState?>(null) }
+
+    LaunchedEffect(state.editor?.hasUnsavedChanges) {
+        appShellViewModel.setNavigationBlocker(
+            route = AppRoute.Routines,
+            isBlocked = state.editor?.hasUnsavedChanges == true
+        )
+    }
+
+    BackHandler(enabled = state.editor != null) {
+        viewModel.requestCloseEditor()
+    }
 
     state.message?.let { message ->
         LaunchedEffect(message) {
@@ -119,14 +141,30 @@ fun RoutinesScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            if (state.editor == null && !state.showArchived) {
-                FloatingActionButton(
-                    onClick = viewModel::startCreateRoutine
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Crear nueva rutina"
-                    )
+            when {
+                state.editor?.hasUnsavedChanges == true -> {
+                    ExtendedFloatingActionButton(
+                        onClick = viewModel::saveEditor
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null
+                        )
+                        Text(
+                            text = "Guardar",
+                            modifier = Modifier.padding(start = FitSpacing.xs)
+                        )
+                    }
+                }
+                state.editor == null && !state.showArchived -> {
+                    FloatingActionButton(
+                        onClick = viewModel::startCreateRoutine
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Crear nueva rutina"
+                        )
+                    }
                 }
             }
         }
@@ -146,18 +184,41 @@ fun RoutinesScreen(
                 onDismissSnapshotInfo = viewModel::dismissSnapshotInfo
             )
         } else {
-            if (editor.showCloseConfirmation) {
+            if (editor.showCloseConfirmation || pendingNavigation != null) {
                 AlertDialog(
-                    onDismissRequest = { viewModel.resolveCloseConfirmation(discard = false) },
-                    title = { Text("Descartar cambios") },
-                    text = { Text("Los cambios sin guardar se perderan. Quieres cerrar el editor?") },
+                    onDismissRequest = {
+                        if (pendingNavigation != null) {
+                            appShellViewModel.dismissPendingNavigation()
+                        } else {
+                            viewModel.resolveCloseConfirmation(discard = false)
+                        }
+                    },
+                    title = { Text("Cambios sin guardar") },
+                    text = { Text("Tienes cambios sin guardar. ¿Quieres descartarlos?") },
                     confirmButton = {
-                        TextButton(onClick = { viewModel.resolveCloseConfirmation(discard = true) }) {
+                        TextButton(
+                            onClick = {
+                                if (pendingNavigation != null) {
+                                    viewModel.discardEditorChanges()
+                                    appShellViewModel.confirmPendingNavigation()
+                                } else {
+                                    viewModel.resolveCloseConfirmation(discard = true)
+                                }
+                            }
+                        ) {
                             Text("Descartar")
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { viewModel.resolveCloseConfirmation(discard = false) }) {
+                        TextButton(
+                            onClick = {
+                                if (pendingNavigation != null) {
+                                    appShellViewModel.dismissPendingNavigation()
+                                } else {
+                                    viewModel.resolveCloseConfirmation(discard = false)
+                                }
+                            }
+                        ) {
                             Text("Seguir editando")
                         }
                     }
@@ -169,6 +230,7 @@ fun RoutinesScreen(
                 contentPadding = padding,
                 onClose = viewModel::requestCloseEditor,
                 onSave = viewModel::saveEditor,
+                onToggleDayExpansion = viewModel::toggleDayExpansion,
                 onRoutineNameChange = viewModel::updateRoutineName,
                 onAddDay = viewModel::addDay,
                 onDayNameChange = viewModel::updateDayName,
@@ -650,6 +712,7 @@ private fun RoutineEditorContent(
     contentPadding: PaddingValues,
     onClose: () -> Unit,
     onSave: () -> Unit,
+    onToggleDayExpansion: (Int) -> Unit,
     onRoutineNameChange: (String) -> Unit,
     onAddDay: () -> Unit,
     onDayNameChange: (Int, String) -> Unit,
@@ -728,9 +791,11 @@ private fun RoutineEditorContent(
             RoutineDayEditor(
                 dayIndex = dayIndex,
                 day = day,
+                isExpanded = editor.expandedDayIndex == dayIndex,
                 canRemove = editor.days.size > 1,
                 canMoveUp = dayIndex > 0,
                 canMoveDown = dayIndex < editor.days.lastIndex,
+                onToggleExpanded = onToggleDayExpansion,
                 onDayNameChange = onDayNameChange,
                 onDuplicateDay = onDuplicateDay,
                 onMoveDay = onMoveDay,
@@ -816,9 +881,11 @@ private fun RoutineEditorContent(
 private fun RoutineDayEditor(
     dayIndex: Int,
     day: RoutineDayEditorUiState,
+    isExpanded: Boolean,
     canRemove: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
+    onToggleExpanded: (Int) -> Unit,
     onDayNameChange: (Int, String) -> Unit,
     onDuplicateDay: (Int) -> Unit,
     onMoveDay: (Int, MoveDirection) -> Unit,
@@ -843,105 +910,171 @@ private fun RoutineDayEditor(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
-            Text(
-                text = "Dia ${dayIndex + 1}",
-                style = MaterialTheme.typography.titleLarge
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
-                IconButton(
-                    onClick = { onMoveDay(dayIndex, MoveDirection.Up) },
-                    enabled = canMoveUp,
-                    modifier = Modifier.minimumInteractiveComponentSize()
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .background(
+                        color = if (isExpanded) {
+                            MaterialTheme.colorScheme.primarySoft
+                        } else {
+                            MaterialTheme.colorScheme.surfaceAlt
+                        },
+                        shape = MaterialTheme.shapes.large
+                    )
+                    .clickable { onToggleExpanded(dayIndex) }
+                    .padding(FitSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 6.dp, height = 40.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = MaterialTheme.shapes.small
+                        )
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardArrowUp,
-                        contentDescription = "Subir dia ${dayIndex + 1}"
+                    Text(
+                        text = day.name.ifBlank { "Dia ${dayIndex + 1}" },
+                        style = MaterialTheme.typography.titleLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = if (day.exercises.size == 1) {
+                            "1 ejercicio"
+                        } else {
+                            "${day.exercises.size} ejercicios"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 IconButton(
-                    onClick = { onMoveDay(dayIndex, MoveDirection.Down) },
-                    enabled = canMoveDown,
+                    onClick = { onToggleExpanded(dayIndex) },
                     modifier = Modifier.minimumInteractiveComponentSize()
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.KeyboardArrowDown,
-                        contentDescription = "Bajar dia ${dayIndex + 1}"
-                    )
-                }
-                IconButton(
-                    onClick = { onDuplicateDay(dayIndex) },
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.ContentCopy,
-                        contentDescription = "Duplicar dia ${dayIndex + 1}"
-                    )
-                }
-                IconButton(
-                    onClick = { onRemoveDay(dayIndex) },
-                    enabled = canRemove,
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = "Quitar dia ${dayIndex + 1} del borrador"
+                        imageVector = if (isExpanded) {
+                            Icons.Filled.KeyboardArrowUp
+                        } else {
+                            Icons.Filled.KeyboardArrowDown
+                        },
+                        contentDescription = if (isExpanded) {
+                            "Colapsar dia ${dayIndex + 1}"
+                        } else {
+                            "Expandir dia ${dayIndex + 1}"
+                        }
                     )
                 }
             }
         }
 
-        OutlinedTextField(
-            value = day.name,
-            onValueChange = { onDayNameChange(dayIndex, it) },
-            label = { Text("Nombre del dia") },
-            isError = day.nameError != null,
-            supportingText = day.nameError?.let { error ->
-                { Text(error) }
-            },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
+        if (isExpanded) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                    IconButton(
+                        onClick = { onMoveDay(dayIndex, MoveDirection.Up) },
+                        enabled = canMoveUp,
+                        modifier = Modifier.minimumInteractiveComponentSize()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.KeyboardArrowUp,
+                            contentDescription = "Subir dia ${dayIndex + 1}"
+                        )
+                    }
+                    IconButton(
+                        onClick = { onMoveDay(dayIndex, MoveDirection.Down) },
+                        enabled = canMoveDown,
+                        modifier = Modifier.minimumInteractiveComponentSize()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.KeyboardArrowDown,
+                            contentDescription = "Bajar dia ${dayIndex + 1}"
+                        )
+                    }
+                    IconButton(
+                        onClick = { onDuplicateDay(dayIndex) },
+                        modifier = Modifier.minimumInteractiveComponentSize()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ContentCopy,
+                            contentDescription = "Duplicar dia ${dayIndex + 1}"
+                        )
+                    }
+                    IconButton(
+                        onClick = { onRemoveDay(dayIndex) },
+                        enabled = canRemove,
+                        modifier = Modifier.minimumInteractiveComponentSize()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Quitar dia ${dayIndex + 1} del borrador"
+                        )
+                    }
+                }
+            }
 
-        day.exercises.forEachIndexed { exerciseIndex, exercise ->
-            RoutineExerciseEditor(
-                dayIndex = dayIndex,
-                exerciseIndex = exerciseIndex,
-                exercise = exercise,
-                canRemove = day.exercises.size > 1,
-                canMoveUp = exerciseIndex > 0,
-                canMoveDown = exerciseIndex < day.exercises.lastIndex,
-                onExerciseNameChange = onExerciseNameChange,
-                onExerciseSetsChange = onExerciseSetsChange,
-                onExerciseRepsChange = onExerciseRepsChange,
-                onExerciseNotesChange = onExerciseNotesChange,
-                onAddExerciseAlternative = onAddExerciseAlternative,
-                onExerciseAlternativeNameChange = onExerciseAlternativeNameChange,
-                onExerciseAlternativeSetsChange = onExerciseAlternativeSetsChange,
-                onExerciseAlternativeRepsChange = onExerciseAlternativeRepsChange,
-                onExerciseAlternativeNotesChange = onExerciseAlternativeNotesChange,
-                onRemoveExerciseAlternative = onRemoveExerciseAlternative,
-                onSetExerciseDefaultVariant = onSetExerciseDefaultVariant,
-                onDuplicateExercise = onDuplicateExercise,
-                onMoveExercise = onMoveExercise,
-                onRemoveExercise = onRemoveExercise
+            OutlinedTextField(
+                value = day.name,
+                onValueChange = { onDayNameChange(dayIndex, it) },
+                label = { Text("Nombre del dia") },
+                isError = day.nameError != null,
+                supportingText = day.nameError?.let { error ->
+                    { Text(error) }
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
             )
-        }
 
-        OutlinedButton(
-            onClick = { onAddExercise(dayIndex) },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Add,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            Text(
-                text = "Anadir ejercicio",
-                modifier = Modifier.padding(start = FitSpacing.sm)
-            )
+            day.exercises.forEachIndexed { exerciseIndex, exercise ->
+                RoutineExerciseEditor(
+                    dayIndex = dayIndex,
+                    exerciseIndex = exerciseIndex,
+                    exercise = exercise,
+                    canRemove = day.exercises.size > 1,
+                    canMoveUp = exerciseIndex > 0,
+                    canMoveDown = exerciseIndex < day.exercises.lastIndex,
+                    onExerciseNameChange = onExerciseNameChange,
+                    onExerciseSetsChange = onExerciseSetsChange,
+                    onExerciseRepsChange = onExerciseRepsChange,
+                    onExerciseNotesChange = onExerciseNotesChange,
+                    onAddExerciseAlternative = onAddExerciseAlternative,
+                    onExerciseAlternativeNameChange = onExerciseAlternativeNameChange,
+                    onExerciseAlternativeSetsChange = onExerciseAlternativeSetsChange,
+                    onExerciseAlternativeRepsChange = onExerciseAlternativeRepsChange,
+                    onExerciseAlternativeNotesChange = onExerciseAlternativeNotesChange,
+                    onRemoveExerciseAlternative = onRemoveExerciseAlternative,
+                    onSetExerciseDefaultVariant = onSetExerciseDefaultVariant,
+                    onDuplicateExercise = onDuplicateExercise,
+                    onMoveExercise = onMoveExercise,
+                    onRemoveExercise = onRemoveExercise
+                )
+            }
+
+            OutlinedButton(
+                onClick = { onAddExercise(dayIndex) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Anadir ejercicio",
+                    modifier = Modifier.padding(start = FitSpacing.sm)
+                )
+            }
         }
     }
 }

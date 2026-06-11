@@ -34,4 +34,5 @@ interface WorkoutRepository {
     suspend fun getLastWeightKgForExerciseSet(variantKey: String, setNumber: Int): Double?
     suspend fun getMaxWeightForExercise(variantKey: String): Double?
     suspend fun getMaxSetVolumeForExercise(variantKey: String): Double?
+    suspend fun getRecentAverageRepsForExercise(variantKey: String, limit: Int): List<Double> = emptyList()
 }

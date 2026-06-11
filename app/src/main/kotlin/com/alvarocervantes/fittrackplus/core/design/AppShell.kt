@@ -60,6 +60,7 @@ import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
 import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import com.alvarocervantes.fittrackplus.core.navigation.DrawerItem
 import com.alvarocervantes.fittrackplus.core.navigation.DrawerItemKind
+import com.alvarocervantes.fittrackplus.core.navigation.NavigationRequestKind
 import com.alvarocervantes.fittrackplus.core.navigation.ShellBottomDestination
 import com.alvarocervantes.fittrackplus.core.navigation.shellBottomDestinations
 import com.alvarocervantes.fittrackplus.core.navigation.shellDrawerItems
@@ -90,6 +91,15 @@ fun FitTrackAppShell(
         viewModel.clearMessage()
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.approvedNavigation.collect { navigation ->
+            when (navigation.kind) {
+                NavigationRequestKind.TopLevel -> onNavigateToTopLevel(navigation.route)
+                NavigationRequestKind.Secondary -> onNavigateToSecondary(navigation.route)
+            }
+        }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -104,6 +114,13 @@ fun FitTrackAppShell(
                     handleDrawerItemClick(
                         item = item,
                         onNavigateToSecondary = onNavigateToSecondary,
+                        onRequestNavigation = { targetRoute ->
+                            viewModel.requestNavigation(
+                                currentRoute = currentRoute,
+                                targetRoute = targetRoute,
+                                kind = NavigationRequestKind.Secondary
+                            )
+                        },
                         onFutureAction = viewModel::showFutureActionMessage,
                         drawerScope = coroutineScope,
                         closeDrawer = { drawerState.close() }
@@ -120,7 +137,16 @@ fun FitTrackAppShell(
                         BottomNavigationBar(
                             currentRoute = currentRoute,
                             destinations = bottomDestinations,
-                            onNavigate = onNavigateToTopLevel
+                            onNavigate = { targetRoute ->
+                                val intercepted = viewModel.requestNavigation(
+                                    currentRoute = currentRoute,
+                                    targetRoute = targetRoute,
+                                    kind = NavigationRequestKind.TopLevel
+                                )
+                                if (!intercepted) {
+                                    onNavigateToTopLevel(targetRoute)
+                                }
+                            }
                         )
                     }
                 }
@@ -436,6 +462,7 @@ private fun ShellMenuButton(
 private fun handleDrawerItemClick(
     item: DrawerItem,
     onNavigateToSecondary: (AppRoute) -> Unit,
+    onRequestNavigation: (AppRoute) -> Boolean,
     onFutureAction: (String) -> Unit,
     drawerScope: CoroutineScope,
     closeDrawer: suspend () -> Unit
@@ -443,7 +470,11 @@ private fun handleDrawerItemClick(
     drawerScope.launch {
         closeDrawer()
         when (item.kind) {
-            DrawerItemKind.Navigation -> item.route?.let(onNavigateToSecondary)
+            DrawerItemKind.Navigation -> item.route?.let { route ->
+                if (!onRequestNavigation(route)) {
+                    onNavigateToSecondary(route)
+                }
+            }
             DrawerItemKind.FutureAction -> onFutureAction(item.title)
         }
     }

@@ -167,6 +167,7 @@ fun RoutineEditorUiState.duplicateDay(dayIndex: Int): RoutineEditorUiState {
     val duplicate = source.copy(name = "${source.name} copia")
     return copy(
         days = days.take(dayIndex + 1) + duplicate + days.drop(dayIndex + 1),
+        expandedDayIndex = dayIndex + 1,
         isDirty = true
     )
 }
@@ -175,7 +176,11 @@ fun RoutineEditorUiState.moveDay(dayIndex: Int, direction: MoveDirection): Routi
     if (dayIndex !in days.indices) return this
     val targetIndex = dayIndex.targetIndex(direction, days.lastIndex)
     if (targetIndex == dayIndex) return this
-    return copy(days = days.swap(dayIndex, targetIndex), isDirty = true)
+    return copy(
+        days = days.swap(dayIndex, targetIndex),
+        expandedDayIndex = expandedDayIndex.afterMovingDay(dayIndex, targetIndex),
+        isDirty = true
+    )
 }
 
 fun RoutineEditorUiState.duplicateExercise(dayIndex: Int, exerciseIndex: Int): RoutineEditorUiState {
@@ -234,5 +239,14 @@ private fun <T> List<T>.swap(fromIndex: Int, toIndex: Int): List<T> {
         val moved = items[fromIndex]
         items[fromIndex] = items[toIndex]
         items[toIndex] = moved
+    }
+}
+
+private fun Int?.afterMovingDay(fromIndex: Int, toIndex: Int): Int? {
+    return when (this) {
+        null -> null
+        fromIndex -> toIndex
+        toIndex -> fromIndex
+        else -> this
     }
 }
