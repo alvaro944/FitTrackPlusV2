@@ -34,7 +34,9 @@ private fun List<WorkoutSessionWithExercises>.toWorkoutStats(
     period: WorkoutStatsPeriod,
     nowMillis: Long
 ): WorkoutStats {
-    val finishedSessions = toFinishedSessions().filterByPeriod(
+    val finishedSessions = toFinishedSessions()
+        .filter { it.hasCompletedSets() }
+        .filterByPeriod(
         period = period,
         nowMillis = nowMillis
     )
@@ -185,6 +187,12 @@ private data class FinishedSession(
     val session: WorkoutSessionWithExercises,
     val finishedAt: Long
 )
+
+private fun FinishedSession.hasCompletedSets(): Boolean {
+    return session.exercises.any { exercise ->
+        exercise.sets.any { set -> set.reps > 0 }
+    }
+}
 
 private data class ExerciseSnapshot(
     val key: String,

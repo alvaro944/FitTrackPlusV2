@@ -262,6 +262,81 @@ class ObserveWorkoutStatsUseCaseTest {
         }
     }
 
+    @Test
+    fun finishedSessionsWithoutCompletedSets_areExcludedFromAllStats() = runTest {
+        val repository = StatsWorkoutRepository(
+            sessions = listOf(
+                sessionWithExercises(
+                    sessionId = 10,
+                    routineName = "Push",
+                    dayName = "Dia 1",
+                    startedAt = 1_000,
+                    finishedAt = 2_000,
+                    exercises = listOf(
+                        exercise(
+                            id = 101,
+                            sessionId = 10,
+                            name = "Bench Press",
+                            position = 0,
+                            sets = listOf(
+                                set(id = 1001, exerciseId = 101, setNumber = 1, weightKg = 0.0, reps = 0),
+                                set(id = 1002, exerciseId = 101, setNumber = 2, weightKg = 20.0, reps = 0)
+                            )
+                        )
+                    )
+                ),
+                sessionWithExercises(
+                    sessionId = 11,
+                    routineName = "Push",
+                    dayName = "Dia 4",
+                    startedAt = 4_000,
+                    finishedAt = 5_000,
+                    exercises = listOf(
+                        exercise(
+                            id = 111,
+                            sessionId = 11,
+                            name = "Bench Press",
+                            position = 0,
+                            sets = listOf(
+                                set(id = 1101, exerciseId = 111, setNumber = 1, weightKg = 60.0, reps = 8)
+                            )
+                        )
+                    )
+                ),
+                sessionWithExercises(
+                    sessionId = 12,
+                    routineName = "Pull",
+                    dayName = "Dia 7",
+                    startedAt = 7_000,
+                    finishedAt = 8_000,
+                    exercises = listOf(
+                        exercise(
+                            id = 121,
+                            sessionId = 12,
+                            name = "Pull Ups",
+                            position = 0,
+                            sets = listOf(
+                                set(id = 1201, exerciseId = 121, setNumber = 1, weightKg = 0.0, reps = 10)
+                            )
+                        )
+                    )
+                )
+            )
+        )
+        val useCase = ObserveWorkoutStatsUseCase(repository)
+
+        useCase().test {
+            val stats = awaitItem()
+
+            assertEquals(listOf(12L, 11L), stats.sessionVolumes.map { it.sessionId })
+            assertEquals(2, stats.exerciseProgress.flatMap { it.entries }.size)
+            assertEquals(0, stats.exerciseProgress.flatMap { it.entries }.count { it.sessionId == 10L })
+            assertEquals(0, stats.exerciseRecords.count { it.exerciseName == "Bench Press" && it.maxReps?.sessionId == 10L })
+
+            awaitComplete()
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun sessionWithExercises(
@@ -420,6 +495,7 @@ private class StatsWorkoutRepository(
 
     override suspend fun updateSet(setId: Long, weightKg: Double, reps: Int) = error("Not used")
     override suspend fun finishSession(sessionId: Long, notes: String?) = error("Not used")
+    override suspend fun discardSession(sessionId: Long) = error("Not used")
     override suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double? = null
     override suspend fun getMaxWeightForExercise(exerciseName: String): Double? = null
     override suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double? = null

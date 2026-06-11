@@ -107,18 +107,29 @@ class RoutinesViewModel @Inject constructor(
 
     fun requestCloseEditor() {
         val editor = _uiState.value.editor ?: return
-        if (editor.isDirty) {
+        if (editor.hasUnsavedChanges) {
             _uiState.update { state -> state.copy(editor = editor.copy(showCloseConfirmation = true)) }
         } else {
             _uiState.update { state -> state.copy(editor = null) }
         }
     }
 
+    fun discardEditorChanges() {
+        _uiState.update { state -> state.copy(editor = null) }
+    }
+
     fun resolveCloseConfirmation(discard: Boolean) {
         if (discard) {
-            _uiState.update { state -> state.copy(editor = null) }
+            discardEditorChanges()
         } else {
             updateEditor { editor -> editor.copy(showCloseConfirmation = false) }
+        }
+    }
+
+    fun toggleDayExpansion(dayIndex: Int) {
+        _uiState.update { state ->
+            val editor = state.editor ?: return@update state
+            state.copy(editor = editor.toggleDayExpansion(dayIndex))
         }
     }
 
@@ -128,7 +139,10 @@ class RoutinesViewModel @Inject constructor(
 
     fun addDay() {
         updateEditor { editor ->
-            editor.copy(days = editor.days + RoutineDayEditorUiState(name = "Dia ${editor.days.size + 1}"))
+            editor.copy(
+                days = editor.days + RoutineDayEditorUiState(name = "Dia ${editor.days.size + 1}"),
+                expandedDayIndex = editor.days.size
+            )
         }
     }
 
@@ -144,7 +158,14 @@ class RoutinesViewModel @Inject constructor(
 
     fun removeDay(dayIndex: Int) {
         updateEditor { editor ->
-            if (editor.days.size <= 1) editor else editor.copy(days = editor.days.removeAt(dayIndex))
+            if (editor.days.size <= 1) {
+                editor
+            } else {
+                editor.copy(
+                    days = editor.days.removeAt(dayIndex),
+                    expandedDayIndex = editor.expandedDayIndex.afterRemovingDay(dayIndex)
+                )
+            }
         }
     }
 
@@ -407,9 +428,12 @@ data class RoutineEditorUiState(
     val name: String = "",
     val days: List<RoutineDayEditorUiState> = listOf(RoutineDayEditorUiState()),
     val isDirty: Boolean = false,
-    val showCloseConfirmation: Boolean = false
+    val showCloseConfirmation: Boolean = false,
+    val expandedDayIndex: Int? = null
 ) {
     val title: String = if (routineId == null) "Nueva rutina" else "Editar rutina"
+    val hasUnsavedChanges: Boolean
+        get() = isDirty
     val routineNameError: String?
         get() = if (name.isBlank()) "Pon un nombre para la rutina." else null
     val validationMessage: String?
@@ -448,6 +472,13 @@ data class RoutineEditorUiState(
                             }
                     }
             }
+}
+
+internal fun RoutineEditorUiState.toggleDayExpansion(dayIndex: Int): RoutineEditorUiState {
+    if (dayIndex !in days.indices) return this
+    return copy(
+        expandedDayIndex = if (expandedDayIndex == dayIndex) null else dayIndex
+    )
 }
 
 data class RoutineDayEditorUiState(
@@ -614,4 +645,13 @@ private fun <T> List<T>.replaceAt(index: Int, transform: (T) -> T): List<T> {
 private fun <T> List<T>.removeAt(index: Int): List<T> {
     if (index !in indices) return this
     return filterIndexed { currentIndex, _ -> currentIndex != index }
+}
+
+private fun Int?.afterRemovingDay(removedIndex: Int): Int? {
+    return when {
+        this == null -> null
+        this == removedIndex -> null
+        this > removedIndex -> this - 1
+        else -> this
+    }
 }

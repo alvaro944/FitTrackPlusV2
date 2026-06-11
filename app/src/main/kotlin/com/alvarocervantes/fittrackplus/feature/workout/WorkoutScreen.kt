@@ -1,17 +1,27 @@
+@file:Suppress("TooManyFunctions")
+
 package com.alvarocervantes.fittrackplus.feature.workout
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,14 +29,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -68,6 +84,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import com.alvarocervantes.fittrackplus.core.design.components.ConfettiAnimation
 import com.alvarocervantes.fittrackplus.domain.model.PrType
+import com.alvarocervantes.fittrackplus.domain.model.ProgressionHint
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
@@ -110,6 +127,12 @@ fun WorkoutScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.setCompletionHapticEvent.collect {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+    }
+
     if (showFinishConfirmation) {
         Dialog(onDismissRequest = { showFinishConfirmation = false }) {
             Surface(
@@ -127,7 +150,11 @@ fun WorkoutScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Se guardara la sesion en el historial con las series registradas hasta ahora.",
+                        text = if (state.activeSession?.completedSetCount == 0) {
+                            "No hay series completadas. Si finalizas ahora, la sesion se descartara."
+                        } else {
+                            "Se guardara la sesion en el historial con las series registradas hasta ahora."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -169,6 +196,7 @@ fun WorkoutScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = { SnackbarHost(snackbarHostState) }
         ) { padding ->
             WorkoutContent(
@@ -179,6 +207,8 @@ fun WorkoutScreen(
                 onFinishWorkout = { showFinishConfirmation = true },
                 onSetWeightChange = viewModel::updateSetWeight,
                 onSetRepsChange = viewModel::updateSetReps,
+                onStepWeight = viewModel::stepSetWeight,
+                onStepReps = viewModel::stepSetReps,
                 onStartRestTimer = viewModel::startRestTimer,
                 onPauseRestTimer = viewModel::pauseRestTimer,
                 onResumeRestTimer = viewModel::resumeRestTimer,
@@ -186,6 +216,7 @@ fun WorkoutScreen(
                 onCancelRestTimer = viewModel::cancelRestTimer,
                 onAutoStartRestTimerChange = viewModel::setAutoStartRestTimerEnabled,
                 onOpenExerciseAlternatives = viewModel::openExerciseAlternatives,
+                onToggleExerciseExpanded = viewModel::toggleExerciseExpanded,
                 onGoToRoutines = onGoToRoutines
             )
         }
@@ -228,6 +259,8 @@ private fun WorkoutContent(
     onFinishWorkout: () -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onStepWeight: (Long, Double) -> Unit,
+    onStepReps: (Long, Int) -> Unit,
     onStartRestTimer: (Int) -> Unit,
     onPauseRestTimer: () -> Unit,
     onResumeRestTimer: () -> Unit,
@@ -235,12 +268,14 @@ private fun WorkoutContent(
     onCancelRestTimer: () -> Unit,
     onAutoStartRestTimerChange: (Boolean) -> Unit,
     onOpenExerciseAlternatives: (Long) -> Unit,
+    onToggleExerciseExpanded: (Long) -> Unit,
     onGoToRoutines: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(contentPadding),
+            .padding(contentPadding)
+            .imePadding(),
         contentPadding = PaddingValues(
             start = FitSpacing.screenHorizontal,
             top = FitSpacing.screenTop,
@@ -299,9 +334,14 @@ private fun WorkoutContent(
                 ) { exercise ->
                     WorkoutExerciseCard(
                         exercise = exercise,
+                        hint = state.hints[exercise.id] ?: ProgressionHint.NONE,
+                        isExpanded = state.expandedExerciseId == exercise.id,
                         onOpenAlternatives = onOpenExerciseAlternatives,
+                        onToggleExpanded = onToggleExerciseExpanded,
                         onSetWeightChange = onSetWeightChange,
-                        onSetRepsChange = onSetRepsChange
+                        onSetRepsChange = onSetRepsChange,
+                        onStepWeight = onStepWeight,
+                        onStepReps = onStepReps
                     )
                 }
             }
@@ -715,54 +755,143 @@ private fun isRestTimerUrgent(timer: RestTimerUiState): Boolean {
 @Composable
 private fun WorkoutExerciseCard(
     exercise: WorkoutExerciseUiState,
+    hint: ProgressionHint,
+    isExpanded: Boolean,
     onOpenAlternatives: (Long) -> Unit,
+    onToggleExpanded: (Long) -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
-    onSetRepsChange: (Long, String) -> Unit
+    onSetRepsChange: (Long, String) -> Unit,
+    onStepWeight: (Long, Double) -> Unit,
+    onStepReps: (Long, Int) -> Unit
 ) {
+    val showProgressionHint = hint != ProgressionHint.NONE && exercise.sets.none { it.isCompleted }
+    val completedSetCount = exercise.sets.count { it.isCompleted }
+    val isExerciseCompleted = completedSetCount == exercise.sets.size && exercise.sets.isNotEmpty()
+
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
         ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onToggleExpanded(exercise.id) },
+                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
                     verticalAlignment = Alignment.Top
                 ) {
-                    Text(
-                        text = exercise.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(
-                        onClick = { onOpenAlternatives(exercise.id) },
-                        modifier = Modifier.minimumInteractiveComponentSize()
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = exercise.name,
+                                style = MaterialTheme.typography.titleLarge,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            if (showProgressionHint) {
+                                ProgressionHintButton(hint = hint)
+                            }
+                        }
+                        Text(
+                            text = "Objetivo: ${exercise.targetRepsText} reps",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        ExerciseCompletionLabel(
+                            isExpanded = isExpanded,
+                            isCompleted = isExerciseCompleted,
+                            completedSetCount = completedSetCount,
+                            totalSetCount = exercise.sets.size
+                        )
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Refresh,
-                            contentDescription = "Ver ejercicios alternativos para ${exercise.name}"
+                            imageVector = if (isExpanded) {
+                                Icons.Filled.KeyboardArrowUp
+                            } else {
+                                Icons.Filled.KeyboardArrowDown
+                            },
+                            contentDescription = if (isExpanded) {
+                                "Contraer ${exercise.name}"
+                            } else {
+                                "Expandir ${exercise.name}"
+                            }
+                        )
+                        IconButton(
+                            onClick = { onOpenAlternatives(exercise.id) },
+                            modifier = Modifier.minimumInteractiveComponentSize()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Refresh,
+                                contentDescription = "Ver ejercicios alternativos para ${exercise.name}"
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (isExpanded) {
+                if (exercise.sets.isEmpty()) {
+                    Text(
+                        text = "Sin series configuradas",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    exercise.sets.forEach { set ->
+                        WorkoutSetRow(
+                            set = set,
+                            onSetWeightChange = onSetWeightChange,
+                            onSetRepsChange = onSetRepsChange,
+                            onStepWeight = onStepWeight,
+                            onStepReps = onStepReps
                         )
                     }
                 }
-                Text(
-                    text = "Objetivo: ${exercise.targetRepsText} reps",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            exercise.sets.forEach { set ->
-                WorkoutSetRow(
-                    set = set,
-                    onSetWeightChange = onSetWeightChange,
-                    onSetRepsChange = onSetRepsChange
-                )
             }
         }
+    }
+}
+
+@Composable
+private fun ExerciseCompletionLabel(
+    isExpanded: Boolean,
+    isCompleted: Boolean,
+    completedSetCount: Int,
+    totalSetCount: Int
+) {
+    val label = if (isCompleted) {
+        "Completado"
+    } else {
+        "$completedSetCount/$totalSetCount series"
+    }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (isCompleted) {
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                tint = Color(0xFF2E7D32),
+                modifier = Modifier.size(16.dp)
+            )
+        }
+        Text(
+            text = if (isExpanded && !isCompleted) "$label abiertas" else label,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (isCompleted) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -786,7 +915,10 @@ private fun ExerciseAlternativesDialog(
             tonalElevation = 6.dp
         ) {
             Column(
-                modifier = Modifier.padding(FitSpacing.cardPadding),
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .padding(FitSpacing.cardPadding),
                 verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
             ) {
                 Text(
@@ -901,39 +1033,40 @@ private fun WeightFieldColumn(
     setId: Long,
     weightText: String,
     previousWeight: String?,
-    hasInput: Boolean,
+    isCompleted: Boolean,
     onSetWeightChange: (Long, String) -> Unit,
+    onStepWeight: (Long, Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val haptic = LocalHapticFeedback.current
     Column(modifier = modifier) {
-        OutlinedTextField(
-            value = weightText,
-            onValueChange = { value ->
-                if (!hasInput && value.isNotBlank()) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onSetWeightChange(setId, value)
-            },
-            label = { Text("Kg") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                cursorColor = MaterialTheme.colorScheme.primary,
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .onFocusChanged { focusState ->
-                    if (focusState.isFocused && weightText == "0") onSetWeightChange(setId, "")
-                }
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SetStepperButton(
+                icon = Icons.Filled.Remove,
+                contentDescription = "Bajar peso de la serie ${setId}",
+                onClick = { onStepWeight(setId, -2.5) },
+                onLongClick = { onStepWeight(setId, -5.0) }
+            )
+            OutlinedTextField(
+                value = weightText,
+                onValueChange = { value -> onSetWeightChange(setId, value) },
+                placeholder = { Text("Kg") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                colors = workoutSetFieldColors(isCompleted = isCompleted),
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 56.dp)
+            )
+            SetStepperButton(
+                icon = Icons.Filled.Add,
+                contentDescription = "Subir peso de la serie ${setId}",
+                onClick = { onStepWeight(setId, 2.5) },
+                onLongClick = { onStepWeight(setId, 5.0) }
+            )
+        }
         if (previousWeight != null) {
             Text(
                 text = "Ultima vez: $previousWeight kg",
@@ -949,99 +1082,192 @@ private fun WeightFieldColumn(
 private fun WorkoutSetRow(
     set: WorkoutSetUiState,
     onSetWeightChange: (Long, String) -> Unit,
-    onSetRepsChange: (Long, String) -> Unit
+    onSetRepsChange: (Long, String) -> Unit,
+    onStepWeight: (Long, Double) -> Unit,
+    onStepReps: (Long, Int) -> Unit
 ) {
-    val hasInput = set.weightText.isNotBlank() || set.repsText.isNotBlank()
-    val haptic = LocalHapticFeedback.current
+    val rowBackground = if (set.isCompleted) {
+        MaterialTheme.colorScheme.primarySoft
+    } else {
+        MaterialTheme.colorScheme.surfaceAlt
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
-            .padding(FitSpacing.smMd),
-        horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
+        Row(
             modifier = Modifier
-                .size(40.dp)
-                .background(
-                    color = if (hasInput) MaterialTheme.colorScheme.primarySoft else MaterialTheme.colorScheme.surface,
-                    shape = CircleShape
-                )
-                .semantics {
-                    contentDescription = if (hasInput) {
-                        "Serie ${set.setNumber} con datos registrados"
-                    } else {
-                        "Serie ${set.setNumber} pendiente"
-                    }
-                },
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .background(rowBackground, MaterialTheme.shapes.large)
+                .padding(FitSpacing.smMd),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
+            verticalAlignment = Alignment.Top
         ) {
-            if (hasInput) {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
+            Box(
+                modifier = Modifier
+                    .padding(top = 6.dp)
+                    .size(WORKOUT_SET_INDEX_SIZE)
+                    .background(
+                        color = if (set.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                        shape = CircleShape
+                    )
+                    .semantics {
+                        contentDescription = if (set.isCompleted) {
+                            "Serie ${set.setNumber} completada"
+                        } else {
+                            "Serie ${set.setNumber} pendiente"
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (set.isCompleted) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                } else {
+                    Text(
+                        text = set.setNumber.toString(),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+            WeightFieldColumn(
+                setId = set.id,
+                weightText = set.weightText,
+                previousWeight = set.previousWeight,
+                isCompleted = set.isCompleted,
+                onSetWeightChange = onSetWeightChange,
+                onStepWeight = onStepWeight,
+                modifier = Modifier.weight(WORKOUT_WEIGHT_COLUMN_WEIGHT)
+            )
+            Row(
+                modifier = Modifier.weight(WORKOUT_REPS_COLUMN_WEIGHT),
+                horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SetStepperButton(
+                    icon = Icons.Filled.Remove,
+                    contentDescription = "Bajar repeticiones de la serie ${set.setNumber}",
+                    onClick = { onStepReps(set.id, -1) }
                 )
-            } else {
-                Text(
-                    text = set.setNumber.toString(),
-                    style = MaterialTheme.typography.labelLarge
+                OutlinedTextField(
+                    value = set.repsText,
+                    onValueChange = { value -> onSetRepsChange(set.id, value) },
+                    placeholder = { Text("Reps") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = workoutSetFieldColors(isCompleted = set.isCompleted),
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 56.dp)
+                )
+                SetStepperButton(
+                    icon = Icons.Filled.Add,
+                    contentDescription = "Subir repeticiones de la serie ${set.setNumber}",
+                    onClick = { onStepReps(set.id, 1) }
                 )
             }
         }
-        WeightFieldColumn(
-            setId = set.id,
-            weightText = set.weightText,
-            previousWeight = set.previousWeight,
-            hasInput = hasInput,
-            onSetWeightChange = onSetWeightChange,
-            modifier = Modifier.weight(1f)
-        )
-        OutlinedTextField(
-            value = set.repsText,
-            onValueChange = { value ->
-                if (!hasInput && value.isNotBlank()) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                }
-                onSetRepsChange(set.id, value)
-            },
-            label = { Text("Reps") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                cursorColor = MaterialTheme.colorScheme.primary,
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-            ),
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 56.dp)
-                .onFocusChanged { focusState ->
-                    if (focusState.isFocused && set.repsText == "0") {
-                        onSetRepsChange(set.id, "")
-                    }
-                }
-        )
-    }
-    if (set.prType != null) {
-        FitTrackBadge(
-            label = if (set.prType == PrType.MaxWeight) "PR PESO" else "PR VOLUMEN",
-            tone = FitTrackBadgeTone.Warm,
-            modifier = Modifier.padding(start = FitSpacing.smMd, top = 2.dp)
-        )
-    }
+        if (set.prType != null) {
+            FitTrackBadge(
+                label = if (set.prType == PrType.MaxWeight) "PR PESO" else "PR VOLUMEN",
+                tone = FitTrackBadgeTone.Warm,
+                modifier = Modifier.padding(start = FitSpacing.smMd, top = 2.dp)
+            )
+        }
     }
 }
+
+@Composable
+private fun ProgressionHintButton(hint: ProgressionHint) {
+    var showHintMessage by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(
+            onClick = { showHintMessage = true },
+            modifier = Modifier.minimumInteractiveComponentSize()
+        ) {
+            Icon(
+                imageVector = if (hint == ProgressionHint.UP) {
+                    Icons.Filled.KeyboardArrowUp
+                } else {
+                    Icons.Filled.KeyboardArrowDown
+                },
+                contentDescription = if (hint == ProgressionHint.UP) {
+                    "Sugerencia de subir peso"
+                } else {
+                    "Sugerencia de bajar peso"
+                },
+                tint = if (hint == ProgressionHint.UP) {
+                    Color(0xFF2E7D32)
+                } else {
+                    MaterialTheme.colorScheme.accentWarm
+                }
+            )
+        }
+        DropdownMenu(
+            expanded = showHintMessage,
+            onDismissRequest = { showHintMessage = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text(progressionHintSupportText(hint)) },
+                onClick = { showHintMessage = false }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun SetStepperButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null
+) {
+    Box(
+        modifier = Modifier
+            .sizeIn(minWidth = 36.dp, minHeight = 36.dp)
+            .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.medium)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun workoutSetFieldColors(isCompleted: Boolean) = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+    focusedLabelColor = MaterialTheme.colorScheme.primary,
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    focusedTextColor = if (isCompleted) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    },
+    unfocusedTextColor = if (isCompleted) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    },
+    cursorColor = MaterialTheme.colorScheme.primary,
+    focusedContainerColor = Color.Transparent,
+    unfocusedContainerColor = Color.Transparent
+)
+
+private val WORKOUT_SET_INDEX_SIZE = 40.dp
+private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.15f
+private const val WORKOUT_REPS_COLUMN_WEIGHT = 0.95f
 
 @Composable
 private fun WorkoutLoadingSkeleton() {
@@ -1107,4 +1333,12 @@ private fun formatRestTimer(totalSeconds: Int): String {
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return "%d:%02d".format(minutes, seconds)
+}
+
+private fun progressionHintSupportText(hint: ProgressionHint): String {
+    return when (hint) {
+        ProgressionHint.UP -> "Has superado el rango las ultimas sesiones. Considera subir peso."
+        ProgressionHint.DOWN -> "No has alcanzado el rango las ultimas sesiones. Considera bajar peso."
+        ProgressionHint.NONE -> ""
+    }
 }

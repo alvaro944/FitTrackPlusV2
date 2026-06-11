@@ -2,6 +2,165 @@
 
 Bitacora viva del proyecto. Cada fase debe anadir aqui lo que se hizo, lo que se verifico, problemas encontrados y decisiones tomadas.
 
+## Iteracion - Workout screen polish y data integrity
+
+Estado:
+
+- Completada tecnicamente.
+
+Rama:
+
+- `codex/ux-improvements`
+
+Objetivo:
+
+- Ejecutar las 7 tareas del plan de polish de `Entrenar` y de integridad de datos en la rama actual.
+- Mejorar legibilidad y foco del registro por ejercicio sin ampliar el alcance de las specs.
+- Evitar que sesiones vacias contaminen historial de stats y limpiar correctamente una sesion sin series completadas.
+
+Fuera de alcance:
+
+- cambios de schema Room
+- nuevos flujos fuera de `Entrenar`
+- nuevas heuristicas de progreso o cambios de producto no descritos en las specs
+- ajustes visuales generales fuera del area tocada
+
+Cambios principales:
+
+- Entrenar:
+  - la lista de ejercicios pasa a un acordeon estricto dentro de la sesion activa
+  - al completar un ejercicio se colapsa y avanza automaticamente al siguiente pendiente
+  - el resumen del header muestra progreso claro por ejercicio y estado completado en colapsado
+  - la lista respeta mejor el teclado con `imePadding`
+  - las filas de series alinean peso y reps aunque aparezca `Ultima vez` bajo el peso
+  - los campos de peso/reps se ajustan para movil con placeholders y anchos mas estables
+  - el input de peso acepta y conserva separador decimal con coma
+- Rutinas:
+  - el editor de rutinas resuelve mejor el teclado con `imePadding` y `contentWindowInsets` a cero
+- Alternativas:
+  - el dialogo de ejercicios alternativos usa scroll vertical e `imePadding` en modo creacion
+- Integridad:
+  - finalizar una sesion sin ninguna serie completada la descarta en vez de guardarla como historica
+  - stats ignora sesiones finalizadas que no tengan ninguna serie con reps > 0
+  - se anade borrado de sesion abierta desde repositorio/DAO para soportar el descarte limpio
+- Tests:
+  - se amplian tests de parsing/sanitizado de peso
+  - se cubre separador decimal con coma en el caso de uso de actualizacion
+  - se cubre exclusion de sesiones vacias en stats
+
+Problemas encontrados:
+
+- una primera pasada manual detecto que la etiqueta `Reps` se rompia en vertical en ancho movil; se corrigio sustituyendo labels por placeholders y ajustando tamano de botones
+- ejecutar `test` y `build` a la vez provoco un fallo espurio de salidas generadas/KSP; la verificacion estable se mantuvo en secuencia
+
+Decisiones:
+
+- mantener el comportamiento de acordeon estricto tambien dentro de la sesion de entrenamiento para reducir ruido visual
+- no guardar sesiones vacias en historial ni contarlas en stats; cuando no hay trabajo real, la sesion se descarta
+- aceptar coma y punto al parsear peso, pero normalizar la representacion visible hacia coma en UI
+
+Verificacion:
+
+```bash
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+bash ./gradlew test --no-daemon --console=plain
+bash ./gradlew build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Verificacion automatica correcta.
+- Pasada manual correcta en emulador para:
+  - acordeon de ejercicios y avance visual al siguiente bloque
+  - estado colapsado/completado por ejercicio
+  - layout movil de filas de peso/reps dentro de `Entrenar`, incluida la alineacion con `Ultima vez`
+  - foco usable en campos internos del editor de rutinas sin que el contenido relevante quede inaccesible
+  - dialogo de alternativas estable al entrar en modo creacion y foco de campos
+- El descarte de sesion vacia y el filtrado de stats quedan verificados por logica y tests; no se forzo un flujo manual adicional fuera del alcance visible.
+
+Pendiente:
+
+- commit limpio en la rama actual
+
+## Iteracion - UX improvements de rutinas y entrenamiento
+
+Estado:
+
+- Completada tecnicamente.
+
+Rama:
+
+- `codex/ux-improvements`
+
+Objetivo:
+
+- Ejecutar las 8 tareas del plan UX en una sola rama.
+- Hacer mas seguro el editor de rutinas al navegar y cerrar.
+- Mejorar la edicion diaria del entrenamiento con defaults, steppers y feedback mas claros.
+
+Fuera de alcance:
+
+- cambios de schema Room
+- sync/cloud/Firebase
+- nuevos flujos fuera de las 3 specs acordadas
+- ampliar la heuristica de progresion mas alla de `UP/DOWN/NONE`
+
+Cambios principales:
+
+- Rutinas:
+  - el editor pasa a acordeon estricto con un unico dia expandido
+  - duplicar o anadir dia abre el nuevo bloque y colapsa el anterior
+  - se anade deteccion de cambios sin guardar en el borrador
+  - cerrar editor, back del sistema y cambio de tab/drawer piden confirmacion antes de descartar
+- Shell:
+  - `AppShellViewModel` coordina navegacion pendiente y confirmacion posterior al descarte
+  - la shell navega solo tras aprobacion explicita cuando una pantalla bloquea salida por cambios sin guardar
+- Entrenar:
+  - se anade `ProgressionHint` con `GetProgressionHintUseCase`
+  - cada serie gana stepper de peso `+/- 2.5` con long press `+/- 5.0` y stepper de reps `+/- 1`
+  - los inputs sugieren reps iniciales desde el set completado anterior o desde el minimo del rango objetivo
+  - al completar una serie cambia el estilo visual de la fila y se emite evento de haptic
+- Tests:
+  - se amplian tests del editor de rutinas
+  - se crean tests del caso de uso de progresion
+  - se crean tests de defaults y steppers de entrenamiento
+
+Problemas encontrados:
+
+- `./gradlew` no era ejecutable en este entorno; la verificacion estable se hizo con `bash ./gradlew ...`
+- el entorno Java del shell no apuntaba al JBR de Android Studio; hizo falta fijar `JAVA_HOME` antes de verificar
+- lint marco `ContextCastToActivity` en Compose; la solucion limpia fue usar `LocalActivity.current`
+- el dataset demo de la sesion `Pull` no tenia suficiente historial cerrado por ejercicio para mostrar un badge de progresion visible
+
+Decisiones:
+
+- Mantener el comportamiento del editor en acordeon estricto por decision explicita del usuario
+- No inventar una heuristica nueva para hints cuando no hay historial suficiente; en ese caso se mantiene `NONE`
+- No tocar datos demo ni sembrar historial artificial solo para forzar un badge visual en la pasada manual
+
+Verificacion:
+
+```bash
+bash ./gradlew test --no-daemon --console=plain
+bash ./gradlew build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Verificacion automatica correcta.
+- Pasada manual correcta en emulador para:
+  - acordeon del editor de rutinas
+  - descarte de cambios sin guardar al cerrar o cambiar de tab
+  - steppers de peso/reps
+  - estilo de serie completada tras marcar reps
+- La visibilidad del badge de progresion queda validada por tests; el dataset demo actual no activa un hint visible en la sesion probada.
+
+Pendiente:
+
+- push de la rama y cierre del ciclo en remoto
+- eventual revision/merge de `codex/ux-improvements`
+
 ## Iteracion - Final form sidebar shell y release preview
 
 Estado:

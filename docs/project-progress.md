@@ -5,7 +5,7 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 ## Estado Actual
 
 - Rama base de produccion: `main`.
-- Rama de esta iteracion: `codex/final-form-sidebar-shell`.
+- Rama de esta iteracion: `codex/ux-improvements`.
 - Commit inicial local: `c1b2f31 Initialize FitTrackPlus v2 mobile foundation`.
 - Commit de cierre de Fase 1: `9df5a44 Complete phase 1 routines`.
 - Commit de cierre de Fase 2: `7cf2c02 Complete phase 2 workout logging`.
@@ -119,6 +119,21 @@ Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso
 - Pendiente real antes de dar por cerrada toda la linea visual:
   - pasada manual en emulador/dispositivo del shell final y drawer lateral
   - pipeline de release firmada cuando exista keystore de produccion
+- Iteracion `ux improvements` implementada y verificada localmente en rama `codex/ux-improvements`:
+  - el editor de rutinas usa acordeon estricto de un solo dia expandido cada vez
+  - el editor bloquea cierre, back y cambio de seccion cuando hay cambios sin guardar
+  - el descarte confirmado permite continuar la navegacion pendiente desde tabs y drawer
+  - el flujo de entrenamiento gana steppers de peso/reps, sugerencias iniciales mas utiles y estado completado mas claro por serie
+  - se anade logica local de pistas de progresion `UP/DOWN/NONE` para ejercicios con historial reciente suficiente
+  - se anaden tests nuevos para acordeon, progresion y defaults/steppers de entrenamiento
+- Verificacion reciente de `ux improvements`:
+  - `test` OK
+  - `build` OK
+  - pasada manual en emulador OK para:
+    - acordeon del editor de rutinas
+    - dialogo de cambios sin guardar al navegar fuera del editor
+    - steppers de peso/reps y estilo de serie completada
+  - el dataset demo actual no muestra badge de progresion en la sesion `Pull` porque los ejercicios activos solo tienen una sesion historica cerrada; la logica de hints queda cubierta por tests unitarios
 - Backlog visual separado creado en `docs/visual-improvements.md`.
 - Siguiente foco real de producto: validacion manual final del shell/diseno integrado y, despues, cierre oficial de 2.1C antes de abrir sync/cloud o nuevas features grandes.
 - Migracion GPT-5.5 aplicada a agentes/docs: no hay integracion runtime OpenAI en la app, asi que no habia modelo de API que cambiar.
@@ -463,3 +478,40 @@ Diferido:
 - supersets/cardio/RPE.
 - import/export avanzado salvo fase dedicada.
 - i18n completa.
+
+## 2026-06-11 - Workout polish + data integrity
+
+Estado:
+
+- implementado en `codex/ux-improvements`
+- verificado con `./gradlew test` y `./gradlew build`
+- pasada manual en emulador completada sobre `Entrenar`
+
+Cambios cerrados:
+
+- `WorkoutScreen` ahora aplica `imePadding` y deja al `Scaffold` sin insets extra para que el teclado no tape el formulario.
+- El acordeon de ejercicios activos pasa a modo estricto: un solo bloque expandido, cabeceras con progreso (`X/Y series` o `Completado`) y avance automatico al siguiente pendiente.
+- Los campos de peso usan entrada decimal tolerante con coma, muestran valores con `,` y los steppers mantienen el mismo formato.
+- Las filas de series se compactan para movil con placeholders estables, mejor alineacion horizontal y sin desajuste cuando aparece `Ultima vez`.
+- `RoutinesScreen` suma `imePadding` en el editor y `contentWindowInsets` a cero para que el teclado no tape campos al editar dias o ejercicios.
+- `ExerciseAlternativesDialog` envuelve el modo creacion en scroll vertical con `imePadding`.
+- Finalizar una sesion sin ninguna serie completada la descarta de Room en vez de guardarla.
+- Stats ignoran sesiones terminadas sin reps reales, evitando puntos vacios heredados en historico/progreso.
+
+Tests anadidos o ampliados:
+
+- `WorkoutInputDefaultsTest`
+- `UpdateWorkoutSetUseCaseTest`
+- `ObserveWorkoutStatsUseCaseTest`
+
+Validacion manual destacada:
+
+- comprobado en emulador que solo queda un ejercicio expandido a la vez
+- comprobado estado colapsado de ejercicios completados y resumen de progreso
+- comprobado layout de filas en movil tras sustituir labels por placeholders y alinear correctamente las series con `Ultima vez`
+- comprobado foco usable en el editor de rutinas al entrar en campos internos
+- comprobado dialogo de alternativas en modo creacion con campos accesibles
+
+Pendiente:
+
+- ninguno para este bloque; el siguiente trabajo puede partir ya desde esta rama o desde la siguiente fase acordada

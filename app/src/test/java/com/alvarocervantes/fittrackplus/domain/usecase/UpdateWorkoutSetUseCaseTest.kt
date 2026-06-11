@@ -54,6 +54,18 @@ class UpdateWorkoutSetUseCaseTest {
         assertEquals(72.5, repository.lastWeightKg ?: -1.0, 0.0)
         assertEquals(0, repository.lastReps)
     }
+
+    @Test
+    fun acceptsCommaDecimalSeparatorForWeight() = runBlocking {
+        val repository = SetUpdateWorkoutRepository()
+        val useCase = UpdateWorkoutSetUseCase(repository)
+
+        useCase(setId = 11, weightText = "82,5", repsText = "6")
+
+        assertEquals(11L, repository.lastSetId)
+        assertEquals(82.5, repository.lastWeightKg ?: -1.0, 0.0)
+        assertEquals(6, repository.lastReps)
+    }
 }
 
 private class SetUpdateWorkoutRepository : WorkoutRepository {

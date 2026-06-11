@@ -48,6 +48,9 @@ interface WorkoutDao {
     @Query("DELETE FROM workout_sessions")
     suspend fun deleteAllSessions()
 
+    @Query("DELETE FROM workout_sessions WHERE id = :sessionId")
+    suspend fun deleteSession(sessionId: Long)
+
     @Insert
     suspend fun insertSession(session: WorkoutSessionEntity): Long
 
@@ -113,4 +116,17 @@ interface WorkoutDao {
         AND ws.weightKg > 0
     """)
     suspend fun getMaxSetVolumeForExercise(variantKey: String): Double?
+
+    @Query("""
+        SELECT AVG(ws.reps) FROM workout_sets ws
+        INNER JOIN workout_exercises we ON ws.workoutExerciseId = we.id
+        INNER JOIN workout_sessions sess ON we.sessionId = sess.id
+        WHERE we.performedVariantKey = :variantKey
+        AND sess.finishedAt IS NOT NULL
+        AND ws.reps > 0
+        GROUP BY sess.id
+        ORDER BY sess.finishedAt DESC, sess.startedAt DESC
+        LIMIT :limit
+    """)
+    suspend fun getRecentAverageRepsForExercise(variantKey: String, limit: Int): List<Double>
 }
