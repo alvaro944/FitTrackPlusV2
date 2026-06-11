@@ -841,14 +841,22 @@ private fun WorkoutExerciseCard(
             }
 
             if (isExpanded) {
-                exercise.sets.forEach { set ->
-                    WorkoutSetRow(
-                        set = set,
-                        onSetWeightChange = onSetWeightChange,
-                        onSetRepsChange = onSetRepsChange,
-                        onStepWeight = onStepWeight,
-                        onStepReps = onStepReps
+                if (exercise.sets.isEmpty()) {
+                    Text(
+                        text = "Sin series configuradas",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                } else {
+                    exercise.sets.forEach { set ->
+                        WorkoutSetRow(
+                            set = set,
+                            onSetWeightChange = onSetWeightChange,
+                            onSetRepsChange = onSetRepsChange,
+                            onStepWeight = onStepWeight,
+                            onStepReps = onStepReps
+                        )
+                    }
                 }
             }
         }
