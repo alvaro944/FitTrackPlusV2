@@ -2,6 +2,72 @@
 
 Bitacora viva del proyecto. Cada fase debe anadir aqui lo que se hizo, lo que se verifico, problemas encontrados y decisiones tomadas.
 
+## Iteracion - Workout entry fixes
+
+Estado:
+
+- Completada tecnicamente.
+
+Rama:
+
+- `codex/ux-improvements`
+
+Objetivo:
+
+- Corregir fricciones puntuales del registro de series en `Entrenar` sin ampliar alcance.
+- Mejorar legibilidad del campo de reps.
+- Mantener acordeon manual puro.
+- Evitar efectos colaterales al editar reps y facilitar reemplazo directo del valor.
+
+Fuera de alcance:
+
+- cambios de schema Room
+- cambios en historial/stats fuera del bug de entrada
+- nuevas interacciones no descritas en la spec
+
+Cambios principales:
+
+- Entrenar:
+  - la columna de reps gana mas espacio horizontal
+  - los botones `+/-` de reps se reducen respecto a peso para dejar sitio al input
+  - se elimina el auto-colapso al completar un ejercicio; el acordeon queda solo manual
+  - peso y reps pasan a `TextFieldValue` local sincronizado con el estado externo
+  - al recibir foco, ambos campos seleccionan todo el contenido existente
+- Estado y sugerencias:
+  - la actualizacion por `setId` queda extraida a helper reusable y testeable
+  - las sugerencias de reps ya no pisan valores incompletos que el usuario ya tenia en otros sets
+- Tests:
+  - se anaden pruebas puras para independencia por `setId`
+  - se cubre que las sugerencias preservan reps ya existentes
+  - se cubre la logica de `selectAll` y sincronizacion de `TextFieldValue`
+
+Problemas encontrados:
+
+- el bug reportado de reps compartidas no venia del `setId` en si, sino de la recomputacion de sugerencias que sobrescribia sets incompletos con texto ya presente
+
+Decisiones:
+
+- mantener sugerencias iniciales solo para sets vacios; una vez hay texto en un set incompleto, se respeta
+- no hacer pasada manual en esta sesion por instruccion explicita del usuario para evitar consumo extra en emulador/capturas
+
+Verificacion:
+
+```bash
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+bash ./gradlew test --no-daemon --console=plain
+bash ./gradlew build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Verificacion automatica correcta.
+- Sin pasada manual en esta sesion por instruccion explicita del usuario.
+
+Pendiente:
+
+- commit limpio en la rama actual
+
 ## Iteracion - Workout screen polish y data integrity
 
 Estado:

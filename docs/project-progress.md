@@ -2,6 +2,37 @@
 
 Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso.
 
+## 2026-06-12 - Workout entry fixes
+
+Estado:
+
+- implementado en `codex/ux-improvements`
+- verificado con `./gradlew test` y `./gradlew build`
+- sin pasada manual en esta sesion por instruccion explicita del usuario
+
+Cambios cerrados:
+
+- `WorkoutScreen` da mas espacio al campo de reps reduciendo el tamano visual de sus botones `+/-` y reajustando la proporcion entre columnas.
+- Se elimina el auto-colapso al completar ejercicios; el acordeon vuelve a ser estrictamente manual.
+- La actualizacion de sets queda centralizada en helpers testeables por `setId`, evitando tocar ejercicios ajenos.
+- Las sugerencias de reps dejan de sobrescribir sets incompletos que ya tienen un valor visible.
+- Los campos de peso y reps pasan a `TextFieldValue` sincronizado y seleccionan todo el contenido al recibir foco.
+
+Tests anadidos o ampliados:
+
+- `WorkoutInputDefaultsTest`
+
+Validacion destacada:
+
+- rojo inicial confirmado por compilacion fallida al referenciar helpers aun no implementados
+- verde confirmado en la clase objetivo antes de la verificacion completa
+- `test` OK
+- `build` OK
+
+Pendiente:
+
+- ninguno para este bloque dentro de la rama; listo para seguir con el siguiente grupo acordado
+
 ## Estado Actual
 
 - Rama base de produccion: `main`.

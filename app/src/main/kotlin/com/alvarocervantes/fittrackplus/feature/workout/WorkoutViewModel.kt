@@ -53,7 +53,6 @@ class WorkoutViewModel @Inject constructor(
 
     companion object {
         private const val SESSION_KEY = "active_session_id"
-        private const val EXERCISE_AUTO_COLLAPSE_DELAY_MILLIS = 600L
     }
 
     private val _uiState = MutableStateFlow(WorkoutUiState())
@@ -66,7 +65,6 @@ class WorkoutViewModel @Inject constructor(
     val setCompletionHapticEvent = _setCompletionHapticEvent.receiveAsFlow()
 
     private var restTimerJob: Job? = null
-    private var exerciseAdvanceJob: Job? = null
 
     init {
         userPreferencesRepository.activeRoutineId
@@ -293,7 +291,6 @@ class WorkoutViewModel @Inject constructor(
     }
 
     fun toggleExerciseExpanded(exerciseId: Long) {
-        exerciseAdvanceJob?.cancel()
         _uiState.update { state ->
             val session = state.activeSession ?: return@update state
             if (session.exercises.none { it.id == exerciseId }) return@update state
@@ -323,7 +320,6 @@ class WorkoutViewModel @Inject constructor(
         val previousRepsWasZero = !set.isCompleted
         val exercise = _uiState.value.activeSession?.exercises
             ?.firstOrNull { ex -> ex.sets.any { it.id == setId } }
-        val exerciseWasCompleted = exercise?.isCompleted == true
         val shouldAutoStartTimer = shouldAutoStartRestTimer(
             previousRepsText = set.repsText,
             nextRepsText = repsText,
@@ -337,13 +333,6 @@ class WorkoutViewModel @Inject constructor(
         }
         if (shouldAutoStartTimer) {
             startRestTimer(_uiState.value.restTimer.durationSeconds.takeIf { it > 0 } ?: DEFAULT_REST_TIMER_SECONDS)
-        }
-        val updatedExercise = _uiState.value.activeSession?.exercises
-            ?.firstOrNull { ex -> ex.id == exercise?.id }
-        if (!exerciseWasCompleted && updatedExercise?.isCompleted == true) {
-            scheduleExerciseAdvance(updatedExercise.id)
-        } else {
-            exerciseAdvanceJob?.cancel()
         }
         persistSet(
             setId = setId,
@@ -415,7 +404,6 @@ class WorkoutViewModel @Inject constructor(
             }.onSuccess {
                 savedStateHandle.remove<Long>(SESSION_KEY)
                 stopRestTimerJob()
-                exerciseAdvanceJob?.cancel()
                 val prCount = if (shouldDiscardSession) 0 else (_uiState.value.activeSession?.prCount ?: 0)
                 val activeRoutineId = _uiState.value.activeRoutineId
                 val nextPreview = activeRoutineId?.let { getNextWorkoutPreview(it) }
@@ -548,7 +536,6 @@ class WorkoutViewModel @Inject constructor(
         }
         if (activeSession == null) {
             stopRestTimerJob()
-            exerciseAdvanceJob?.cancel()
         }
     }
 
@@ -579,17 +566,11 @@ class WorkoutViewModel @Inject constructor(
             val activeSession = state.activeSession ?: return@update state
             state.copy(
                 activeSession = activeSession.copy(
-                    exercises = activeSession.exercises.map { exercise ->
-                        if (exercise.sets.none { set -> set.id == setId }) {
-                            exercise
-                        } else {
-                            exercise.copy(
-                                sets = exercise.sets.map { set ->
-                                    if (set.id == setId) transform(set) else set
-                                }
-                            ).withSuggestedInputs()
-                        }
-                    }
+                    exercises = updateWorkoutExercisesForSet(
+                        exercises = activeSession.exercises,
+                        setId = setId,
+                        transform = transform
+                    )
                 )
             )
         }
@@ -608,21 +589,6 @@ class WorkoutViewModel @Inject constructor(
     private fun stopRestTimerJob() {
         restTimerJob?.cancel()
         restTimerJob = null
-    }
-
-    private fun scheduleExerciseAdvance(completedExerciseId: Long) {
-        exerciseAdvanceJob?.cancel()
-        exerciseAdvanceJob = viewModelScope.launch {
-            delay(EXERCISE_AUTO_COLLAPSE_DELAY_MILLIS)
-            _uiState.update { state ->
-                val session = state.activeSession ?: return@update state
-                if (state.expandedExerciseId != completedExerciseId) return@update state
-                state.copy(
-                    expandedExerciseId = session.nextPendingExerciseId(afterExerciseId = completedExerciseId)
-                        ?: session.firstPendingExerciseId()
-                )
-            }
-        }
     }
 
     private fun updateAlternativeDraft(
@@ -835,15 +801,6 @@ private fun ActiveWorkoutSessionUiState.firstPendingExerciseId(): Long? {
     return exercises.firstOrNull { exercise -> !exercise.isCompleted }?.id
 }
 
-private fun ActiveWorkoutSessionUiState.nextPendingExerciseId(afterExerciseId: Long): Long? {
-    val currentIndex = exercises.indexOfFirst { exercise -> exercise.id == afterExerciseId }
-    if (currentIndex == -1) return firstPendingExerciseId()
-    return exercises
-        .drop(currentIndex + 1)
-        .firstOrNull { exercise -> !exercise.isCompleted }
-        ?.id
-}
-
 private fun resolveExpandedExerciseId(
     session: ActiveWorkoutSessionUiState?,
     preferredExerciseId: Long? = null
@@ -856,23 +813,7 @@ private fun resolveExpandedExerciseId(
 }
 
 private fun WorkoutExerciseUiState.withSuggestedInputs(): WorkoutExerciseUiState {
-    var previousCompletedReps: Int? = null
-    return copy(
-        sets = sets.map { set ->
-            val updatedSet = if (set.isCompleted) {
-                previousCompletedReps = set.repsText.toIntOrNull()
-                set
-            } else {
-                set.copy(
-                    repsText = suggestWorkoutSetRepsInput(
-                        previousCompletedReps = previousCompletedReps,
-                        targetRepsText = targetRepsText
-                    )
-                )
-            }
-            updatedSet
-        }
-    )
+    return copy(sets = applyWorkoutSetInputSuggestions(sets = sets, targetRepsText = targetRepsText))
 }
 
 private fun Double.toInputText(): String {
@@ -932,6 +873,46 @@ internal fun suggestWorkoutSetRepsInput(
 
     val targetRange = com.alvarocervantes.fittrackplus.domain.usecase.parseProgressionTargetRange(targetRepsText)
     return targetRange?.first?.toString().orEmpty()
+}
+
+internal fun applyWorkoutSetInputSuggestions(
+    sets: List<WorkoutSetUiState>,
+    targetRepsText: String
+): List<WorkoutSetUiState> {
+    var previousCompletedReps: Int? = null
+    return sets.map { set ->
+        when {
+            set.isCompleted -> {
+                previousCompletedReps = set.repsText.toIntOrNull()
+                set
+            }
+            set.repsText.isNotBlank() -> set
+            else -> set.copy(
+                repsText = suggestWorkoutSetRepsInput(
+                    previousCompletedReps = previousCompletedReps,
+                    targetRepsText = targetRepsText
+                )
+            )
+        }
+    }
+}
+
+internal fun updateWorkoutExercisesForSet(
+    exercises: List<WorkoutExerciseUiState>,
+    setId: Long,
+    transform: (WorkoutSetUiState) -> WorkoutSetUiState
+): List<WorkoutExerciseUiState> {
+    return exercises.map { exercise ->
+        if (exercise.sets.none { set -> set.id == setId }) {
+            exercise
+        } else {
+            exercise.copy(
+                sets = exercise.sets.map { set ->
+                    if (set.id == setId) transform(set) else set
+                }
+            ).withSuggestedInputs()
+        }
+    }
 }
 
 internal fun adjustWorkoutRepsInput(currentValue: String, delta: Int): String {
