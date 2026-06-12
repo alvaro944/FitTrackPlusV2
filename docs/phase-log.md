@@ -30,9 +30,11 @@ Cambios principales:
 - Entrenar:
   - la columna de reps gana mas espacio horizontal
   - los botones `+/-` de reps se reducen respecto a peso para dejar sitio al input
+  - los botones `+/-` de peso se alinean al mismo tamano compacto que los de reps
   - se elimina el auto-colapso al completar un ejercicio; el acordeon queda solo manual
   - peso y reps pasan a `TextFieldValue` local sincronizado con el estado externo
   - al recibir foco, ambos campos seleccionan todo el contenido existente
+  - al tocar un campo ya enfocado, la seleccion total tambien se reaplica desde la interaccion real del `TextField`
 - Estado y sugerencias:
   - la actualizacion por `setId` queda extraida a helper reusable y testeable
   - las sugerencias de reps ya no pisan valores incompletos que el usuario ya tenia en otros sets

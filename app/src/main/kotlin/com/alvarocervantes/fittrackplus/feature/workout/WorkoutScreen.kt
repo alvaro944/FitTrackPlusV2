@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -1041,12 +1043,21 @@ private fun WeightFieldColumn(
     modifier: Modifier = Modifier
 ) {
     var fieldValue by remember(setId) { mutableStateOf(TextFieldValue(weightText)) }
+    val interactionSource = remember { MutableInteractionSource() }
 
     LaunchedEffect(weightText) {
         fieldValue = syncWorkoutFieldValue(
             current = fieldValue,
             externalText = weightText
         )
+    }
+
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collect { interaction ->
+            if (interaction is PressInteraction.Release) {
+                fieldValue = selectAllWorkoutFieldValue(fieldValue)
+            }
+        }
     }
 
     Column(modifier = modifier) {
@@ -1058,7 +1069,9 @@ private fun WeightFieldColumn(
                 icon = Icons.Filled.Remove,
                 contentDescription = "Bajar peso de la serie ${setId}",
                 onClick = { onStepWeight(setId, -2.5) },
-                onLongClick = { onStepWeight(setId, -5.0) }
+                onLongClick = { onStepWeight(setId, -5.0) },
+                minButtonSize = REPS_STEPPER_BUTTON_SIZE,
+                iconSize = REPS_STEPPER_ICON_SIZE
             )
             OutlinedTextField(
                 value = fieldValue,
@@ -1070,6 +1083,7 @@ private fun WeightFieldColumn(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 colors = workoutSetFieldColors(isCompleted = isCompleted),
+                interactionSource = interactionSource,
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 56.dp)
@@ -1083,7 +1097,9 @@ private fun WeightFieldColumn(
                 icon = Icons.Filled.Add,
                 contentDescription = "Subir peso de la serie ${setId}",
                 onClick = { onStepWeight(setId, 2.5) },
-                onLongClick = { onStepWeight(setId, 5.0) }
+                onLongClick = { onStepWeight(setId, 5.0) },
+                minButtonSize = REPS_STEPPER_BUTTON_SIZE,
+                iconSize = REPS_STEPPER_ICON_SIZE
             )
         }
         if (previousWeight != null) {
@@ -1111,12 +1127,21 @@ private fun WorkoutSetRow(
         MaterialTheme.colorScheme.surfaceAlt
     }
     var repsFieldValue by remember(set.id) { mutableStateOf(TextFieldValue(set.repsText)) }
+    val repsInteractionSource = remember { MutableInteractionSource() }
 
     LaunchedEffect(set.repsText) {
         repsFieldValue = syncWorkoutFieldValue(
             current = repsFieldValue,
             externalText = set.repsText
         )
+    }
+
+    LaunchedEffect(repsInteractionSource) {
+        repsInteractionSource.interactions.collect { interaction ->
+            if (interaction is PressInteraction.Release) {
+                repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)
+            }
+        }
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -1190,6 +1215,7 @@ private fun WorkoutSetRow(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = workoutSetFieldColors(isCompleted = set.isCompleted),
+                    interactionSource = repsInteractionSource,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 56.dp)

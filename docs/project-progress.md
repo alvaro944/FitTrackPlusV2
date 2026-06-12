@@ -13,10 +13,11 @@ Estado:
 Cambios cerrados:
 
 - `WorkoutScreen` da mas espacio al campo de reps reduciendo el tamano visual de sus botones `+/-` y reajustando la proporcion entre columnas.
+- Los botones de peso tambien usan el tamano compacto de reps para liberar mas ancho util al input.
 - Se elimina el auto-colapso al completar ejercicios; el acordeon vuelve a ser estrictamente manual.
 - La actualizacion de sets queda centralizada en helpers testeables por `setId`, evitando tocar ejercicios ajenos.
 - Las sugerencias de reps dejan de sobrescribir sets incompletos que ya tienen un valor visible.
-- Los campos de peso y reps pasan a `TextFieldValue` sincronizado y seleccionan todo el contenido al recibir foco.
+- Los campos de peso y reps pasan a `TextFieldValue` sincronizado y seleccionan todo el contenido al recibir foco y al tocar de nuevo un campo ya enfocado.
 
 Tests anadidos o ampliados:
 
