@@ -25,13 +25,15 @@ Claude NO hace commits, no crea ramas, no hace push.
 - Crea la rama indicada en el plan
 - Implementa segun la spec
 - Verifica localmente: `./gradlew test` + `./gradlew build`
-- Hace pasada manual en emulador cuando es posible
 - Hace commit solo cuando el codigo esta verificado y funciona
 - Hace push y avisa al usuario
+- Cuando el usuario da el visto bueno, hace merge a main y push
 
+Codex NO lanza el emulador — la verificacion manual la hace el usuario.
 Codex NO hace commits de WIP.
 Codex NO cambia de rama sin motivo.
 Codex NO amplia el alcance de la spec sin confirmar con el usuario.
+Codex NO hace merge a main sin aprobacion explicita del usuario.
 
 ---
 
@@ -60,11 +62,12 @@ Codex NO amplia el alcance de la spec sin confirmar con el usuario.
 4. Usuario revisa y aprueba
 5. Codex crea rama: codex/<nombre>
 6. Codex implementa segun spec y plan
-7. Codex verifica localmente (test + build + emulador)
+7. Codex verifica localmente (test + build)
 8. Codex hace commit limpio
 9. Codex hace push y avisa
-10. Usuario revisa en emulador
-11. Usuario aprueba merge a main
+10. Usuario revisa manualmente en su dispositivo/emulador
+11. Usuario aprueba
+12. Codex hace merge a main y push
 ```
 
 ---

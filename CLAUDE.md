@@ -42,9 +42,10 @@ Codex ejecuta lo que Claude ha especificado:
 
 - lee la spec en `docs/superpowers/specs/` y el plan en `docs/superpowers/plans/`
 - crea la rama indicada en el plan
-- implementa, prueba localmente (`test` + `build`) y verifica en emulador cuando es posible
+- implementa y prueba localmente (`test` + `build`) — NO lanza el emulador, eso lo hace el usuario
 - hace commit solo cuando el codigo esta verificado — nunca commits de WIP
-- hace push y avisa al usuario cuando la rama esta lista para merge
+- hace push y avisa al usuario
+- cuando el usuario aprueba, hace merge a main y push
 
 La referencia canonica del modelo de colaboracion es `docs/work-methodology/agent-collaboration.md`.
 
