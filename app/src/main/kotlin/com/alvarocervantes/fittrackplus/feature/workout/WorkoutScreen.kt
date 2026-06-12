@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -72,6 +74,8 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
@@ -1038,6 +1042,24 @@ private fun WeightFieldColumn(
     onStepWeight: (Long, Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var fieldValue by remember(setId) { mutableStateOf(TextFieldValue(weightText)) }
+    val interactionSource = remember { MutableInteractionSource() }
+
+    LaunchedEffect(weightText) {
+        fieldValue = syncWorkoutFieldValue(
+            current = fieldValue,
+            externalText = weightText
+        )
+    }
+
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collect { interaction ->
+            if (interaction is PressInteraction.Release) {
+                fieldValue = selectAllWorkoutFieldValue(fieldValue)
+            }
+        }
+    }
+
     Column(modifier = modifier) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
@@ -1047,24 +1069,37 @@ private fun WeightFieldColumn(
                 icon = Icons.Filled.Remove,
                 contentDescription = "Bajar peso de la serie ${setId}",
                 onClick = { onStepWeight(setId, -2.5) },
-                onLongClick = { onStepWeight(setId, -5.0) }
+                onLongClick = { onStepWeight(setId, -5.0) },
+                minButtonSize = REPS_STEPPER_BUTTON_SIZE,
+                iconSize = REPS_STEPPER_ICON_SIZE
             )
             OutlinedTextField(
-                value = weightText,
-                onValueChange = { value -> onSetWeightChange(setId, value) },
+                value = fieldValue,
+                onValueChange = { value ->
+                    fieldValue = value
+                    onSetWeightChange(setId, value.text)
+                },
                 placeholder = { Text("Kg") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 colors = workoutSetFieldColors(isCompleted = isCompleted),
+                interactionSource = interactionSource,
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 56.dp)
+                    .onFocusChanged { focusState ->
+                        if (focusState.isFocused) {
+                            fieldValue = selectAllWorkoutFieldValue(fieldValue)
+                        }
+                    }
             )
             SetStepperButton(
                 icon = Icons.Filled.Add,
                 contentDescription = "Subir peso de la serie ${setId}",
                 onClick = { onStepWeight(setId, 2.5) },
-                onLongClick = { onStepWeight(setId, 5.0) }
+                onLongClick = { onStepWeight(setId, 5.0) },
+                minButtonSize = REPS_STEPPER_BUTTON_SIZE,
+                iconSize = REPS_STEPPER_ICON_SIZE
             )
         }
         if (previousWeight != null) {
@@ -1090,6 +1125,23 @@ private fun WorkoutSetRow(
         MaterialTheme.colorScheme.primarySoft
     } else {
         MaterialTheme.colorScheme.surfaceAlt
+    }
+    var repsFieldValue by remember(set.id) { mutableStateOf(TextFieldValue(set.repsText)) }
+    val repsInteractionSource = remember { MutableInteractionSource() }
+
+    LaunchedEffect(set.repsText) {
+        repsFieldValue = syncWorkoutFieldValue(
+            current = repsFieldValue,
+            externalText = set.repsText
+        )
+    }
+
+    LaunchedEffect(repsInteractionSource) {
+        repsInteractionSource.interactions.collect { interaction ->
+            if (interaction is PressInteraction.Release) {
+                repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)
+            }
+        }
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -1143,29 +1195,42 @@ private fun WorkoutSetRow(
             )
             Row(
                 modifier = Modifier.weight(WORKOUT_REPS_COLUMN_WEIGHT),
-                horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(FitSpacing.tiny),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 SetStepperButton(
                     icon = Icons.Filled.Remove,
                     contentDescription = "Bajar repeticiones de la serie ${set.setNumber}",
-                    onClick = { onStepReps(set.id, -1) }
+                    onClick = { onStepReps(set.id, -1) },
+                    minButtonSize = REPS_STEPPER_BUTTON_SIZE,
+                    iconSize = REPS_STEPPER_ICON_SIZE
                 )
                 OutlinedTextField(
-                    value = set.repsText,
-                    onValueChange = { value -> onSetRepsChange(set.id, value) },
+                    value = repsFieldValue,
+                    onValueChange = { value ->
+                        repsFieldValue = value
+                        onSetRepsChange(set.id, value.text)
+                    },
                     placeholder = { Text("Reps") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = workoutSetFieldColors(isCompleted = set.isCompleted),
+                    interactionSource = repsInteractionSource,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 56.dp)
+                        .onFocusChanged { focusState ->
+                            if (focusState.isFocused) {
+                                repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)
+                            }
+                        }
                 )
                 SetStepperButton(
                     icon = Icons.Filled.Add,
                     contentDescription = "Subir repeticiones de la serie ${set.setNumber}",
-                    onClick = { onStepReps(set.id, 1) }
+                    onClick = { onStepReps(set.id, 1) },
+                    minButtonSize = REPS_STEPPER_BUTTON_SIZE,
+                    iconSize = REPS_STEPPER_ICON_SIZE
                 )
             }
         }
@@ -1224,11 +1289,13 @@ private fun SetStepperButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
-    onLongClick: (() -> Unit)? = null
+    onLongClick: (() -> Unit)? = null,
+    minButtonSize: androidx.compose.ui.unit.Dp = 36.dp,
+    iconSize: androidx.compose.ui.unit.Dp = 18.dp
 ) {
     Box(
         modifier = Modifier
-            .sizeIn(minWidth = 36.dp, minHeight = 36.dp)
+            .sizeIn(minWidth = minButtonSize, minHeight = minButtonSize)
             .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.medium)
             .combinedClickable(
                 onClick = onClick,
@@ -1239,7 +1306,26 @@ private fun SetStepperButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurface
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(iconSize)
+        )
+    }
+}
+
+internal fun selectAllWorkoutFieldValue(current: TextFieldValue): TextFieldValue {
+    return current.copy(selection = TextRange(0, current.text.length))
+}
+
+internal fun syncWorkoutFieldValue(
+    current: TextFieldValue,
+    externalText: String
+): TextFieldValue {
+    return if (current.text == externalText) {
+        current
+    } else {
+        TextFieldValue(
+            text = externalText,
+            selection = TextRange(externalText.length, externalText.length)
         )
     }
 }
@@ -1266,8 +1352,10 @@ private fun workoutSetFieldColors(isCompleted: Boolean) = OutlinedTextFieldDefau
 )
 
 private val WORKOUT_SET_INDEX_SIZE = 40.dp
-private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.15f
-private const val WORKOUT_REPS_COLUMN_WEIGHT = 0.95f
+private val REPS_STEPPER_BUTTON_SIZE = 28.dp
+private val REPS_STEPPER_ICON_SIZE = 16.dp
+private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.0f
+private const val WORKOUT_REPS_COLUMN_WEIGHT = 1.1f
 
 @Composable
 private fun WorkoutLoadingSkeleton() {
