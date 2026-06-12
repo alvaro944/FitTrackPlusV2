@@ -374,20 +374,6 @@ private fun RoutineListContent(
             }
 
             item {
-                FitTrackSectionLabel(label = "Plantillas")
-            }
-
-            items(
-                items = routineTemplates,
-                key = { template -> template.id }
-            ) { template ->
-                RoutineTemplateCard(
-                    template = template,
-                    onUseTemplate = onUseTemplate
-                )
-            }
-
-            item {
                 FitTrackSectionLabel(label = "Biblioteca")
             }
 
@@ -450,6 +436,20 @@ private fun RoutineListContent(
                         onSetActiveRoutine = onSetActiveRoutine
                     )
                 }
+            }
+
+            item {
+                FitTrackSectionLabel(label = "Plantillas")
+            }
+
+            items(
+                items = routineTemplates,
+                key = { template -> template.id }
+            ) { template ->
+                RoutineTemplateCard(
+                    template = template,
+                    onUseTemplate = onUseTemplate
+                )
             }
         } else {
             item {

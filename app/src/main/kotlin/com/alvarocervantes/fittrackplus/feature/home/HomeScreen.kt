@@ -142,6 +142,7 @@ fun HomeScreen(
         item {
             WeekActivityStrip(
                 sessionsThisWeek = uiState.sessionsThisWeek,
+                trainedDaysThisWeek = uiState.trainedDaysThisWeek,
                 isLoading = uiState.isLoading
             )
         }
@@ -278,6 +279,7 @@ fun HomeScreen(
 @Composable
 private fun WeekActivityStrip(
     sessionsThisWeek: Int,
+    trainedDaysThisWeek: Set<Int>,
     isLoading: Boolean
 ) {
     FitTrackCard(containerColor = MaterialTheme.colorScheme.surfaceCard) {
@@ -312,10 +314,9 @@ private fun WeekActivityStrip(
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)
         ) {
             val todayIndex = (Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 5) % 7
-            val completedSlots = sessionsThisWeek.coerceIn(0, 7)
             weekDayLabels().forEachIndexed { index, label ->
                 val isToday = index == todayIndex
-                val isCompleted = index < completedSlots
+                val isCompleted = index in trainedDaysThisWeek
                 WeekDayCell(
                     label = label,
                     isToday = isToday,

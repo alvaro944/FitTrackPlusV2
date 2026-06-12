@@ -2,6 +2,68 @@
 
 Bitacora viva del proyecto. Cada fase debe anadir aqui lo que se hizo, lo que se verifico, problemas encontrados y decisiones tomadas.
 
+## Iteracion - Home calendar y orden de rutinas
+
+Estado:
+
+- Completada tecnicamente.
+
+Rama:
+
+- `codex/home-routines-fixes`
+
+Objetivo:
+
+- Corregir el marcado semanal de `Inicio` para que refleje dias reales entrenados.
+- Reordenar `Rutinas` para mostrar primero la biblioteca guardada y despues las plantillas.
+
+Fuera de alcance:
+
+- cambios de schema Room
+- cambios de navegacion o UI fuera de `Home` y `Rutinas`
+- pasada manual en emulador/dispositivo en esta sesion
+
+Cambios principales:
+
+- Inicio:
+  - `HomeUiState` incorpora `trainedDaysThisWeek`
+  - `HomeViewModel` calcula los indices reales de lunes a domingo para las sesiones finalizadas de la semana actual
+  - `HomeScreen` usa pertenencia al `Set<Int>` en vez de completar los primeros N dias
+- Rutinas:
+  - `Biblioteca` pasa a renderizarse antes que `Plantillas`
+- Tests:
+  - se anade `HomeWeekActivityTest`
+  - se cubre el caso de miercoles -> indice `2`
+  - se cubre deduplicacion del mismo dia y exclusion de sesiones fuera de semana
+
+Problemas encontrados:
+
+- la shell no tenia `JAVA_HOME` listo para Gradle; hizo falta apuntar al JBR de Android Studio para ejecutar la verificacion
+
+Decisiones:
+
+- mantener `sessionsThisWeek` para el texto del resumen y usar `trainedDaysThisWeek` solo para el marcado visual del calendario
+- fijar el helper de semana con base lunes para que coincida con el indice `0..6` definido en la spec
+- no hacer pasada manual por instruccion explicita del usuario
+
+Verificacion:
+
+```bash
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+bash ./gradlew test --no-daemon --console=plain
+bash ./gradlew build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Verificacion automatica correcta.
+- Sin pasada manual en esta sesion por instruccion explicita del usuario.
+
+Pendiente:
+
+- ninguno dentro del alcance de esta iteracion
+
 ## Iteracion - Workout entry fixes
 
 Estado:

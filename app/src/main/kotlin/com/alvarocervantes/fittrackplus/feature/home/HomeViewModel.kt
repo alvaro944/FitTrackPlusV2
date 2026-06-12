@@ -2,6 +2,7 @@ package com.alvarocervantes.fittrackplus.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alvarocervantes.fittrackplus.data.local.entity.WorkoutSessionEntity
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.stateIn
 
 data class HomeUiState(
     val activeRoutineId: Long? = null,
+    val trainedDaysThisWeek: Set<Int> = emptySet(),
     val sessionsThisWeek: Int = 0,
     val totalSessions: Int = 0,
     val isLoading: Boolean = true,
@@ -34,10 +36,12 @@ class HomeViewModel @Inject constructor(
         userPreferencesRepository.activeRoutineId,
         workoutRepository.observeFinishedSessions()
     ) { activeId, sessions ->
-        val weekStart = currentWeekStartMillis()
+        val nowMillis = System.currentTimeMillis()
+        val trainedDays = trainedDaysThisWeek(sessions, nowMillis = nowMillis)
         HomeUiState(
             activeRoutineId = activeId,
-            sessionsThisWeek = sessions.count { it.startedAt >= weekStart },
+            trainedDaysThisWeek = trainedDays,
+            sessionsThisWeek = sessions.count { isInCurrentWeek(it.startedAt, nowMillis = nowMillis) },
             totalSessions = sessions.size,
             isLoading = false
         )
@@ -55,15 +59,49 @@ class HomeViewModel @Inject constructor(
     fun clearMessage() {
         message.value = null
     }
+}
 
-    private fun currentWeekStartMillis(): Long {
-        val cal = Calendar.getInstance().apply {
-            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        return cal.timeInMillis
-    }
+internal fun trainedDaysThisWeek(
+    sessions: List<WorkoutSessionEntity>,
+    nowMillis: Long = System.currentTimeMillis(),
+    calendarFactory: () -> Calendar = { Calendar.getInstance() }
+): Set<Int> {
+    return sessions
+        .asSequence()
+        .filter { isInCurrentWeek(it.startedAt, nowMillis = nowMillis, calendarFactory = calendarFactory) }
+        .map { weekdayIndexMondayFirst(it.startedAt, calendarFactory) }
+        .toSet()
+}
+
+internal fun isInCurrentWeek(
+    timeMillis: Long,
+    nowMillis: Long = System.currentTimeMillis(),
+    calendarFactory: () -> Calendar = { Calendar.getInstance() }
+): Boolean {
+    return timeMillis >= currentWeekStartMillis(nowMillis, calendarFactory)
+}
+
+internal fun currentWeekStartMillis(
+    nowMillis: Long = System.currentTimeMillis(),
+    calendarFactory: () -> Calendar = { Calendar.getInstance() }
+): Long {
+    return calendarFactory().apply {
+        timeInMillis = nowMillis
+        firstDayOfWeek = Calendar.MONDAY
+        set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+}
+
+internal fun weekdayIndexMondayFirst(
+    timeMillis: Long,
+    calendarFactory: () -> Calendar = { Calendar.getInstance() }
+): Int {
+    val dayOfWeek = calendarFactory().apply {
+        timeInMillis = timeMillis
+    }.get(Calendar.DAY_OF_WEEK)
+    return (dayOfWeek + 5) % 7
 }

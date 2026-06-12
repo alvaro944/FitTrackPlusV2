@@ -2,6 +2,35 @@
 
 Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso.
 
+## 2026-06-12 - Home calendar and routines order fixes
+
+Estado:
+
+- implementado en `codex/home-routines-fixes`
+- verificado con `./gradlew test` y `./gradlew build`
+- sin pasada manual en esta sesion por instruccion explicita del usuario
+
+Cambios cerrados:
+
+- `HomeViewModel` calcula `trainedDaysThisWeek` como `Set<Int>` real de lunes a domingo a partir de las sesiones finalizadas de la semana actual.
+- `HomeScreen` deja de marcar dias por conteo secuencial y pinta solo los indices realmente entrenados.
+- `RoutinesScreen` muestra primero `Biblioteca` y despues `Plantillas`, sin cambiar datos ni acciones.
+
+Tests anadidos o ampliados:
+
+- `HomeWeekActivityTest`
+
+Validacion destacada:
+
+- caso unitario cubierto para sesion en miercoles -> indice `2`
+- deduplicacion de varias sesiones el mismo dia y exclusion de sesiones fuera de la semana actual
+- `test` OK
+- `build` OK
+
+Pendiente:
+
+- ninguno para este bloque dentro de la rama; listo para revision o merge
+
 ## 2026-06-12 - Workout entry fixes
 
 Estado:
