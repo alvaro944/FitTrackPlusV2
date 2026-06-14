@@ -106,6 +106,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.process)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 
+    implementation(libs.androidx.health.connect)
+
     testImplementation(libs.junit)
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)

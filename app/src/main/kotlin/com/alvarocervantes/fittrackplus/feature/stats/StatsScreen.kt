@@ -3,13 +3,13 @@ package com.alvarocervantes.fittrackplus.feature.stats
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
@@ -164,6 +164,16 @@ private fun StatsContent(
             else -> {
                 item {
                     SummaryGrid(state = state)
+                }
+
+                if (state.weeklySteps != null) {
+                    item { FitTrackSectionLabel(label = "Actividad esta semana") }
+                    item {
+                        WeeklyStepsCard(
+                            weeklySteps = state.weeklySteps,
+                            goalDaysCompleted = state.stepGoalDaysCompleted
+                        )
+                    }
                 }
 
                 if (state.heatmapDays.isNotEmpty()) {
@@ -580,6 +590,38 @@ private fun ProgressPointDetails(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+private fun WeeklyStepsCard(
+    weeklySteps: Long,
+    goalDaysCompleted: Int
+) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)) {
+                Text(
+                    text = "%,d".format(weeklySteps),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.accentWarm
+                )
+                Text(
+                    text = "pasos esta semana",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = "$goalDaysCompleted de 7 dias",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

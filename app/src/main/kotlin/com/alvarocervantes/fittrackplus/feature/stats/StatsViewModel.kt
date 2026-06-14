@@ -2,16 +2,19 @@ package com.alvarocervantes.fittrackplus.feature.stats
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseProgress
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseProgressEntry
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseRecords
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseSetRecord
 import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
+import com.alvarocervantes.fittrackplus.domain.model.StepsData
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutSessionVolume
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStats
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHeatmapUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutStatsUseCase
+import com.alvarocervantes.fittrackplus.domain.usecase.ReadDailyStepsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -29,7 +33,9 @@ import kotlinx.coroutines.flow.update
 @HiltViewModel
 class StatsViewModel @Inject constructor(
     observeWorkoutStats: ObserveWorkoutStatsUseCase,
-    getWorkoutHeatmap: GetWorkoutHeatmapUseCase
+    getWorkoutHeatmap: GetWorkoutHeatmapUseCase,
+    private val readDailyStepsUseCase: ReadDailyStepsUseCase,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     private val selectedPeriod = MutableStateFlow(WorkoutStatsPeriod.All)
@@ -62,6 +68,26 @@ class StatsViewModel @Inject constructor(
         getWorkoutHeatmap()
             .onEach { heatmap ->
                 _uiState.update { state -> state.copy(heatmapDays = heatmap) }
+            }
+            .catch { }
+            .launchIn(viewModelScope)
+
+        userPreferencesRepository.healthConnectConnected
+            .onEach { connected ->
+                if (connected) {
+                    val steps = readDailyStepsUseCase()
+                    val dailyGoal = userPreferencesRepository.dailyStepGoal.first()
+                    _uiState.update { state ->
+                        state.copy(
+                            weeklySteps = steps?.weekDaySteps?.values?.sum(),
+                            stepGoalDaysCompleted = countGoalDays(steps, dailyGoal)
+                        )
+                    }
+                } else {
+                    _uiState.update { state ->
+                        state.copy(weeklySteps = null, stepGoalDaysCompleted = 0)
+                    }
+                }
             }
             .catch { }
             .launchIn(viewModelScope)
@@ -103,6 +129,11 @@ class StatsViewModel @Inject constructor(
     fun clearMessage() {
         _uiState.update { state -> state.copy(message = null) }
     }
+
+    private fun countGoalDays(steps: StepsData?, goal: Int): Int {
+        if (steps == null || goal <= 0) return 0
+        return steps.weekDaySteps.values.count { it >= goal }
+    }
 }
 
 data class StatsUiState(
@@ -115,6 +146,8 @@ data class StatsUiState(
     val progressPoints: List<ProgressChartPointUiState> = emptyList(),
     val selectedProgressPoint: ProgressChartPointUiState? = null,
     val heatmapDays: List<HeatmapDay> = emptyList(),
+    val weeklySteps: Long? = null,
+    val stepGoalDaysCompleted: Int = 0,
     val message: String? = null
 ) {
     val isEmpty: Boolean = sessionVolumes.isEmpty() &&
@@ -246,7 +279,9 @@ fun StatsUiState.withStatsPeriod(
     return stats.copy(
         selectedPeriod = period,
         selectedExerciseName = retainedExerciseName,
-        selectedProgressPoint = null
+        selectedProgressPoint = null,
+        weeklySteps = weeklySteps,
+        stepGoalDaysCompleted = stepGoalDaysCompleted
     ).withProgressPointsForSelection()
 }
 

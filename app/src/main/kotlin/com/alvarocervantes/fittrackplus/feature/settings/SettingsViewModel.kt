@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alvarocervantes.fittrackplus.BuildConfig
 import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
+import com.alvarocervantes.fittrackplus.data.health.HealthConnectRepository
 import com.alvarocervantes.fittrackplus.data.local.seed.DebugDemoDataSeeder
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,7 +19,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val debugDemoDataSeeder: DebugDemoDataSeeder
+    private val debugDemoDataSeeder: DebugDemoDataSeeder,
+    private val healthConnectRepository: HealthConnectRepository
 ) : ViewModel() {
 
     val isDebugBuild: Boolean = BuildConfig.DEBUG
@@ -31,6 +33,18 @@ class SettingsViewModel @Inject constructor(
 
     val themeMode: StateFlow<AppThemeMode> = userPreferencesRepository.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppThemeMode.System)
+
+    val dailyStepGoal: StateFlow<Int> = userPreferencesRepository.dailyStepGoal
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 10_000)
+
+    val healthConnectConnected: StateFlow<Boolean> = userPreferencesRepository.healthConnectConnected
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val isHealthConnectAvailable: Boolean = healthConnectRepository.isAvailable()
+    val healthConnectNeedsInstallation: Boolean = healthConnectRepository.needsInstallation()
+    val requiredPermissions: Set<String> = healthConnectRepository.requiredPermissions
+
+    fun permissionsContract() = healthConnectRepository.permissionsContract()
 
     fun setWeightUnit(unit: String) {
         if (unit == weightUnit.value) return
@@ -61,6 +75,32 @@ class SettingsViewModel @Inject constructor(
             runCatching { debugDemoDataSeeder.reseed() }
                 .onSuccess { _message.value = "Datos demo recargados." }
                 .onFailure { _message.value = "Error al recargar datos demo." }
+        }
+    }
+
+    fun onPermissionsResult(grantedPermissions: Set<String>) {
+        val allGranted = grantedPermissions.containsAll(requiredPermissions)
+        viewModelScope.launch {
+            userPreferencesRepository.setHealthConnectConnected(allGranted)
+            _message.value = if (allGranted) {
+                "Health Connect conectado."
+            } else {
+                "Permisos no concedidos. Intentalo de nuevo."
+            }
+        }
+    }
+
+    fun setDailyStepGoal(goal: Int) {
+        if (goal <= 0) return
+        viewModelScope.launch {
+            userPreferencesRepository.setDailyStepGoal(goal)
+        }
+    }
+
+    fun disconnectHealthConnect() {
+        viewModelScope.launch {
+            userPreferencesRepository.setHealthConnectConnected(false)
+            _message.value = "Health Connect desconectado."
         }
     }
 }
