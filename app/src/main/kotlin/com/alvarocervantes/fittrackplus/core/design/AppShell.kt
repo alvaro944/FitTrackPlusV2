@@ -154,14 +154,16 @@ fun FitTrackAppShell(
                 content(innerPadding)
             }
 
-            ShellMenuButton(
-                onClick = {
-                    coroutineScope.launch {
-                        drawerState.open()
-                    }
-                },
-                modifier = Modifier.align(Alignment.TopEnd)
-            )
+            if (currentRoute != AppRoute.Settings) {
+                ShellMenuButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            drawerState.open()
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.TopEnd)
+                )
+            }
         }
     }
 }

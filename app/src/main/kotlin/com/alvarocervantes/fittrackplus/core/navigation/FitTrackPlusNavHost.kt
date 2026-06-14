@@ -77,7 +77,9 @@ private fun AppNavGraph(
         }
         composable(AppRoute.History.route) { HistoryScreen() }
         composable(AppRoute.Stats.route) { StatsScreen() }
-        composable(AppRoute.Settings.route) { SettingsScreen() }
+        composable(AppRoute.Settings.route) {
+            SettingsScreen(onBack = { navController.popBackStack() })
+        }
     }
 }
 
