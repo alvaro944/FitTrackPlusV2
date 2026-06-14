@@ -3,6 +3,7 @@ package com.alvarocervantes.fittrackplus.feature.stats
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
@@ -15,12 +16,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -35,6 +40,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -58,7 +64,11 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.accentSoft
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
+import com.alvarocervantes.fittrackplus.core.design.primarySoft
+import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.format.TextStyle
 import java.util.Date
 import java.util.Locale
 
@@ -85,7 +95,9 @@ fun StatsScreen(
             onSelectExercise = viewModel::selectExercise,
             onSelectProgressPoint = viewModel::selectProgressPoint,
             onClearSelectedProgressPoint = viewModel::clearSelectedProgressPoint,
-            onHeatmapDayClick = viewModel::onHeatmapDayClick
+            onHeatmapDayClick = viewModel::onHeatmapDayClick,
+            onPreviousStepsWeek = viewModel::previousWeek,
+            onNextStepsWeek = viewModel::nextWeek
         )
     }
 }
@@ -98,7 +110,9 @@ private fun StatsContent(
     onSelectExercise: (String) -> Unit,
     onSelectProgressPoint: (Long) -> Unit,
     onClearSelectedProgressPoint: () -> Unit,
-    onHeatmapDayClick: (HeatmapDay) -> Unit = {}
+    onHeatmapDayClick: (HeatmapDay) -> Unit = {},
+    onPreviousStepsWeek: () -> Unit = {},
+    onNextStepsWeek: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier
@@ -166,12 +180,14 @@ private fun StatsContent(
                     SummaryGrid(state = state)
                 }
 
-                if (state.weeklySteps != null) {
-                    item { FitTrackSectionLabel(label = "Actividad esta semana") }
+                if (state.weeklyStepsData != null) {
+                    item { FitTrackSectionLabel(label = "Actividad") }
                     item {
                         WeeklyStepsCard(
-                            weeklySteps = state.weeklySteps,
-                            goalDaysCompleted = state.stepGoalDaysCompleted
+                            data = state.weeklyStepsData,
+                            canGoNext = state.canGoToNextWeek,
+                            onPrevious = onPreviousStepsWeek,
+                            onNext = onNextStepsWeek
                         )
                     }
                 }
@@ -595,33 +611,134 @@ private fun ProgressPointDetails(
 
 @Composable
 private fun WeeklyStepsCard(
-    weeklySteps: Long,
-    goalDaysCompleted: Int
+    data: WeeklyStepsData,
+    canGoNext: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit
 ) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        // Week navigation row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)) {
-                Text(
-                    text = "%,d".format(weeklySteps),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.accentWarm
-                )
-                Text(
-                    text = "pasos esta semana",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            IconButton(onClick = onPrevious) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Semana anterior",
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = formatWeekRange(data.weekStart, data.weekEnd),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                if (data.isCurrentWeek) {
+                    Text(
+                        text = "Llevas ${data.daysElapsedInWeek} dias de semana",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            IconButton(onClick = onNext, enabled = canGoNext) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Semana siguiente",
+                    tint = if (canGoNext) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f)
+                )
+            }
+        }
+
+        // Day-by-day bars
+        DayBarsRow(data = data)
+
+        // Summary
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                text = "$goalDaysCompleted de 7 dias",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "${data.daysGoalMet} de 7 dias con objetivo",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Text(
+                text = "%,d pasos".format(data.totalSteps),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.accentWarm
+            )
         }
+    }
+}
+
+@Composable
+private fun DayBarsRow(data: WeeklyStepsData) {
+    val dayLabels = listOf("L", "M", "X", "J", "V", "S", "D")
+    val maxSteps = (data.dailySteps.values.maxOrNull() ?: 0L)
+        .coerceAtLeast(data.dailyGoal.toLong())
+    val barMaxHeight = 56.dp
+    val todayIndex = if (data.isCurrentWeek) LocalDate.now().dayOfWeek.value - 1 else -1
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+    ) {
+        dayLabels.forEachIndexed { index, label ->
+            val steps = data.dailySteps[index] ?: 0L
+            val fraction = if (maxSteps > 0) (steps.toFloat() / maxSteps).coerceIn(0f, 1f) else 0f
+            val goalMet = steps >= data.dailyGoal
+            val isToday = index == todayIndex
+            val barColor = when {
+                goalMet -> MaterialTheme.colorScheme.accentWarm
+                isToday -> MaterialTheme.colorScheme.primary
+                steps > 0 -> MaterialTheme.colorScheme.primarySoft
+                else -> MaterialTheme.colorScheme.surfaceAlt
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
+            ) {
+                Box(
+                    modifier = Modifier.height(barMaxHeight),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    val minBarFraction = if (steps > 0) 0.05f else 0f
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.6f)
+                            .height(barMaxHeight * fraction.coerceAtLeast(minBarFraction))
+                            .clip(MaterialTheme.shapes.extraSmall)
+                            .background(barColor)
+                    )
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isToday) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+private fun formatWeekRange(weekStart: LocalDate, weekEnd: LocalDate): String {
+    val locale = Locale("es", "ES")
+    val startDay = weekStart.dayOfMonth
+    val endDay = weekEnd.dayOfMonth
+    val endMonth = weekEnd.month.getDisplayName(TextStyle.SHORT, locale).lowercase().trimEnd('.')
+    return if (weekStart.month == weekEnd.month) {
+        "del $startDay al $endDay de $endMonth"
+    } else {
+        val startMonth = weekStart.month.getDisplayName(TextStyle.SHORT, locale).lowercase().trimEnd('.')
+        "del $startDay de $startMonth al $endDay de $endMonth"
     }
 }
 

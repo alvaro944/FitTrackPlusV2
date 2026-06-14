@@ -2,6 +2,7 @@ package com.alvarocervantes.fittrackplus.domain.usecase
 
 import com.alvarocervantes.fittrackplus.data.health.HealthConnectRepository
 import com.alvarocervantes.fittrackplus.domain.model.StepsData
+import java.time.LocalDate
 import javax.inject.Inject
 
 class ReadDailyStepsUseCase @Inject constructor(
@@ -13,4 +14,7 @@ class ReadDailyStepsUseCase @Inject constructor(
         val weekSteps = healthConnectRepository.readWeekSteps() ?: emptyMap()
         return StepsData(todaySteps = todaySteps, weekDaySteps = weekSteps)
     }
+
+    suspend fun readForWeekStart(weekStart: LocalDate): Map<Int, Long>? =
+        healthConnectRepository.readWeekStepsForWeekStart(weekStart)
 }

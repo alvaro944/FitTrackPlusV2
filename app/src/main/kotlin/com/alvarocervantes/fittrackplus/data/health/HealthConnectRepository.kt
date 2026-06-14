@@ -82,6 +82,26 @@ class HealthConnectRepository @Inject constructor(
         }.getOrNull()
     }
 
+    suspend fun readWeekStepsForWeekStart(weekStart: LocalDate): Map<Int, Long>? {
+        if (!hasPermission()) return null
+        return runCatching {
+            val zoneId = ZoneId.systemDefault()
+            val start = weekStart.atStartOfDay(zoneId).toInstant()
+            val end = weekStart.plusDays(7).atStartOfDay(zoneId).toInstant()
+                .coerceAtMost(Instant.now())
+            val request = ReadRecordsRequest(
+                recordType = StepsRecord::class,
+                timeRangeFilter = TimeRangeFilter.between(start, end)
+            )
+            val result = mutableMapOf<Int, Long>()
+            for (record in client.readRecords(request).records) {
+                val dayIndex = dayIndexMondayFirst(record.startTime)
+                result[dayIndex] = (result[dayIndex] ?: 0L) + record.count
+            }
+            result
+        }.getOrNull()
+    }
+
     private fun dayIndexMondayFirst(instant: Instant): Int {
         val dayOfWeek = instant.atZone(ZoneId.systemDefault()).toLocalDate().dayOfWeek
         return dayOfWeek.value - 1

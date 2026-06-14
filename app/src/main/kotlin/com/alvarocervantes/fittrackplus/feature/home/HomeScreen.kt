@@ -352,7 +352,8 @@ private fun WeekDayCell(
     modifier: Modifier = Modifier
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val (background, contentColor) = weekDayCellColors(colorScheme, isToday, isTrained, isStepsCompleted)
+    val (background, textColor) = weekDayCellColors(colorScheme, isToday, isTrained)
+    val dotColor = weekDayCellDotColor(colorScheme, isToday, isTrained, isStepsCompleted)
     val hasActivity = isTrained || isStepsCompleted || isToday
 
     Column(
@@ -366,13 +367,13 @@ private fun WeekDayCell(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = contentColor
+            color = textColor
         )
         Box(
             modifier = Modifier
                 .size(if (hasActivity) 6.dp else 4.dp)
                 .clip(MaterialTheme.shapes.extraSmall)
-                .background(contentColor.copy(alpha = if (hasActivity) 1f else 0.35f))
+                .background(dotColor)
         )
     }
 }
@@ -381,14 +382,24 @@ private fun WeekDayCell(
 private fun weekDayCellColors(
     cs: androidx.compose.material3.ColorScheme,
     isToday: Boolean,
-    isTrained: Boolean,
-    isStepsCompleted: Boolean
+    isTrained: Boolean
 ): Pair<Color, Color> = when {
     isToday -> cs.primary to cs.onPrimary
-    isTrained && isStepsCompleted -> cs.accentWarm to Color.White
     isTrained -> cs.primarySoft to cs.primary
-    isStepsCompleted -> cs.tertiary.copy(alpha = 0.20f) to cs.tertiary
     else -> cs.surfaceAlt to cs.onSurfaceVariant
+}
+
+@Composable
+private fun weekDayCellDotColor(
+    cs: androidx.compose.material3.ColorScheme,
+    isToday: Boolean,
+    isTrained: Boolean,
+    isStepsCompleted: Boolean
+): Color = when {
+    isToday -> cs.onPrimary
+    isStepsCompleted -> cs.accentWarm
+    isTrained -> cs.primary
+    else -> cs.onSurfaceVariant.copy(alpha = 0.35f)
 }
 
 @Composable
