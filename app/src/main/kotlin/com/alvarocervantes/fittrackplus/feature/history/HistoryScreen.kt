@@ -23,13 +23,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -41,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -86,7 +91,10 @@ fun HistoryScreen(
             onSessionClick = viewModel::selectSession,
             onBackToList = viewModel::clearSelection,
             onPeriodFilterChange = viewModel::setPeriodFilter,
-            onSortOrderChange = viewModel::setSortOrder
+            onSortOrderChange = viewModel::setSortOrder,
+            onToggleEditMode = viewModel::toggleEditMode,
+            onSetWeightChange = viewModel::updateSetWeight,
+            onSetRepsChange = viewModel::updateSetReps
         )
     }
 }
@@ -98,7 +106,10 @@ private fun HistoryContent(
     onSessionClick: (Long) -> Unit,
     onBackToList: () -> Unit,
     onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
-    onSortOrderChange: (HistorySortOrder) -> Unit
+    onSortOrderChange: (HistorySortOrder) -> Unit,
+    onToggleEditMode: () -> Unit,
+    onSetWeightChange: (Long, String) -> Unit,
+    onSetRepsChange: (Long, String) -> Unit
 ) {
     val showingDetail = state.selectedSessionId != null || state.isDetailLoading
 
@@ -117,7 +128,10 @@ private fun HistoryContent(
             HistoryDetailContent(
                 state = state,
                 contentPadding = contentPadding,
-                onBackToList = onBackToList
+                onBackToList = onBackToList,
+                onToggleEditMode = onToggleEditMode,
+                onSetWeightChange = onSetWeightChange,
+                onSetRepsChange = onSetRepsChange
             )
         } else {
             HistoryListContent(
@@ -261,7 +275,10 @@ private fun HistoryFilterControls(
 private fun HistoryDetailContent(
     state: HistoryUiState,
     contentPadding: PaddingValues,
-    onBackToList: () -> Unit
+    onBackToList: () -> Unit,
+    onToggleEditMode: () -> Unit,
+    onSetWeightChange: (Long, String) -> Unit,
+    onSetRepsChange: (Long, String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -278,13 +295,27 @@ private fun HistoryDetailContent(
         item {
             FitTrackScreenHeader(
                 title = "Historial",
-                subtitle = "Detalle historico",
+                subtitle = if (state.isEditMode) "Editando series" else "Detalle historico",
                 trailing = {
-                    IconButton(onClick = onBackToList) {
-                        Icon(
-                            imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = "Volver al listado de historial"
-                        )
+                    Row {
+                        if (state.selectedDetail != null) {
+                            IconButton(onClick = onToggleEditMode) {
+                                Icon(
+                                    imageVector = if (state.isEditMode) Icons.Filled.Check else Icons.Filled.Edit,
+                                    contentDescription = if (state.isEditMode) {
+                                        "Terminar edicion de series"
+                                    } else {
+                                        "Editar series"
+                                    }
+                                )
+                            }
+                        }
+                        IconButton(onClick = onBackToList) {
+                            Icon(
+                                imageVector = Icons.Filled.ArrowBack,
+                                contentDescription = "Volver al listado de historial"
+                            )
+                        }
                     }
                 }
             )
@@ -310,7 +341,12 @@ private fun HistoryDetailContent(
                     items = state.selectedDetail.exercises,
                     key = { exercise -> exercise.exerciseId }
                 ) { exercise ->
-                    HistoryExerciseCard(exercise = exercise)
+                    HistoryExerciseCard(
+                        exercise = exercise,
+                        isEditMode = state.isEditMode,
+                        onSetWeightChange = onSetWeightChange,
+                        onSetRepsChange = onSetRepsChange
+                    )
                 }
             }
 
@@ -529,7 +565,12 @@ private fun HistoryDeltaRow(
 }
 
 @Composable
-private fun HistoryExerciseCard(exercise: HistoryExerciseUiState) {
+private fun HistoryExerciseCard(
+    exercise: HistoryExerciseUiState,
+    isEditMode: Boolean,
+    onSetWeightChange: (Long, String) -> Unit,
+    onSetRepsChange: (Long, String) -> Unit
+) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
@@ -550,14 +591,24 @@ private fun HistoryExerciseCard(exercise: HistoryExerciseUiState) {
                 )
             }
             exercise.sets.forEach { set ->
-                HistorySetRow(set = set)
+                HistorySetRow(
+                    set = set,
+                    isEditMode = isEditMode,
+                    onWeightChange = onSetWeightChange,
+                    onRepsChange = onSetRepsChange
+                )
             }
         }
     }
 }
 
 @Composable
-private fun HistorySetRow(set: HistorySetUiState) {
+private fun HistorySetRow(
+    set: HistorySetUiState,
+    isEditMode: Boolean,
+    onWeightChange: (Long, String) -> Unit,
+    onRepsChange: (Long, String) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -580,16 +631,35 @@ private fun HistorySetRow(set: HistorySetUiState) {
                     style = MaterialTheme.typography.labelMedium
                 )
             }
-            Text(
-                text = "${set.weightKg.toDisplayText()} kg",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = "${set.reps} reps",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f)
-            )
+            if (isEditMode) {
+                OutlinedTextField(
+                    value = set.weightText,
+                    onValueChange = { onWeightChange(set.setId, it) },
+                    label = { Text("kg") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = set.repsText,
+                    onValueChange = { onRepsChange(set.setId, it) },
+                    label = { Text("reps") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                Text(
+                    text = "${set.weightKg.toDisplayText()} kg",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = "${set.reps} reps",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
         set.notes?.takeIf { it.isNotBlank() }?.let { notes ->
             Text(

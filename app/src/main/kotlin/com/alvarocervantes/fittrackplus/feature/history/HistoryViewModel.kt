@@ -10,6 +10,9 @@ import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySet
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySummary
 import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHistoryDetailUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutHistoryUseCase
+import com.alvarocervantes.fittrackplus.domain.usecase.UpdateWorkoutSetUseCase
+import com.alvarocervantes.fittrackplus.feature.workout.parseWorkoutWeightInput
+import com.alvarocervantes.fittrackplus.feature.workout.sanitizeWorkoutWeightInput
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +29,8 @@ private const val DAY_MILLIS: Long = 86_400_000
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     private val observeWorkoutHistory: ObserveWorkoutHistoryUseCase,
-    private val getWorkoutHistoryDetail: GetWorkoutHistoryDetailUseCase
+    private val getWorkoutHistoryDetail: GetWorkoutHistoryDetailUseCase,
+    private val updateWorkoutSet: UpdateWorkoutSetUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -73,6 +77,7 @@ class HistoryViewModel @Inject constructor(
                 state.copy(
                     selectedSessionId = sessionId,
                     isDetailLoading = true,
+                    isEditMode = false,
                     message = null
                 )
             }
@@ -107,13 +112,81 @@ class HistoryViewModel @Inject constructor(
             state.copy(
                 selectedSessionId = null,
                 selectedDetail = null,
-                isDetailLoading = false
+                isDetailLoading = false,
+                isEditMode = false
             )
         }
     }
 
     fun clearMessage() {
         _uiState.update { state -> state.copy(message = null) }
+    }
+
+    fun toggleEditMode() {
+        _uiState.update { state -> state.copy(isEditMode = !state.isEditMode) }
+    }
+
+    fun updateSetWeight(setId: Long, weightText: String) {
+        val set = findSelectedSet(setId) ?: return
+        val sanitizedWeightText = sanitizeWorkoutWeightInput(weightText)
+        updateSelectedSet(setId) { current ->
+            current.copy(
+                weightText = sanitizedWeightText,
+                weightKg = parseWorkoutWeightInput(sanitizedWeightText) ?: current.weightKg
+            )
+        }
+        persistSetEdit(setId = setId, weightText = sanitizedWeightText, repsText = set.repsText)
+    }
+
+    fun updateSetReps(setId: Long, repsText: String) {
+        val set = findSelectedSet(setId) ?: return
+        val sanitizedRepsText = repsText.filter { it.isDigit() }
+        updateSelectedSet(setId) { current ->
+            current.copy(
+                repsText = sanitizedRepsText,
+                reps = sanitizedRepsText.toIntOrNull() ?: current.reps
+            )
+        }
+        persistSetEdit(setId = setId, weightText = set.weightText, repsText = sanitizedRepsText)
+    }
+
+    private fun findSelectedSet(setId: Long): HistorySetUiState? {
+        return _uiState.value.selectedDetail?.exercises
+            ?.flatMap { exercise -> exercise.sets }
+            ?.firstOrNull { set -> set.setId == setId }
+    }
+
+    private fun updateSelectedSet(setId: Long, transform: (HistorySetUiState) -> HistorySetUiState) {
+        _uiState.update { state ->
+            val detail = state.selectedDetail ?: return@update state
+            state.copy(
+                selectedDetail = detail.copy(
+                    exercises = detail.exercises.map { exercise ->
+                        if (exercise.sets.none { set -> set.setId == setId }) {
+                            exercise
+                        } else {
+                            exercise.copy(
+                                sets = exercise.sets.map { set ->
+                                    if (set.setId == setId) transform(set) else set
+                                }
+                            )
+                        }
+                    }
+                )
+            )
+        }
+    }
+
+    private fun persistSetEdit(setId: Long, weightText: String, repsText: String) {
+        viewModelScope.launch {
+            runCatching {
+                updateWorkoutSet(setId = setId, weightText = weightText, repsText = repsText)
+            }.onFailure { throwable ->
+                _uiState.update { state ->
+                    state.copy(message = throwable.message ?: "No se pudo guardar el cambio.")
+                }
+            }
+        }
     }
 
     fun setPeriodFilter(period: HistoryPeriodFilter) {
@@ -152,6 +225,7 @@ data class HistoryUiState(
     val selectedSort: HistorySortOrder = HistorySortOrder.Recent,
     val selectedSessionId: Long? = null,
     val selectedDetail: HistoryDetailUiState? = null,
+    val isEditMode: Boolean = false,
     val message: String? = null
 )
 
@@ -250,7 +324,9 @@ data class HistorySetUiState(
     val setNumber: Int,
     val weightKg: Double,
     val reps: Int,
-    val notes: String?
+    val notes: String?,
+    val weightText: String = weightKg.toHistoryInputText(),
+    val repsText: String = reps.toString()
 )
 
 private fun WorkoutHistorySummary.toUiState(): HistorySessionUiState {
@@ -361,4 +437,8 @@ private fun WorkoutHistorySet.toUiState(): HistorySetUiState {
         reps = reps,
         notes = notes
     )
+}
+
+private fun Double.toHistoryInputText(): String {
+    return if (this % 1.0 == 0.0) toInt().toString() else toString().replace('.', ',')
 }
