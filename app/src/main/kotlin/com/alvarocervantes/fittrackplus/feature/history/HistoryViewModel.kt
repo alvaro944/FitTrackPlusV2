@@ -36,6 +36,8 @@ class HistoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HistoryUiState())
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
+    private var editSnapshot: Map<Long, Pair<String, String>> = emptyMap()
+
     init {
         observeWorkoutHistory()
             .onEach { sessions ->
@@ -73,11 +75,13 @@ class HistoryViewModel @Inject constructor(
 
     fun selectSession(sessionId: Long) {
         viewModelScope.launch {
+            editSnapshot = emptyMap()
             _uiState.update { state ->
                 state.copy(
                     selectedSessionId = sessionId,
                     isDetailLoading = true,
                     isEditMode = false,
+                    pendingEditExit = null,
                     message = null
                 )
             }
@@ -108,12 +112,14 @@ class HistoryViewModel @Inject constructor(
     }
 
     fun clearSelection() {
+        editSnapshot = emptyMap()
         _uiState.update { state ->
             state.copy(
                 selectedSessionId = null,
                 selectedDetail = null,
                 isDetailLoading = false,
-                isEditMode = false
+                isEditMode = false,
+                pendingEditExit = null
             )
         }
     }
@@ -122,8 +128,80 @@ class HistoryViewModel @Inject constructor(
         _uiState.update { state -> state.copy(message = null) }
     }
 
+    /** Toggles edit mode on, or requests to exit it (with confirmation if there are unsaved changes). */
     fun toggleEditMode() {
-        _uiState.update { state -> state.copy(isEditMode = !state.isEditMode) }
+        if (!_uiState.value.isEditMode) {
+            editSnapshot = snapshotSets(_uiState.value.selectedDetail)
+            _uiState.update { state -> state.copy(isEditMode = true) }
+        } else {
+            requestExitEdit(HistoryEditExitAction.FinishEditing)
+        }
+    }
+
+    /** Back arrow / system back from the detail screen: confirms first if mid-edit with changes. */
+    fun requestBackToList() {
+        if (_uiState.value.isEditMode) {
+            requestExitEdit(HistoryEditExitAction.BackToList)
+        } else {
+            clearSelection()
+        }
+    }
+
+    fun confirmSaveChanges() {
+        val action = _uiState.value.pendingEditExit ?: return
+        finalizeEditExit(action)
+    }
+
+    fun confirmDiscardChanges() {
+        val action = _uiState.value.pendingEditExit ?: return
+        editSnapshot.forEach { (setId, original) ->
+            val (weightText, repsText) = original
+            updateSelectedSet(setId) { current ->
+                current.copy(
+                    weightText = weightText,
+                    repsText = repsText,
+                    weightKg = parseWorkoutWeightInput(weightText) ?: current.weightKg,
+                    reps = repsText.toIntOrNull() ?: current.reps
+                )
+            }
+            persistSetEdit(setId = setId, weightText = weightText, repsText = repsText)
+        }
+        finalizeEditExit(action)
+    }
+
+    fun cancelPendingEditExit() {
+        _uiState.update { state -> state.copy(pendingEditExit = null) }
+    }
+
+    private fun requestExitEdit(action: HistoryEditExitAction) {
+        if (hasUnsavedChanges()) {
+            _uiState.update { state -> state.copy(pendingEditExit = action) }
+        } else {
+            finalizeEditExit(action)
+        }
+    }
+
+    private fun finalizeEditExit(action: HistoryEditExitAction) {
+        editSnapshot = emptyMap()
+        _uiState.update { state -> state.copy(isEditMode = false, pendingEditExit = null) }
+        if (action == HistoryEditExitAction.BackToList) {
+            clearSelection()
+        }
+    }
+
+    private fun hasUnsavedChanges(): Boolean {
+        val currentSets = _uiState.value.selectedDetail?.exercises?.flatMap { it.sets } ?: return false
+        return currentSets.any { set ->
+            val original = editSnapshot[set.setId]
+            original != null && (original.first != set.weightText || original.second != set.repsText)
+        }
+    }
+
+    private fun snapshotSets(detail: HistoryDetailUiState?): Map<Long, Pair<String, String>> {
+        return detail?.exercises
+            ?.flatMap { exercise -> exercise.sets }
+            ?.associate { set -> set.setId to (set.weightText to set.repsText) }
+            ?: emptyMap()
     }
 
     fun updateSetWeight(setId: Long, weightText: String) {
@@ -226,8 +304,14 @@ data class HistoryUiState(
     val selectedSessionId: Long? = null,
     val selectedDetail: HistoryDetailUiState? = null,
     val isEditMode: Boolean = false,
+    val pendingEditExit: HistoryEditExitAction? = null,
     val message: String? = null
 )
+
+enum class HistoryEditExitAction {
+    FinishEditing,
+    BackToList
+}
 
 enum class HistoryPeriodFilter(val label: String) {
     All("Todo"),

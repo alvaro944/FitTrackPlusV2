@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +39,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -89,12 +91,15 @@ fun HistoryScreen(
             state = state,
             contentPadding = padding,
             onSessionClick = viewModel::selectSession,
-            onBackToList = viewModel::clearSelection,
+            onBackToList = viewModel::requestBackToList,
             onPeriodFilterChange = viewModel::setPeriodFilter,
             onSortOrderChange = viewModel::setSortOrder,
             onToggleEditMode = viewModel::toggleEditMode,
             onSetWeightChange = viewModel::updateSetWeight,
-            onSetRepsChange = viewModel::updateSetReps
+            onSetRepsChange = viewModel::updateSetReps,
+            onConfirmSaveChanges = viewModel::confirmSaveChanges,
+            onConfirmDiscardChanges = viewModel::confirmDiscardChanges,
+            onCancelPendingEditExit = viewModel::cancelPendingEditExit
         )
     }
 }
@@ -109,7 +114,10 @@ private fun HistoryContent(
     onSortOrderChange: (HistorySortOrder) -> Unit,
     onToggleEditMode: () -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
-    onSetRepsChange: (Long, String) -> Unit
+    onSetRepsChange: (Long, String) -> Unit,
+    onConfirmSaveChanges: () -> Unit,
+    onConfirmDiscardChanges: () -> Unit,
+    onCancelPendingEditExit: () -> Unit
 ) {
     val showingDetail = state.selectedSessionId != null || state.isDetailLoading
 
@@ -131,7 +139,10 @@ private fun HistoryContent(
                 onBackToList = onBackToList,
                 onToggleEditMode = onToggleEditMode,
                 onSetWeightChange = onSetWeightChange,
-                onSetRepsChange = onSetRepsChange
+                onSetRepsChange = onSetRepsChange,
+                onConfirmSaveChanges = onConfirmSaveChanges,
+                onConfirmDiscardChanges = onConfirmDiscardChanges,
+                onCancelPendingEditExit = onCancelPendingEditExit
             )
         } else {
             HistoryListContent(
@@ -278,8 +289,29 @@ private fun HistoryDetailContent(
     onBackToList: () -> Unit,
     onToggleEditMode: () -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
-    onSetRepsChange: (Long, String) -> Unit
+    onSetRepsChange: (Long, String) -> Unit,
+    onConfirmSaveChanges: () -> Unit,
+    onConfirmDiscardChanges: () -> Unit,
+    onCancelPendingEditExit: () -> Unit
 ) {
+    if (state.pendingEditExit != null) {
+        AlertDialog(
+            onDismissRequest = onCancelPendingEditExit,
+            title = { Text("Cambios sin guardar") },
+            text = { Text("Has modificado datos de esta sesion. ¿Quieres guardarlos?") },
+            confirmButton = {
+                TextButton(onClick = onConfirmSaveChanges) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onConfirmDiscardChanges) {
+                    Text("Descartar")
+                }
+            }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
