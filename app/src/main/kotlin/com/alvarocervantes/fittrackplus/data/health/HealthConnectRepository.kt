@@ -1,18 +1,20 @@
 package com.alvarocervantes.fittrackplus.data.health
 
 import android.content.Context
-import android.content.Intent
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.StepsRecord
-import androidx.health.connect.client.request.ReadRecordsRequest
+import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
+import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.Period
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
@@ -49,61 +51,47 @@ class HealthConnectRepository @Inject constructor(
     suspend fun readTodaySteps(): Long? {
         if (!hasPermission()) return null
         return runCatching {
-            val now = Instant.now()
-            val startOfDay = LocalDate.now()
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant()
-            val request = ReadRecordsRequest(
-                recordType = StepsRecord::class,
-                timeRangeFilter = TimeRangeFilter.between(startOfDay, now)
+            val startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant()
+            val request = AggregateRequest(
+                metrics = setOf(StepsRecord.COUNT_TOTAL),
+                timeRangeFilter = TimeRangeFilter.between(startOfDay, Instant.now())
             )
-            client.readRecords(request).records.sumOf { it.count }
+            client.aggregate(request)[StepsRecord.COUNT_TOTAL] ?: 0L
         }.getOrNull()
     }
 
-    suspend fun readWeekSteps(): Map<Int, Long>? {
+    suspend fun readWeekSteps(): Map<Int, Long>? =
+        readDaySteps(weekStart = currentWeekMonday(), localEnd = LocalDateTime.now())
+
+    suspend fun readWeekStepsForWeekStart(weekStart: LocalDate): Map<Int, Long>? =
+        readDaySteps(weekStart = weekStart, localEnd = weekStart.plusDays(7).atStartOfDay())
+
+    /**
+     * Buckets steps by calendar day using Health Connect's own aggregation engine
+     * instead of manually summing raw records by startTime. A single StepsRecord
+     * can span across midnight (e.g. 23:40-00:20), and naive bucketing by startTime
+     * would attribute its full count to the wrong day. aggregateGroupByPeriod splits
+     * each day-sized bucket correctly at the boundary.
+     */
+    private suspend fun readDaySteps(weekStart: LocalDate, localEnd: LocalDateTime): Map<Int, Long>? {
         if (!hasPermission()) return null
         return runCatching {
-            val now = Instant.now()
-            val weekStart = LocalDate.now()
-                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                .atStartOfDay(ZoneId.systemDefault())
-                .toInstant()
-            val request = ReadRecordsRequest(
-                recordType = StepsRecord::class,
-                timeRangeFilter = TimeRangeFilter.between(weekStart, now)
+            val localStart = weekStart.atStartOfDay()
+            val cappedEnd = localEnd.coerceAtMost(LocalDateTime.now())
+            val request = AggregateGroupByPeriodRequest(
+                metrics = setOf(StepsRecord.COUNT_TOTAL),
+                timeRangeFilter = TimeRangeFilter.between(localStart, cappedEnd),
+                timeRangeSlicer = Period.ofDays(1)
             )
             val result = mutableMapOf<Int, Long>()
-            for (record in client.readRecords(request).records) {
-                val dayIndex = dayIndexMondayFirst(record.startTime)
-                result[dayIndex] = (result[dayIndex] ?: 0L) + record.count
+            for (bucket in client.aggregateGroupByPeriod(request)) {
+                val dayIndex = bucket.startTime.dayOfWeek.value - 1
+                result[dayIndex] = bucket.result[StepsRecord.COUNT_TOTAL] ?: 0L
             }
             result
         }.getOrNull()
     }
 
-    suspend fun readWeekStepsForWeekStart(weekStart: LocalDate): Map<Int, Long>? {
-        if (!hasPermission()) return null
-        return runCatching {
-            val zoneId = ZoneId.systemDefault()
-            val start = weekStart.atStartOfDay(zoneId).toInstant()
-            val end = weekStart.plusDays(7).atStartOfDay(zoneId).toInstant()
-                .coerceAtMost(Instant.now())
-            val request = ReadRecordsRequest(
-                recordType = StepsRecord::class,
-                timeRangeFilter = TimeRangeFilter.between(start, end)
-            )
-            val result = mutableMapOf<Int, Long>()
-            for (record in client.readRecords(request).records) {
-                val dayIndex = dayIndexMondayFirst(record.startTime)
-                result[dayIndex] = (result[dayIndex] ?: 0L) + record.count
-            }
-            result
-        }.getOrNull()
-    }
-
-    private fun dayIndexMondayFirst(instant: Instant): Int {
-        val dayOfWeek = instant.atZone(ZoneId.systemDefault()).toLocalDate().dayOfWeek
-        return dayOfWeek.value - 1
-    }
+    private fun currentWeekMonday(): LocalDate = LocalDate.now()
+        .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
 }
