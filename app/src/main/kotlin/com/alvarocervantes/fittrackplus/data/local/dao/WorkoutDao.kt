@@ -97,6 +97,18 @@ interface WorkoutDao {
     suspend fun getLastWeightKgForExerciseSet(variantKey: String, setNumber: Int): Double?
 
     @Query("""
+        SELECT ws.reps FROM workout_sets ws
+        INNER JOIN workout_exercises we ON ws.workoutExerciseId = we.id
+        INNER JOIN workout_sessions sess ON we.sessionId = sess.id
+        WHERE we.performedVariantKey = :variantKey
+        AND sess.finishedAt IS NOT NULL
+        AND ws.setNumber = :setNumber
+        ORDER BY sess.startedAt DESC
+        LIMIT 1
+    """)
+    suspend fun getLastRepsForExerciseSet(variantKey: String, setNumber: Int): Int?
+
+    @Query("""
         SELECT MAX(ws.weightKg) FROM workout_sets ws
         INNER JOIN workout_exercises we ON ws.workoutExerciseId = we.id
         INNER JOIN workout_sessions sess ON we.sessionId = sess.id

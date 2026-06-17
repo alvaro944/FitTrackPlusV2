@@ -1042,6 +1042,7 @@ private fun WeightFieldColumn(
     setId: Long,
     weightText: String,
     previousWeight: String?,
+    previousReps: Int?,
     isCompleted: Boolean,
     onSetWeightChange: (Long, String) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
@@ -1107,9 +1108,13 @@ private fun WeightFieldColumn(
                 iconSize = REPS_STEPPER_ICON_SIZE
             )
         }
-        if (previousWeight != null) {
+        val previousPerformance = formatPreviousWorkoutSetPerformance(
+            previousWeight = previousWeight,
+            previousReps = previousReps
+        )
+        if (previousPerformance != null) {
             Text(
-                text = "Ultima vez: $previousWeight kg",
+                text = previousPerformance,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.padding(start = 4.dp, top = 2.dp)
@@ -1193,6 +1198,7 @@ private fun WorkoutSetRow(
                 setId = set.id,
                 weightText = set.weightText,
                 previousWeight = set.previousWeight,
+                previousReps = set.previousReps,
                 isCompleted = set.isCompleted,
                 onSetWeightChange = onSetWeightChange,
                 onStepWeight = onStepWeight,
@@ -1247,6 +1253,17 @@ private fun WorkoutSetRow(
             )
         }
     }
+}
+
+internal fun formatPreviousWorkoutSetPerformance(
+    previousWeight: String?,
+    previousReps: Int?
+): String? {
+    val weightPart = previousWeight?.let { "$it kg" }
+    val repsPart = previousReps?.takeIf { it > 0 }?.let { "$it reps" }
+    val parts = listOfNotNull(weightPart, repsPart)
+    if (parts.isEmpty()) return null
+    return "Ultima vez: ${parts.joinToString(separator = " · ")}"
 }
 
 @Composable

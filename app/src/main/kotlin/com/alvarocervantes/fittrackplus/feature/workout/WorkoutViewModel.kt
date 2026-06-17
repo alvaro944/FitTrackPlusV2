@@ -578,7 +578,14 @@ class WorkoutViewModel @Inject constructor(
                             variantKey = exercise.variantKey,
                             setNumber = set.setNumber
                         )
-                        set.copy(previousWeight = prevKg?.toInputText())
+                        val previousReps = workoutRepository.getLastRepsForExerciseSet(
+                            variantKey = exercise.variantKey,
+                            setNumber = set.setNumber
+                        )?.takeIf { it > 0 }
+                        set.copy(
+                            previousWeight = prevKg?.toInputText(),
+                            previousReps = previousReps
+                        )
                     }
                 )
             }
@@ -738,6 +745,7 @@ data class WorkoutSetUiState(
     val repsText: String,
     val isCompleted: Boolean = false,
     val previousWeight: String? = null,
+    val previousReps: Int? = null,
     val prType: PrType? = null
 )
 

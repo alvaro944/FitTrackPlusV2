@@ -94,6 +94,26 @@ class WorkoutInputDefaultsTest {
     }
 
     @Test
+    fun formatPreviousWorkoutSetPerformance_combinesWeightAndRepsWhenAvailable() {
+        assertEquals(
+            "Ultima vez: 50 kg · 12 reps",
+            formatPreviousWorkoutSetPerformance(previousWeight = "50", previousReps = 12)
+        )
+        assertEquals(
+            "Ultima vez: 50 kg",
+            formatPreviousWorkoutSetPerformance(previousWeight = "50", previousReps = null)
+        )
+        assertEquals(
+            "Ultima vez: 12 reps",
+            formatPreviousWorkoutSetPerformance(previousWeight = null, previousReps = 12)
+        )
+        assertEquals(
+            null,
+            formatPreviousWorkoutSetPerformance(previousWeight = null, previousReps = null)
+        )
+    }
+
+    @Test
     fun sanitizeWeightInputKeepsOnlyOneDecimalSeparatorAndNormalizesComma() {
         assertEquals("12,5", sanitizeWorkoutWeightInput("12.5"))
         assertEquals("12,5", sanitizeWorkoutWeightInput("12,,5"))
