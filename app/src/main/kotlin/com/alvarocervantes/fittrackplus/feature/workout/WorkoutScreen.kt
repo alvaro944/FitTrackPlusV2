@@ -255,7 +255,6 @@ fun WorkoutScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun WorkoutContent(
     state: WorkoutUiState,
@@ -902,7 +901,6 @@ private fun ExerciseCompletionLabel(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ExerciseAlternativesDialog(
     picker: ExerciseAlternativesUiState,
