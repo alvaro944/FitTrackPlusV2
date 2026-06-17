@@ -15,8 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imeNestedScroll
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -63,7 +62,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -743,20 +742,20 @@ private fun RoutineEditorContent(
     onRemoveExercise: (Int, Int) -> Unit
 ) {
     val listState = rememberLazyListState()
-    val allowFieldFocus = !listState.isScrollInProgress
+    val imeBottom = with(LocalDensity.current) {
+        WindowInsets.ime.getBottom(this).toDp()
+    }
 
     LazyColumn(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
-            .padding(contentPadding)
-            .imePadding()
-            .imeNestedScroll(),
+            .padding(contentPadding),
         contentPadding = PaddingValues(
             start = FitSpacing.screenHorizontal,
             top = FitSpacing.screenTop,
             end = FitSpacing.screenHorizontal,
-            bottom = FitSpacing.screenBottom
+            bottom = FitSpacing.screenBottom + imeBottom
         ),
         verticalArrangement = Arrangement.spacedBy(FitSpacing.section)
     ) {
@@ -792,9 +791,7 @@ private fun RoutineEditorContent(
                     { Text(error) }
                 },
                 singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusProperties { canFocus = allowFieldFocus }
+                modifier = Modifier.fillMaxWidth()
             )
         }
 
@@ -810,7 +807,6 @@ private fun RoutineEditorContent(
                 canRemove = editor.days.size > 1,
                 canMoveUp = dayIndex > 0,
                 canMoveDown = dayIndex < editor.days.lastIndex,
-                allowFieldFocus = allowFieldFocus,
                 onToggleExpanded = onToggleDayExpansion,
                 onDayNameChange = onDayNameChange,
                 onDuplicateDay = onDuplicateDay,
@@ -901,7 +897,6 @@ private fun RoutineDayEditor(
     canRemove: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
-    allowFieldFocus: Boolean,
     onToggleExpanded: (Int) -> Unit,
     onDayNameChange: (Int, String) -> Unit,
     onDuplicateDay: (Int) -> Unit,
@@ -1050,9 +1045,7 @@ private fun RoutineDayEditor(
                     { Text(error) }
                 },
                 singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusProperties { canFocus = allowFieldFocus }
+                modifier = Modifier.fillMaxWidth()
             )
 
             day.exercises.forEachIndexed { exerciseIndex, exercise ->
@@ -1063,7 +1056,6 @@ private fun RoutineDayEditor(
                     canRemove = day.exercises.size > 1,
                     canMoveUp = exerciseIndex > 0,
                     canMoveDown = exerciseIndex < day.exercises.lastIndex,
-                    allowFieldFocus = allowFieldFocus,
                     onExerciseNameChange = onExerciseNameChange,
                     onExerciseSetsChange = onExerciseSetsChange,
                     onExerciseRepsChange = onExerciseRepsChange,
@@ -1107,7 +1099,6 @@ private fun RoutineExerciseEditor(
     canRemove: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
-    allowFieldFocus: Boolean,
     onExerciseNameChange: (Int, Int, String) -> Unit,
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
@@ -1335,9 +1326,7 @@ private fun RoutineExerciseEditor(
                 { Text(error) }
             },
             singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusProperties { canFocus = allowFieldFocus }
+            modifier = Modifier.fillMaxWidth()
         )
 
         ExerciseSetsStepper(

@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imeNestedScroll
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -73,9 +73,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
@@ -281,19 +281,20 @@ private fun WorkoutContent(
     onGoToRoutines: () -> Unit
 ) {
     val listState = rememberLazyListState()
-    val allowFieldFocus = !listState.isScrollInProgress
+    val imeBottom = with(LocalDensity.current) {
+        WindowInsets.ime.getBottom(this).toDp()
+    }
 
     LazyColumn(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
-            .padding(contentPadding)
-            .imeNestedScroll(),
+            .padding(contentPadding),
         contentPadding = PaddingValues(
             start = FitSpacing.screenHorizontal,
             top = FitSpacing.screenTop,
             end = FitSpacing.screenHorizontal,
-            bottom = FitSpacing.screenBottom
+            bottom = FitSpacing.screenBottom + imeBottom
         ),
         verticalArrangement = Arrangement.spacedBy(FitSpacing.section)
     ) {
@@ -349,7 +350,6 @@ private fun WorkoutContent(
                         exercise = exercise,
                         hint = state.hints[exercise.id] ?: ProgressionHint.NONE,
                         isExpanded = state.expandedExerciseId == exercise.id,
-                        allowFieldFocus = allowFieldFocus,
                         onOpenAlternatives = onOpenExerciseAlternatives,
                         onToggleExpanded = onToggleExerciseExpanded,
                         onSetWeightChange = onSetWeightChange,
@@ -771,7 +771,6 @@ private fun WorkoutExerciseCard(
     exercise: WorkoutExerciseUiState,
     hint: ProgressionHint,
     isExpanded: Boolean,
-    allowFieldFocus: Boolean,
     onOpenAlternatives: (Long) -> Unit,
     onToggleExpanded: (Long) -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
@@ -866,7 +865,6 @@ private fun WorkoutExerciseCard(
                     exercise.sets.forEach { set ->
                         WorkoutSetRow(
                             set = set,
-                            allowFieldFocus = allowFieldFocus,
                             onSetWeightChange = onSetWeightChange,
                             onSetRepsChange = onSetRepsChange,
                             onStepWeight = onStepWeight,
@@ -960,8 +958,7 @@ private fun ExerciseAlternativesDialog(
                 Column(
                     modifier = Modifier
                         .verticalScroll(rememberScrollState())
-                        .imePadding()
-                        .imeNestedScroll(),
+                        .imePadding(),
                     verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
                 ) {
                     Text(
@@ -1083,7 +1080,6 @@ private fun WeightFieldColumn(
     setId: Long,
     weightText: String,
     previousWeight: String?,
-    allowFieldFocus: Boolean,
     isCompleted: Boolean,
     onSetWeightChange: (Long, String) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
@@ -1134,7 +1130,6 @@ private fun WeightFieldColumn(
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 56.dp)
-                    .focusProperties { canFocus = allowFieldFocus }
                     .onFocusChanged { focusState ->
                         if (focusState.isFocused) {
                             fieldValue = selectAllWorkoutFieldValue(fieldValue)
@@ -1164,7 +1159,6 @@ private fun WeightFieldColumn(
 @Composable
 private fun WorkoutSetRow(
     set: WorkoutSetUiState,
-    allowFieldFocus: Boolean,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
@@ -1237,7 +1231,6 @@ private fun WorkoutSetRow(
                 setId = set.id,
                 weightText = set.weightText,
                 previousWeight = set.previousWeight,
-                allowFieldFocus = allowFieldFocus,
                 isCompleted = set.isCompleted,
                 onSetWeightChange = onSetWeightChange,
                 onStepWeight = onStepWeight,
@@ -1272,7 +1265,6 @@ private fun WorkoutSetRow(
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(min = 56.dp)
-                            .focusProperties { canFocus = allowFieldFocus }
                             .onFocusChanged { focusState ->
                                 if (focusState.isFocused) {
                                     repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)

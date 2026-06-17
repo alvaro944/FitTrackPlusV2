@@ -47,7 +47,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -297,7 +296,6 @@ private fun HistoryDetailContent(
     onCancelPendingEditExit: () -> Unit
 ) {
     val listState = rememberLazyListState()
-    val allowFieldFocus = !listState.isScrollInProgress
 
     if (state.pendingEditExit != null) {
         AlertDialog(
@@ -382,7 +380,6 @@ private fun HistoryDetailContent(
                     HistoryExerciseCard(
                         exercise = exercise,
                         isEditMode = state.isEditMode,
-                        allowFieldFocus = allowFieldFocus,
                         onSetWeightChange = onSetWeightChange,
                         onSetRepsChange = onSetRepsChange
                     )
@@ -607,7 +604,6 @@ private fun HistoryDeltaRow(
 private fun HistoryExerciseCard(
     exercise: HistoryExerciseUiState,
     isEditMode: Boolean,
-    allowFieldFocus: Boolean,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit
 ) {
@@ -634,7 +630,6 @@ private fun HistoryExerciseCard(
                 HistorySetRow(
                     set = set,
                     isEditMode = isEditMode,
-                    allowFieldFocus = allowFieldFocus,
                     onWeightChange = onSetWeightChange,
                     onRepsChange = onSetRepsChange
                 )
@@ -647,7 +642,6 @@ private fun HistoryExerciseCard(
 private fun HistorySetRow(
     set: HistorySetUiState,
     isEditMode: Boolean,
-    allowFieldFocus: Boolean,
     onWeightChange: (Long, String) -> Unit,
     onRepsChange: (Long, String) -> Unit
 ) {
@@ -680,9 +674,7 @@ private fun HistorySetRow(
                     label = { Text("kg") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier
-                        .weight(1f)
-                        .focusProperties { canFocus = allowFieldFocus }
+                    modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
                     value = set.repsText,
@@ -690,9 +682,7 @@ private fun HistorySetRow(
                     label = { Text("reps") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier
-                        .weight(1f)
-                        .focusProperties { canFocus = allowFieldFocus }
+                    modifier = Modifier.weight(1f)
                 )
             } else {
                 Text(
