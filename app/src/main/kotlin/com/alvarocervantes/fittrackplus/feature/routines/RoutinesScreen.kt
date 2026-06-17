@@ -709,6 +709,7 @@ private fun ArchivedRoutineListItem(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RoutineEditorContent(
     state: RoutinesUiState,

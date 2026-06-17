@@ -2,6 +2,114 @@
 
 Bitacora viva del proyecto. Cada fase debe anadir aqui lo que se hizo, lo que se verifico, problemas encontrados y decisiones tomadas.
 
+## Iteracion - Fix de compilacion por imeNestedScroll
+
+Estado:
+
+- Completada tecnicamente.
+
+Rama:
+
+- `codex/health-connect-steps`
+
+Objetivo:
+
+- Recuperar la compilacion tras el cambio de requisitos de opt-in de Compose para `imeNestedScroll()`.
+
+Fuera de alcance:
+
+- cambios visuales o de comportamiento
+- opt-in global nuevo en Gradle
+- cambios de metodologia general
+
+Cambios principales:
+
+- `RoutineEditorContent` en `RoutinesScreen` gana `@OptIn(ExperimentalLayoutApi::class)`.
+- `WorkoutContent` y `ExerciseAlternativesDialog` en `WorkoutScreen` ganan `@OptIn(ExperimentalLayoutApi::class)`.
+- `WorkoutScreen` importa `ExperimentalLayoutApi`.
+
+Problemas encontrados:
+
+- el fallo original no venia de `FlowRow` en `WorkoutScreen`, sino de `imeNestedScroll()` en tres puntos concretos.
+- la primera pasada de `./gradlew build` fallo en `:app:packageRelease` de forma transitoria; `:app:packageRelease` aislado y la repeticion final de `./gradlew build` pasaron correctamente.
+
+Decisiones:
+
+- mantener el opt-in local por composable en vez de ampliar `freeCompilerArgs` a nivel de modulo.
+
+Verificacion:
+
+```bash
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+bash ./gradlew :app:compileDebugKotlin --no-daemon --console=plain
+bash ./gradlew test --no-daemon --console=plain
+bash ./gradlew build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Verificacion automatica correcta.
+- Sin pasada manual en esta sesion.
+
+Pendiente:
+
+- ninguno dentro del alcance de esta iteracion
+
+## Iteracion - Fix de franja crema sobre el teclado en Entrenar
+
+Estado:
+
+- Completada tecnicamente.
+
+Rama:
+
+- `codex/health-connect-steps`
+
+Objetivo:
+
+- quitar la franja crema visible sobre el teclado al editar peso o reps en `Entrenar`.
+
+Fuera de alcance:
+
+- cambios en el comportamiento de seleccion de texto
+- cambios de layout fuera de `Entrenar`
+- pasada manual en emulador/dispositivo en esta sesion
+
+Cambios principales:
+
+- se revierte el intento anterior de recolorear la seleccion de texto en peso/reps.
+- `WorkoutContent` deja de usar `imePadding()` en el `LazyColumn` principal.
+- se conserva `imeNestedScroll()` para no tocar el resto del comportamiento del scroll con teclado.
+
+Problemas encontrados:
+
+- el artefacto real no era el highlight de seleccion del `TextField`; la descripcion del usuario apuntaba a una reserva visual de espacio sobre el teclado.
+- el sospechoso principal en codigo era `imePadding()` aplicado al contenedor completo de la pantalla de entrenamiento.
+
+Decisiones:
+
+- atacar el problema de forma minima retirando solo `imePadding()` del `LazyColumn` principal de `Entrenar`.
+- no tocar el `Dialog` de alternativas, que sigue necesitando su manejo propio del teclado.
+
+Verificacion:
+
+```bash
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+bash ./gradlew test --no-daemon --console=plain
+bash ./gradlew build --no-daemon --console=plain
+```
+
+Resultado:
+
+- Verificacion automatica correcta.
+- Sin pasada manual en esta sesion.
+
+Pendiente:
+
+- confirmacion visual manual del usuario
+
 ## Iteracion - Home calendar y orden de rutinas
 
 Estado:
