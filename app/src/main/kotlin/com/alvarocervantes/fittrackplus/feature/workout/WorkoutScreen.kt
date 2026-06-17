@@ -1083,7 +1083,6 @@ private fun WeightFieldColumn(
     setId: Long,
     weightText: String,
     previousWeight: String?,
-    previousReps: Int?,
     allowFieldFocus: Boolean,
     isCompleted: Boolean,
     onSetWeightChange: (Long, String) -> Unit,
@@ -1151,13 +1150,9 @@ private fun WeightFieldColumn(
                 iconSize = REPS_STEPPER_ICON_SIZE
             )
         }
-        val previousPerformance = formatPreviousWorkoutSetPerformance(
-            previousWeight = previousWeight,
-            previousReps = previousReps
-        )
-        if (previousPerformance != null) {
+        if (previousWeight != null) {
             Text(
-                text = previousPerformance,
+                text = formatPreviousWeightLabel(previousWeight),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.padding(start = 4.dp, top = 2.dp)
@@ -1242,53 +1237,64 @@ private fun WorkoutSetRow(
                 setId = set.id,
                 weightText = set.weightText,
                 previousWeight = set.previousWeight,
-                previousReps = set.previousReps,
                 allowFieldFocus = allowFieldFocus,
                 isCompleted = set.isCompleted,
                 onSetWeightChange = onSetWeightChange,
                 onStepWeight = onStepWeight,
                 modifier = Modifier.weight(WORKOUT_WEIGHT_COLUMN_WEIGHT)
             )
-            Row(
+            Column(
                 modifier = Modifier.weight(WORKOUT_REPS_COLUMN_WEIGHT),
-                horizontalArrangement = Arrangement.spacedBy(FitSpacing.tiny),
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
             ) {
-                SetStepperButton(
-                    icon = Icons.Filled.Remove,
-                    contentDescription = "Bajar repeticiones de la serie ${set.setNumber}",
-                    onClick = { onStepReps(set.id, -1) },
-                    minButtonSize = REPS_STEPPER_BUTTON_SIZE,
-                    iconSize = REPS_STEPPER_ICON_SIZE
-                )
-                OutlinedTextField(
-                    value = repsFieldValue,
-                    onValueChange = { value ->
-                        repsFieldValue = value
-                        onSetRepsChange(set.id, value.text)
-                    },
-                    placeholder = { Text("Reps") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = workoutSetFieldColors(isCompleted = set.isCompleted),
-                    interactionSource = repsInteractionSource,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 56.dp)
-                        .focusProperties { canFocus = allowFieldFocus }
-                        .onFocusChanged { focusState ->
-                            if (focusState.isFocused) {
-                                repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.tiny),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SetStepperButton(
+                        icon = Icons.Filled.Remove,
+                        contentDescription = "Bajar repeticiones de la serie ${set.setNumber}",
+                        onClick = { onStepReps(set.id, -1) },
+                        minButtonSize = REPS_STEPPER_BUTTON_SIZE,
+                        iconSize = REPS_STEPPER_ICON_SIZE
+                    )
+                    OutlinedTextField(
+                        value = repsFieldValue,
+                        onValueChange = { value ->
+                            repsFieldValue = value
+                            onSetRepsChange(set.id, value.text)
+                        },
+                        placeholder = { Text("Reps") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = workoutSetFieldColors(isCompleted = set.isCompleted),
+                        interactionSource = repsInteractionSource,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 56.dp)
+                            .focusProperties { canFocus = allowFieldFocus }
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused) {
+                                    repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)
+                                }
                             }
-                        }
-                )
-                SetStepperButton(
-                    icon = Icons.Filled.Add,
-                    contentDescription = "Subir repeticiones de la serie ${set.setNumber}",
-                    onClick = { onStepReps(set.id, 1) },
-                    minButtonSize = REPS_STEPPER_BUTTON_SIZE,
-                    iconSize = REPS_STEPPER_ICON_SIZE
-                )
+                    )
+                    SetStepperButton(
+                        icon = Icons.Filled.Add,
+                        contentDescription = "Subir repeticiones de la serie ${set.setNumber}",
+                        onClick = { onStepReps(set.id, 1) },
+                        minButtonSize = REPS_STEPPER_BUTTON_SIZE,
+                        iconSize = REPS_STEPPER_ICON_SIZE
+                    )
+                }
+                if (set.previousReps != null) {
+                    Text(
+                        text = formatPreviousRepsLabel(set.previousReps),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
             }
         }
         if (set.prType != null) {
@@ -1301,16 +1307,9 @@ private fun WorkoutSetRow(
     }
 }
 
-internal fun formatPreviousWorkoutSetPerformance(
-    previousWeight: String?,
-    previousReps: Int?
-): String? {
-    val weightPart = previousWeight?.let { "$it kg" }
-    val repsPart = previousReps?.takeIf { it > 0 }?.let { "$it reps" }
-    val parts = listOfNotNull(weightPart, repsPart)
-    if (parts.isEmpty()) return null
-    return "Ultima vez: ${parts.joinToString(separator = " · ")}"
-}
+internal fun formatPreviousWeightLabel(previousWeight: String): String = "ant. $previousWeight kg"
+
+internal fun formatPreviousRepsLabel(previousReps: Int): String = "ant. $previousReps"
 
 @Composable
 private fun ProgressionHintButton(hint: ProgressionHint) {

@@ -94,22 +94,14 @@ class WorkoutInputDefaultsTest {
     }
 
     @Test
-    fun formatPreviousWorkoutSetPerformance_combinesWeightAndRepsWhenAvailable() {
+    fun formatPreviousWorkoutLabels_areSeparatedForWeightAndReps() {
         assertEquals(
-            "Ultima vez: 50 kg · 12 reps",
-            formatPreviousWorkoutSetPerformance(previousWeight = "50", previousReps = 12)
+            "ant. 50 kg",
+            formatPreviousWeightLabel("50")
         )
         assertEquals(
-            "Ultima vez: 50 kg",
-            formatPreviousWorkoutSetPerformance(previousWeight = "50", previousReps = null)
-        )
-        assertEquals(
-            "Ultima vez: 12 reps",
-            formatPreviousWorkoutSetPerformance(previousWeight = null, previousReps = 12)
-        )
-        assertEquals(
-            null,
-            formatPreviousWorkoutSetPerformance(previousWeight = null, previousReps = null)
+            "ant. 12",
+            formatPreviousRepsLabel(12)
         )
     }
 
