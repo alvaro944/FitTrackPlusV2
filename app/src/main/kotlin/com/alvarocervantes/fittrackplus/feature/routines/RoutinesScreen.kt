@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imeNestedScroll
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -708,6 +710,7 @@ private fun ArchivedRoutineListItem(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun RoutineEditorContent(
     state: RoutinesUiState,
@@ -742,7 +745,8 @@ private fun RoutineEditorContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)
-            .imePadding(),
+            .imePadding()
+            .imeNestedScroll(),
         contentPadding = PaddingValues(
             start = FitSpacing.screenHorizontal,
             top = FitSpacing.screenTop,
