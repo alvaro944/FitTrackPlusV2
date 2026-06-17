@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -72,6 +73,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
@@ -278,7 +280,11 @@ private fun WorkoutContent(
     onToggleExerciseExpanded: (Long) -> Unit,
     onGoToRoutines: () -> Unit
 ) {
+    val listState = rememberLazyListState()
+    val allowFieldFocus = !listState.isScrollInProgress
+
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)
@@ -343,6 +349,7 @@ private fun WorkoutContent(
                         exercise = exercise,
                         hint = state.hints[exercise.id] ?: ProgressionHint.NONE,
                         isExpanded = state.expandedExerciseId == exercise.id,
+                        allowFieldFocus = allowFieldFocus,
                         onOpenAlternatives = onOpenExerciseAlternatives,
                         onToggleExpanded = onToggleExerciseExpanded,
                         onSetWeightChange = onSetWeightChange,
@@ -764,6 +771,7 @@ private fun WorkoutExerciseCard(
     exercise: WorkoutExerciseUiState,
     hint: ProgressionHint,
     isExpanded: Boolean,
+    allowFieldFocus: Boolean,
     onOpenAlternatives: (Long) -> Unit,
     onToggleExpanded: (Long) -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
@@ -858,6 +866,7 @@ private fun WorkoutExerciseCard(
                     exercise.sets.forEach { set ->
                         WorkoutSetRow(
                             set = set,
+                            allowFieldFocus = allowFieldFocus,
                             onSetWeightChange = onSetWeightChange,
                             onSetRepsChange = onSetRepsChange,
                             onStepWeight = onStepWeight,
@@ -1043,6 +1052,7 @@ private fun WeightFieldColumn(
     weightText: String,
     previousWeight: String?,
     previousReps: Int?,
+    allowFieldFocus: Boolean,
     isCompleted: Boolean,
     onSetWeightChange: (Long, String) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
@@ -1093,6 +1103,7 @@ private fun WeightFieldColumn(
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 56.dp)
+                    .focusProperties { canFocus = allowFieldFocus }
                     .onFocusChanged { focusState ->
                         if (focusState.isFocused) {
                             fieldValue = selectAllWorkoutFieldValue(fieldValue)
@@ -1126,6 +1137,7 @@ private fun WeightFieldColumn(
 @Composable
 private fun WorkoutSetRow(
     set: WorkoutSetUiState,
+    allowFieldFocus: Boolean,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
@@ -1199,6 +1211,7 @@ private fun WorkoutSetRow(
                 weightText = set.weightText,
                 previousWeight = set.previousWeight,
                 previousReps = set.previousReps,
+                allowFieldFocus = allowFieldFocus,
                 isCompleted = set.isCompleted,
                 onSetWeightChange = onSetWeightChange,
                 onStepWeight = onStepWeight,
@@ -1230,6 +1243,7 @@ private fun WorkoutSetRow(
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 56.dp)
+                        .focusProperties { canFocus = allowFieldFocus }
                         .onFocusChanged { focusState ->
                             if (focusState.isFocused) {
                                 repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -62,6 +63,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -740,7 +742,11 @@ private fun RoutineEditorContent(
     onMoveExercise: (Int, Int, MoveDirection) -> Unit,
     onRemoveExercise: (Int, Int) -> Unit
 ) {
+    val listState = rememberLazyListState()
+    val allowFieldFocus = !listState.isScrollInProgress
+
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)
@@ -786,7 +792,9 @@ private fun RoutineEditorContent(
                     { Text(error) }
                 },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusProperties { canFocus = allowFieldFocus }
             )
         }
 
@@ -802,6 +810,7 @@ private fun RoutineEditorContent(
                 canRemove = editor.days.size > 1,
                 canMoveUp = dayIndex > 0,
                 canMoveDown = dayIndex < editor.days.lastIndex,
+                allowFieldFocus = allowFieldFocus,
                 onToggleExpanded = onToggleDayExpansion,
                 onDayNameChange = onDayNameChange,
                 onDuplicateDay = onDuplicateDay,
@@ -892,6 +901,7 @@ private fun RoutineDayEditor(
     canRemove: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
+    allowFieldFocus: Boolean,
     onToggleExpanded: (Int) -> Unit,
     onDayNameChange: (Int, String) -> Unit,
     onDuplicateDay: (Int) -> Unit,
@@ -1040,7 +1050,9 @@ private fun RoutineDayEditor(
                     { Text(error) }
                 },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusProperties { canFocus = allowFieldFocus }
             )
 
             day.exercises.forEachIndexed { exerciseIndex, exercise ->
@@ -1051,6 +1063,7 @@ private fun RoutineDayEditor(
                     canRemove = day.exercises.size > 1,
                     canMoveUp = exerciseIndex > 0,
                     canMoveDown = exerciseIndex < day.exercises.lastIndex,
+                    allowFieldFocus = allowFieldFocus,
                     onExerciseNameChange = onExerciseNameChange,
                     onExerciseSetsChange = onExerciseSetsChange,
                     onExerciseRepsChange = onExerciseRepsChange,
@@ -1094,6 +1107,7 @@ private fun RoutineExerciseEditor(
     canRemove: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
+    allowFieldFocus: Boolean,
     onExerciseNameChange: (Int, Int, String) -> Unit,
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
@@ -1321,7 +1335,9 @@ private fun RoutineExerciseEditor(
                 { Text(error) }
             },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusProperties { canFocus = allowFieldFocus }
         )
 
         ExerciseSetsStepper(
