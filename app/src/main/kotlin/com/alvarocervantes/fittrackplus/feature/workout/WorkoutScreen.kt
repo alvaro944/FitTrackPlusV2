@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imeNestedScroll
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -254,6 +256,7 @@ fun WorkoutScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WorkoutContent(
     state: WorkoutUiState,
@@ -279,7 +282,7 @@ private fun WorkoutContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)
-            .imePadding(),
+            .imeNestedScroll(),
         contentPadding = PaddingValues(
             start = FitSpacing.screenHorizontal,
             top = FitSpacing.screenTop,
@@ -899,6 +902,7 @@ private fun ExerciseCompletionLabel(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ExerciseAlternativesDialog(
     picker: ExerciseAlternativesUiState,
@@ -922,6 +926,7 @@ private fun ExerciseAlternativesDialog(
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
                     .imePadding()
+                    .imeNestedScroll()
                     .padding(FitSpacing.cardPadding),
                 verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
             ) {

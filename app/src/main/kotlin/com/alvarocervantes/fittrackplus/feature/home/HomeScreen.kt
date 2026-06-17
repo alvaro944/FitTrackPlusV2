@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
@@ -43,7 +44,9 @@ import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
+import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import com.alvarocervantes.fittrackplus.core.design.primaryDark
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
@@ -143,6 +146,9 @@ fun HomeScreen(
             WeekActivityStrip(
                 sessionsThisWeek = uiState.sessionsThisWeek,
                 trainedDaysThisWeek = uiState.trainedDaysThisWeek,
+                stepsDaysCompleted = uiState.stepsDaysCompleted,
+                todaySteps = uiState.todaySteps,
+                dailyStepGoal = uiState.dailyStepGoal,
                 isLoading = uiState.isLoading
             )
         }
@@ -280,6 +286,9 @@ fun HomeScreen(
 private fun WeekActivityStrip(
     sessionsThisWeek: Int,
     trainedDaysThisWeek: Set<Int>,
+    stepsDaysCompleted: Set<Int>,
+    todaySteps: Long?,
+    dailyStepGoal: Int,
     isLoading: Boolean
 ) {
     FitTrackCard(containerColor = MaterialTheme.colorScheme.surfaceCard) {
@@ -316,14 +325,20 @@ private fun WeekActivityStrip(
             val todayIndex = (Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 5) % 7
             weekDayLabels().forEachIndexed { index, label ->
                 val isToday = index == todayIndex
-                val isCompleted = index in trainedDaysThisWeek
+                val isTrained = index in trainedDaysThisWeek
+                val isStepsCompleted = index in stepsDaysCompleted
                 WeekDayCell(
                     label = label,
                     isToday = isToday,
-                    isCompleted = isCompleted,
+                    isTrained = isTrained,
+                    isStepsCompleted = isStepsCompleted,
                     modifier = Modifier.weight(1f)
                 )
             }
+        }
+
+        if (todaySteps != null) {
+            StepProgressRow(todaySteps = todaySteps, goal = dailyStepGoal)
         }
     }
 }
@@ -332,19 +347,14 @@ private fun WeekActivityStrip(
 private fun WeekDayCell(
     label: String,
     isToday: Boolean,
-    isCompleted: Boolean,
+    isTrained: Boolean,
+    isStepsCompleted: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val background = when {
-        isToday -> MaterialTheme.colorScheme.primary
-        isCompleted -> MaterialTheme.colorScheme.primarySoft
-        else -> MaterialTheme.colorScheme.surfaceAlt
-    }
-    val contentColor = when {
-        isToday -> MaterialTheme.colorScheme.onPrimary
-        isCompleted -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val colorScheme = MaterialTheme.colorScheme
+    val (background, textColor) = weekDayCellColors(colorScheme, isToday, isTrained)
+    val dotColor = weekDayCellDotColor(colorScheme, isToday, isTrained, isStepsCompleted)
+    val hasActivity = isTrained || isStepsCompleted || isToday
 
     Column(
         modifier = modifier
@@ -357,13 +367,93 @@ private fun WeekDayCell(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = contentColor
+            color = textColor
         )
         Box(
             modifier = Modifier
-                .size(if (isCompleted || isToday) 6.dp else 4.dp)
+                .size(if (hasActivity) 6.dp else 4.dp)
                 .clip(MaterialTheme.shapes.extraSmall)
-                .background(contentColor.copy(alpha = if (isCompleted || isToday) 1f else 0.35f))
+                .background(dotColor)
+        )
+    }
+}
+
+@Composable
+private fun weekDayCellColors(
+    cs: androidx.compose.material3.ColorScheme,
+    isToday: Boolean,
+    isTrained: Boolean
+): Pair<Color, Color> = when {
+    isToday -> cs.primary to cs.onPrimary
+    isTrained -> cs.primarySoft to cs.primary
+    else -> cs.surfaceAlt to cs.onSurfaceVariant
+}
+
+@Composable
+private fun weekDayCellDotColor(
+    cs: androidx.compose.material3.ColorScheme,
+    isToday: Boolean,
+    isTrained: Boolean,
+    isStepsCompleted: Boolean
+): Color = when {
+    isToday -> cs.onPrimary
+    isStepsCompleted -> cs.accentWarm
+    isTrained -> cs.primary
+    else -> cs.onSurfaceVariant.copy(alpha = 0.35f)
+}
+
+@Composable
+private fun StepProgressRow(
+    todaySteps: Long,
+    goal: Int
+) {
+    val progress = if (goal > 0) (todaySteps.toFloat() / goal).coerceIn(0f, 1f) else 0f
+    val goalReached = todaySteps >= goal
+
+    Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (goalReached) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.accentWarm
+                    )
+                    Text(
+                        text = "Objetivo completado",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.accentWarm
+                    )
+                }
+            } else {
+                Text(
+                    text = "%,d / %,d pasos".format(todaySteps, goal),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = "${(progress * 100).toInt()}%",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.textTertiary
+            )
+        }
+        FitTrackProgressBar(
+            progress = progress,
+            color = if (goalReached) {
+                MaterialTheme.colorScheme.accentWarm
+            } else {
+                MaterialTheme.colorScheme.tertiary
+            },
+            contentDescription = "Progreso de pasos"
         )
     }
 }

@@ -2,6 +2,54 @@
 
 Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso.
 
+## 2026-06-17 - Compose experimental layout opt-in fix
+
+Estado:
+
+- implementado en `codex/health-connect-steps`
+- verificado con `:app:compileDebugKotlin`, `./gradlew test` y `./gradlew build`
+- sin pasada manual en esta sesion por instruccion previa del usuario
+
+Cambios cerrados:
+
+- `RoutinesScreen` y `WorkoutScreen` aplican `@OptIn(ExperimentalLayoutApi::class)` solo en los composables que usan `imeNestedScroll()`.
+- `WorkoutScreen` importa `ExperimentalLayoutApi` de forma explicita para compilar con la combinacion actual de Kotlin/Compose.
+- no se anade opt-in global nuevo en Gradle ni se cambia comportamiento visual o de negocio.
+
+Validacion destacada:
+
+- `:app:compileDebugKotlin` deja de fallar por `ExperimentalLayoutApi`
+- `test` OK
+- `build` OK
+- durante la primera pasada de `build`, `:app:packageRelease` fallo de forma transitoria; la repeticion aislada y la repeticion final de `./gradlew build` cerraron correctamente
+
+Pendiente:
+
+- ninguno para este fix puntual
+
+## 2026-06-17 - Workout keyboard inset strip fix
+
+Estado:
+
+- implementado en `codex/health-connect-steps`
+- verificado con `./gradlew test` y `./gradlew build`
+- sin pasada manual en esta sesion por instruccion previa del usuario
+
+Cambios cerrados:
+
+- se revierte el intento anterior sobre colores de seleccion de texto porque no atacaba el problema real.
+- `WorkoutScreen` deja de aplicar `imePadding()` al `LazyColumn` principal de `Entrenar`.
+- se mantiene `imeNestedScroll()` y no se toca la logica de foco, seleccion ni edicion de peso/reps.
+
+Validacion destacada:
+
+- `test` OK
+- `build` OK
+
+Pendiente:
+
+- confirmacion visual manual del usuario de que desaparece la franja crema sobre el teclado
+
 ## 2026-06-12 - Home calendar and routines order fixes
 
 Estado:

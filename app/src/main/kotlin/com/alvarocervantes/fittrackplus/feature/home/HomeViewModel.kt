@@ -5,14 +5,18 @@ import androidx.lifecycle.viewModelScope
 import com.alvarocervantes.fittrackplus.data.local.entity.WorkoutSessionEntity
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
+import com.alvarocervantes.fittrackplus.domain.model.StepsData
+import com.alvarocervantes.fittrackplus.domain.usecase.ReadDailyStepsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.Calendar
 import javax.inject.Inject
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 
 data class HomeUiState(
@@ -20,6 +24,9 @@ data class HomeUiState(
     val trainedDaysThisWeek: Set<Int> = emptySet(),
     val sessionsThisWeek: Int = 0,
     val totalSessions: Int = 0,
+    val todaySteps: Long? = null,
+    val dailyStepGoal: Int = 10_000,
+    val stepsDaysCompleted: Set<Int> = emptySet(),
     val isLoading: Boolean = true,
     val message: String? = null
 )
@@ -27,15 +34,28 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val workoutRepository: WorkoutRepository
+    private val workoutRepository: WorkoutRepository,
+    private val readDailyStepsUseCase: ReadDailyStepsUseCase
 ) : ViewModel() {
 
     private val message = MutableStateFlow<String?>(null)
+    private val stepsData = MutableStateFlow<StepsData?>(null)
+
+    init {
+        userPreferencesRepository.healthConnectConnected
+            .onEach { connected ->
+                stepsData.value = if (connected) readDailyStepsUseCase() else null
+            }
+            .catch { stepsData.value = null }
+            .launchIn(viewModelScope)
+    }
 
     val uiState: StateFlow<HomeUiState> = combine(
         userPreferencesRepository.activeRoutineId,
-        workoutRepository.observeFinishedSessions()
-    ) { activeId, sessions ->
+        workoutRepository.observeFinishedSessions(),
+        stepsData,
+        userPreferencesRepository.dailyStepGoal
+    ) { activeId, sessions, steps, stepGoal ->
         val nowMillis = System.currentTimeMillis()
         val trainedDays = trainedDaysThisWeek(sessions, nowMillis = nowMillis)
         HomeUiState(
@@ -43,6 +63,9 @@ class HomeViewModel @Inject constructor(
             trainedDaysThisWeek = trainedDays,
             sessionsThisWeek = sessions.count { isInCurrentWeek(it.startedAt, nowMillis = nowMillis) },
             totalSessions = sessions.size,
+            todaySteps = steps?.todaySteps,
+            dailyStepGoal = stepGoal,
+            stepsDaysCompleted = computeStepsDaysCompleted(steps, stepGoal),
             isLoading = false
         )
     }.catch { throwable ->
@@ -59,6 +82,13 @@ class HomeViewModel @Inject constructor(
     fun clearMessage() {
         message.value = null
     }
+}
+
+private fun computeStepsDaysCompleted(steps: StepsData?, goal: Int): Set<Int> {
+    if (steps == null || goal <= 0) return emptySet()
+    return steps.weekDaySteps
+        .filterValues { daySteps -> daySteps >= goal }
+        .keys
 }
 
 internal fun trainedDaysThisWeek(

@@ -42,6 +42,7 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += listOf("-opt-in=androidx.compose.foundation.ExperimentalFoundationApi")
     }
 
     buildFeatures {
@@ -105,6 +106,8 @@ dependencies {
     implementation(libs.glance.material3)
     implementation(libs.androidx.lifecycle.process)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
+
+    implementation(libs.androidx.health.connect)
 
     testImplementation(libs.junit)
     testImplementation(libs.turbine)

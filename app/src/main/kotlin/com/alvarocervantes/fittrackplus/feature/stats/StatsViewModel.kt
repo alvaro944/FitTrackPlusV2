@@ -2,6 +2,7 @@ package com.alvarocervantes.fittrackplus.feature.stats
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseProgress
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseProgressEntry
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseRecords
@@ -12,13 +13,19 @@ import com.alvarocervantes.fittrackplus.domain.model.WorkoutStats
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHeatmapUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutStatsUseCase
+import com.alvarocervantes.fittrackplus.domain.usecase.ReadDailyStepsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -29,10 +36,13 @@ import kotlinx.coroutines.flow.update
 @HiltViewModel
 class StatsViewModel @Inject constructor(
     observeWorkoutStats: ObserveWorkoutStatsUseCase,
-    getWorkoutHeatmap: GetWorkoutHeatmapUseCase
+    getWorkoutHeatmap: GetWorkoutHeatmapUseCase,
+    private val readDailyStepsUseCase: ReadDailyStepsUseCase,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     private val selectedPeriod = MutableStateFlow(WorkoutStatsPeriod.All)
+    private val _selectedWeekStart = MutableStateFlow(currentWeekMonday())
     private val _uiState = MutableStateFlow(StatsUiState())
     val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
 
@@ -65,6 +75,48 @@ class StatsViewModel @Inject constructor(
             }
             .catch { }
             .launchIn(viewModelScope)
+
+        combine(
+            userPreferencesRepository.healthConnectConnected,
+            _selectedWeekStart
+        ) { connected, weekStart -> connected to weekStart }
+            .onEach { (connected, weekStart) ->
+                if (connected) {
+                    val dailyGoal = userPreferencesRepository.dailyStepGoal.first()
+                    val daySteps = readDailyStepsUseCase.readForWeekStart(weekStart) ?: emptyMap()
+                    val isCurrentWeek = weekStart == currentWeekMonday()
+                    val stepsData = WeeklyStepsData(
+                        weekStart = weekStart,
+                        dailySteps = daySteps,
+                        dailyGoal = dailyGoal,
+                        isCurrentWeek = isCurrentWeek,
+                        daysElapsedInWeek = if (isCurrentWeek) LocalDate.now().dayOfWeek.value else 7
+                    )
+                    _uiState.update { state ->
+                        state.copy(
+                            weeklyStepsData = stepsData,
+                            canGoToNextWeek = !isCurrentWeek
+                        )
+                    }
+                } else {
+                    _uiState.update { state ->
+                        state.copy(weeklyStepsData = null, canGoToNextWeek = false)
+                    }
+                }
+            }
+            .catch { }
+            .launchIn(viewModelScope)
+    }
+
+    fun previousWeek() {
+        _selectedWeekStart.update { it.minusWeeks(1) }
+    }
+
+    fun nextWeek() {
+        val nextWeek = _selectedWeekStart.value.plusWeeks(1)
+        if (!nextWeek.isAfter(currentWeekMonday())) {
+            _selectedWeekStart.value = nextWeek
+        }
     }
 
     fun setPeriodFilter(period: WorkoutStatsPeriod) {
@@ -103,6 +155,21 @@ class StatsViewModel @Inject constructor(
     fun clearMessage() {
         _uiState.update { state -> state.copy(message = null) }
     }
+
+    private fun currentWeekMonday(): LocalDate = LocalDate.now()
+        .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+}
+
+data class WeeklyStepsData(
+    val weekStart: LocalDate,
+    val dailySteps: Map<Int, Long>,  // 0=Mon..6=Sun
+    val dailyGoal: Int,
+    val isCurrentWeek: Boolean,
+    val daysElapsedInWeek: Int       // 1=Mon..7=Sun, used only when isCurrentWeek
+) {
+    val weekEnd: LocalDate = weekStart.plusDays(6)
+    val totalSteps: Long = dailySteps.values.sum()
+    val daysGoalMet: Int = dailySteps.count { (_, steps) -> steps >= dailyGoal }
 }
 
 data class StatsUiState(
@@ -115,6 +182,8 @@ data class StatsUiState(
     val progressPoints: List<ProgressChartPointUiState> = emptyList(),
     val selectedProgressPoint: ProgressChartPointUiState? = null,
     val heatmapDays: List<HeatmapDay> = emptyList(),
+    val weeklyStepsData: WeeklyStepsData? = null,
+    val canGoToNextWeek: Boolean = false,
     val message: String? = null
 ) {
     val isEmpty: Boolean = sessionVolumes.isEmpty() &&
@@ -246,7 +315,9 @@ fun StatsUiState.withStatsPeriod(
     return stats.copy(
         selectedPeriod = period,
         selectedExerciseName = retainedExerciseName,
-        selectedProgressPoint = null
+        selectedProgressPoint = null,
+        weeklyStepsData = weeklyStepsData,
+        canGoToNextWeek = canGoToNextWeek
     ).withProgressPointsForSelection()
 }
 
