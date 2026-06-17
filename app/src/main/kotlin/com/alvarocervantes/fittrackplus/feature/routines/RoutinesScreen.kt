@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 package com.alvarocervantes.fittrackplus.feature.routines
 
 import androidx.activity.compose.BackHandler
