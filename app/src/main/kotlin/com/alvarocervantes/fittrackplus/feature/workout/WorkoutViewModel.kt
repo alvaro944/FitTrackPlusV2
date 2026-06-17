@@ -320,7 +320,12 @@ class WorkoutViewModel @Inject constructor(
             nextRepsText = set.repsText,
             timer = _uiState.value.restTimer
         )
-        updateSetState(setId) { it.copy(weightText = sanitizedWeightText) }
+        updateSetState(setId) {
+            it.copy(
+                weightText = sanitizedWeightText,
+                isCompleted = isWorkoutSetCompleted(sanitizedWeightText, it.repsText)
+            )
+        }
         if (shouldAutoStartTimer) {
             startRestTimer(_uiState.value.restTimer.durationSeconds.takeIf { it > 0 } ?: DEFAULT_REST_TIMER_SECONDS)
         }
