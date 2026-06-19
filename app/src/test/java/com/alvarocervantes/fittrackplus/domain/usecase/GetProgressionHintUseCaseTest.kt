@@ -91,6 +91,7 @@ private class ProgressionHintWorkoutRepository(
     override suspend fun updateSet(setId: Long, weightKg: Double, reps: Int) = error("Not used")
     override suspend fun finishSession(sessionId: Long, notes: String?) = error("Not used")
     override suspend fun getLastWeightKgForExerciseSet(variantKey: String, setNumber: Int): Double? = null
+    override suspend fun getLastRepsForExerciseSet(variantKey: String, setNumber: Int): Int? = null
     override suspend fun getMaxWeightForExercise(variantKey: String): Double? = null
     override suspend fun getMaxSetVolumeForExercise(variantKey: String): Double? = null
     override suspend fun getRecentAverageRepsForExercise(variantKey: String, limit: Int): List<Double> {

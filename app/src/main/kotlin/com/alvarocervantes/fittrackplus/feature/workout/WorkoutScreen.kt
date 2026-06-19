@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imeNestedScroll
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -74,6 +75,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
@@ -278,16 +280,21 @@ private fun WorkoutContent(
     onToggleExerciseExpanded: (Long) -> Unit,
     onGoToRoutines: () -> Unit
 ) {
+    val listState = rememberLazyListState()
+    val imeBottom = with(LocalDensity.current) {
+        WindowInsets.ime.getBottom(this).toDp()
+    }
+
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
-            .padding(contentPadding)
-            .imeNestedScroll(),
+            .padding(contentPadding),
         contentPadding = PaddingValues(
             start = FitSpacing.screenHorizontal,
             top = FitSpacing.screenTop,
             end = FitSpacing.screenHorizontal,
-            bottom = FitSpacing.screenBottom
+            bottom = FitSpacing.screenBottom + imeBottom
         ),
         verticalArrangement = Arrangement.spacedBy(FitSpacing.section)
     ) {
@@ -924,111 +931,142 @@ private fun ExerciseAlternativesDialog(
         ) {
             Column(
                 modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .imePadding()
-                    .imeNestedScroll()
+                    .fillMaxWidth()
                     .padding(FitSpacing.cardPadding),
                 verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
             ) {
-                Text(
-                    text = "Ejercicios alternativos",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Text(
-                    text = picker.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (picker.draft == null) {
-                    picker.options.forEach { option ->
-                        FitTrackCard(modifier = Modifier.fillMaxWidth()) {
-                            Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = option.name,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    if (option.isDefault) {
-                                        FitTrackBadge(
-                                            label = "PREDET.",
-                                            tone = FitTrackBadgeTone.Active
-                                        )
-                                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Ejercicios alternativos",
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.minimumInteractiveComponentSize()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cerrar dialogo de alternativas"
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .imePadding(),
+                    verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
+                ) {
+                    Text(
+                        text = picker.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (picker.draft == null) {
+                        picker.options.forEach { option ->
+                            val onOptionClick = {
+                                if (option.variantKey == picker.currentVariantKey) {
+                                    onDismiss()
+                                } else {
+                                    onApplyVariant(option.variantKey)
                                 }
-                                Text(
-                                    text = "${option.targetSets} series · ${option.targetRepsText} reps",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    TextButton(
-                                        onClick = { onApplyVariant(option.variantKey) },
-                                        enabled = !option.isCurrent
+                            }
+                            FitTrackCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(onClick = onOptionClick)
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(if (option.isCurrent) "Usando ahora" else "Usar hoy")
+                                        Text(
+                                            text = option.name,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        if (option.isDefault) {
+                                            FitTrackBadge(
+                                                label = "PREDET.",
+                                                tone = FitTrackBadgeTone.Active
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = "${option.targetSets} series · ${option.targetRepsText} reps",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.End
+                                    ) {
+                                        Text(
+                                            text = if (option.isCurrent) "Usando ahora" else "Usar ahora",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                 }
                             }
                         }
-                    }
-                    FilledTonalButton(
-                        onClick = onStartCreating,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Crear alternativa")
-                    }
-                } else {
-                    OutlinedTextField(
-                        value = picker.draft.name,
-                        onValueChange = onDraftNameChange,
-                        label = { Text("Nombre") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                        OutlinedTextField(
-                            value = picker.draft.targetSets,
-                            onValueChange = onDraftSetsChange,
-                            label = { Text("Series") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = picker.draft.targetRepsText,
-                            onValueChange = onDraftRepsChange,
-                            label = { Text("Reps") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    OutlinedTextField(
-                        value = picker.draft.notes,
-                        onValueChange = onDraftNotesChange,
-                        label = { Text("Notas") },
-                        minLines = 2,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = onCancelCreating) {
-                            Text("Cancelar")
-                        }
-                        TextButton(
-                            onClick = onSaveAlternative,
-                            enabled = picker.draft.canSave && !picker.isSaving
+                        FilledTonalButton(
+                            onClick = onStartCreating,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Guardar y usar")
+                            Text("Crear alternativa")
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = picker.draft.name,
+                            onValueChange = onDraftNameChange,
+                            label = { Text("Nombre") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                            OutlinedTextField(
+                                value = picker.draft.targetSets,
+                                onValueChange = onDraftSetsChange,
+                                label = { Text("Series") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = picker.draft.targetRepsText,
+                                onValueChange = onDraftRepsChange,
+                                label = { Text("Reps") },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        OutlinedTextField(
+                            value = picker.draft.notes,
+                            onValueChange = onDraftNotesChange,
+                            label = { Text("Notas") },
+                            minLines = 2,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(onClick = onCancelCreating) {
+                                Text("Cancelar")
+                            }
+                            TextButton(
+                                onClick = onSaveAlternative,
+                                enabled = picker.draft.canSave && !picker.isSaving
+                            ) {
+                                Text("Guardar y usar")
+                            }
                         }
                     }
                 }
@@ -1109,7 +1147,7 @@ private fun WeightFieldColumn(
         }
         if (previousWeight != null) {
             Text(
-                text = "Ultima vez: $previousWeight kg",
+                text = formatPreviousWeightLabel(previousWeight),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.padding(start = 4.dp, top = 2.dp)
@@ -1198,45 +1236,57 @@ private fun WorkoutSetRow(
                 onStepWeight = onStepWeight,
                 modifier = Modifier.weight(WORKOUT_WEIGHT_COLUMN_WEIGHT)
             )
-            Row(
+            Column(
                 modifier = Modifier.weight(WORKOUT_REPS_COLUMN_WEIGHT),
-                horizontalArrangement = Arrangement.spacedBy(FitSpacing.tiny),
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
             ) {
-                SetStepperButton(
-                    icon = Icons.Filled.Remove,
-                    contentDescription = "Bajar repeticiones de la serie ${set.setNumber}",
-                    onClick = { onStepReps(set.id, -1) },
-                    minButtonSize = REPS_STEPPER_BUTTON_SIZE,
-                    iconSize = REPS_STEPPER_ICON_SIZE
-                )
-                OutlinedTextField(
-                    value = repsFieldValue,
-                    onValueChange = { value ->
-                        repsFieldValue = value
-                        onSetRepsChange(set.id, value.text)
-                    },
-                    placeholder = { Text("Reps") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = workoutSetFieldColors(isCompleted = set.isCompleted),
-                    interactionSource = repsInteractionSource,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 56.dp)
-                        .onFocusChanged { focusState ->
-                            if (focusState.isFocused) {
-                                repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.tiny),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SetStepperButton(
+                        icon = Icons.Filled.Remove,
+                        contentDescription = "Bajar repeticiones de la serie ${set.setNumber}",
+                        onClick = { onStepReps(set.id, -1) },
+                        minButtonSize = REPS_STEPPER_BUTTON_SIZE,
+                        iconSize = REPS_STEPPER_ICON_SIZE
+                    )
+                    OutlinedTextField(
+                        value = repsFieldValue,
+                        onValueChange = { value ->
+                            repsFieldValue = value
+                            onSetRepsChange(set.id, value.text)
+                        },
+                        placeholder = { Text("Reps") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = workoutSetFieldColors(isCompleted = set.isCompleted),
+                        interactionSource = repsInteractionSource,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 56.dp)
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused) {
+                                    repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)
+                                }
                             }
-                        }
-                )
-                SetStepperButton(
-                    icon = Icons.Filled.Add,
-                    contentDescription = "Subir repeticiones de la serie ${set.setNumber}",
-                    onClick = { onStepReps(set.id, 1) },
-                    minButtonSize = REPS_STEPPER_BUTTON_SIZE,
-                    iconSize = REPS_STEPPER_ICON_SIZE
-                )
+                    )
+                    SetStepperButton(
+                        icon = Icons.Filled.Add,
+                        contentDescription = "Subir repeticiones de la serie ${set.setNumber}",
+                        onClick = { onStepReps(set.id, 1) },
+                        minButtonSize = REPS_STEPPER_BUTTON_SIZE,
+                        iconSize = REPS_STEPPER_ICON_SIZE
+                    )
+                }
+                if (set.previousReps != null) {
+                    Text(
+                        text = formatPreviousRepsLabel(set.previousReps),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
             }
         }
         if (set.prType != null) {
@@ -1248,6 +1298,10 @@ private fun WorkoutSetRow(
         }
     }
 }
+
+internal fun formatPreviousWeightLabel(previousWeight: String): String = "ant. $previousWeight kg"
+
+internal fun formatPreviousRepsLabel(previousReps: Int): String = "ant. $previousReps"
 
 @Composable
 private fun ProgressionHintButton(hint: ProgressionHint) {

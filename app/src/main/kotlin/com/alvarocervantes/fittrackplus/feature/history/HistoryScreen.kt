@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -294,6 +295,8 @@ private fun HistoryDetailContent(
     onConfirmDiscardChanges: () -> Unit,
     onCancelPendingEditExit: () -> Unit
 ) {
+    val listState = rememberLazyListState()
+
     if (state.pendingEditExit != null) {
         AlertDialog(
             onDismissRequest = onCancelPendingEditExit,
@@ -313,6 +316,7 @@ private fun HistoryDetailContent(
     }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),

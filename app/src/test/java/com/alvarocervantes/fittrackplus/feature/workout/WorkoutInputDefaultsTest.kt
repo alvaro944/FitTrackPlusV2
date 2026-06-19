@@ -3,6 +3,8 @@ package com.alvarocervantes.fittrackplus.feature.workout
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WorkoutInputDefaultsTest {
@@ -49,6 +51,58 @@ class WorkoutInputDefaultsTest {
         assertEquals("2,5", adjustWorkoutWeightInput(currentValue = "", deltaKg = 2.5))
         assertEquals("7,5", adjustWorkoutWeightInput(currentValue = "2,5", deltaKg = 5.0))
         assertEquals("0", adjustWorkoutWeightInput(currentValue = "2.5", deltaKg = -5.0))
+    }
+
+    @Test
+    fun isWorkoutSetCompleted_requiresPositiveWeightAndReps() {
+        assertFalse(isWorkoutSetCompleted(weightText = "", repsText = "10"))
+        assertFalse(isWorkoutSetCompleted(weightText = "20", repsText = "0"))
+        assertTrue(isWorkoutSetCompleted(weightText = "20", repsText = "10"))
+    }
+
+    @Test
+    fun shouldAutoStartRestTimerOnSetCompletion_onlyTriggersWhenLastFieldCompletesSet() {
+        val timer = RestTimerUiState(autoStartEnabled = true)
+
+        assertTrue(
+            shouldAutoStartRestTimerOnSetCompletion(
+                previousWeightText = "",
+                previousRepsText = "10",
+                nextWeightText = "20",
+                nextRepsText = "10",
+                timer = timer
+            )
+        )
+        assertTrue(
+            shouldAutoStartRestTimerOnSetCompletion(
+                previousWeightText = "20",
+                previousRepsText = "",
+                nextWeightText = "20",
+                nextRepsText = "10",
+                timer = timer
+            )
+        )
+        assertFalse(
+            shouldAutoStartRestTimerOnSetCompletion(
+                previousWeightText = "20",
+                previousRepsText = "10",
+                nextWeightText = "25",
+                nextRepsText = "10",
+                timer = timer
+            )
+        )
+    }
+
+    @Test
+    fun formatPreviousWorkoutLabels_areSeparatedForWeightAndReps() {
+        assertEquals(
+            "ant. 50 kg",
+            formatPreviousWeightLabel("50")
+        )
+        assertEquals(
+            "ant. 12",
+            formatPreviousRepsLabel(12)
+        )
     }
 
     @Test
