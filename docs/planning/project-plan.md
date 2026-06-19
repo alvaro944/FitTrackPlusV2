@@ -158,7 +158,7 @@ Objetivo:
 
 - Consolidar la primera version funcional completa antes de abrir mejoras nuevas.
 - Mantener la validacion manual como gate pendiente, sin documentarla como completada hasta ejecutarla.
-- Usar `docs/roadmap-2.1.md` como direccion oficial post-v1.
+- Usar `docs/planning/roadmap-2.1.md` como direccion oficial post-v1.
 
 Incluye:
 
@@ -177,7 +177,7 @@ Pendiente:
 
 Documento canonico:
 
-- `docs/roadmap-2.1.md`
+- `docs/planning/roadmap-2.1.md`
 
 Orden recomendado:
 

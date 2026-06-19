@@ -1,6 +1,6 @@
 # Final Form Design - Implementacion
 
-Este documento conecta la referencia visual `docs/Final form Fit track/` con su
+Este documento conecta la referencia visual `docs/design/final-form-v1/` con su
 implementacion nativa en Jetpack Compose.
 
 ## Fuente Visual
@@ -76,6 +76,6 @@ Ejecutado correctamente:
 
 ## Siguientes Iteraciones Visuales
 
-Las ideas no implementadas siguen en `docs/visual-improvements.md`. Deben
+Las ideas no implementadas siguen en `docs/design/visual-improvements.md`. Deben
 aterrizarse en fases pequenas y verificables, sin convertir el prototipo web en
 una fuente de logica de negocio.

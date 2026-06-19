@@ -1,6 +1,6 @@
 # Mejoras Propuestas Por Claude
 
-> Estado: documento historico. El roadmap vigente post-v1 vive en `docs/roadmap-2.1.md`, que sustituye a `docs/future-improvements.md`.
+> Estado: documento historico. El roadmap vigente post-v1 vive en `docs/planning/roadmap-2.1.md`, que sustituye a `docs/planning/roadmap-2.1.md`.
 
 Este documento es un backlog de mejoras que Claude detecto tras revisar el codigo y la documentacion del proyecto. **No son decisiones tomadas**. Cada entrada esta pensada para que el usuario la valide, descarte o mueva a otra fase.
 
@@ -327,4 +327,4 @@ Las mejoras de abajo son las que propuse antes de ver la Fase 6. Mantenidas por 
 
 ## Siguiente paso sugerido
 
-El usuario revisa entrada por entrada y marca cuales entran en el backlog real. Las descartadas se dejan aqui como registro. Las aceptadas se repriorizan en `docs/roadmap-2.1.md` cuando pasan a ser direccion vigente.
+El usuario revisa entrada por entrada y marca cuales entran en el backlog real. Las descartadas se dejan aqui como registro. Las aceptadas se repriorizan en `docs/planning/roadmap-2.1.md` cuando pasan a ser direccion vigente.

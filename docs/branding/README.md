@@ -2,7 +2,7 @@
 
 Esta carpeta recoge la construccion de la identidad visual y de marca de FitTrackPlus.
 
-No sustituye al roadmap tecnico ni a `docs/work-methodology/`.
+No sustituye al roadmap tecnico ni a `docs/methodology/work-methodology/`.
 
 Su funcion es definir:
 
@@ -57,6 +57,6 @@ Luego se explora:
 - Base de marca cerrada
 - Logo decidido
 - Icono adaptativo de app generado
-- Nueva referencia oficial de arranque en `Pantalla incio fondo claro/`
+- Nueva referencia oficial de arranque en `splash-light/`
 
-La carpeta `Pantalla incio fondo claro/` ya no actua como exploracion abstracta. Ahora sirve como referencia directa para aterrizar la intro de arranque en Compose nativo dentro de la app.
+La carpeta `splash-light/` ya no actua como exploracion abstracta. Ahora sirve como referencia directa para aterrizar la intro de arranque en Compose nativo dentro de la app.

@@ -24,7 +24,7 @@ Sin esos datos, la metodologia solo puede dar disciplina general, no reglas oper
 
 ## Pasada Inicial
 
-Una vez definido lo tecnico, hacer una pasada por `docs/project-methodology/` para extraer reglas de trabajo.
+Una vez definido lo tecnico, hacer una pasada por `docs/methodology/project-methodology/` para extraer reglas de trabajo.
 
 Esa pasada debe producir documentos concretos del proyecto:
 
@@ -63,7 +63,7 @@ Debe contener solo lo que un agente necesita obedecer mientras trabaja en ese re
 
 ## Cuando Volver A La Metodologia General
 
-Volver a `docs/project-methodology/` solo cuando:
+Volver a `docs/methodology/project-methodology/` solo cuando:
 
 - se esta creando o reajustando el sistema operativo del proyecto
 - aparece una regla clara, repetible y reusable entre proyectos

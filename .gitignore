@@ -19,5 +19,10 @@ MainActivity.kt
 
 .DS_Store
 .superpowers/
+
+# Design reference ZIPs (content extracted to dirs, not versioned)
 docs/Final form Fit track.zip
-docs/Final form Fit track 2/.thumbnail
+docs/Fit track v2diseño.zip
+docs/branding/Pantalla inicio fondo oscuro.zip
+docs/branding/Fit track v2 (Remix).zip
+docs/design/final-form-v2/.thumbnail

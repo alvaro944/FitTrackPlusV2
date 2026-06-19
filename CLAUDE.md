@@ -47,7 +47,7 @@ Codex ejecuta lo que Claude ha especificado:
 - hace push y avisa al usuario
 - cuando el usuario aprueba, hace merge a main y push
 
-La referencia canonica del modelo de colaboracion es `docs/work-methodology/agent-collaboration.md`.
+La referencia canonica del modelo de colaboracion es `docs/methodology/work-methodology/agent-collaboration.md`.
 
 ## Multi-platform handoff
 
@@ -56,25 +56,25 @@ This repo may be reviewed from more than one editor or AI platform. To avoid ove
 - Only one platform should execute code or shared docs changes in each iteration.
 - Other platforms may analyze, design, review, or leave backlog notes in their own files.
 - Before resuming work from another platform, re-check `git status`, re-read the live docs, and reopen the concrete files being touched.
-- Treat files such as `docs/mejoras-claude.md` as proposal backlog unless the user explicitly promotes items into execution.
+- Treat files such as `docs/design/mejoras-claude.md` as proposal backlog unless the user explicitly promotes items into execution.
 
 ## Required reading before editing
 
 Per `AGENTS.md`, always re-read these before touching code:
 
 1. `README.md`
-2. `docs/development-workflow.md`
-3. `docs/project-plan.md`
-4. `docs/project-progress.md`
-5. `docs/phase-log.md`
-6. `docs/architecture.md`
-7. `docs/work-methodology/README.md`
+2. `docs/methodology/project-methodology/README.md`
+3. `docs/planning/project-plan.md`
+4. `docs/progress/project-progress.md`
+5. `docs/progress/phase-log.md`
+6. `docs/architecture/overview.md`
+7. `docs/methodology/work-methodology/README.md`
 8. The concrete area being modified
 
 When present, also read:
 
 - `CLAUDE.md`
-- `docs/mejoras-claude.md`
+- `docs/design/mejoras-claude.md`
 - any external design/backlog note that is shaping the current iteration
 
 ## Build and test
@@ -98,7 +98,7 @@ Minimum verification for any code change:
 - `test`
 - `build`
 
-For UI changes, also do a manual pass in emulator/device when possible. `adb` is not currently on PATH in this workspace, so manual validation may remain pending in `docs/project-progress.md`.
+For UI changes, also do a manual pass in emulator/device when possible. `adb` is not currently on PATH in this workspace, so manual validation may remain pending in `docs/progress/project-progress.md`.
 
 ## Source layout rule
 
@@ -170,11 +170,11 @@ Una mejora esta done cuando: compila, tests pasan, flujo manual verificado en em
 
 On phase close, update:
 
-1. `docs/project-progress.md`
-2. `docs/phase-log.md`
-3. `docs/work-methodology/`
+1. `docs/progress/project-progress.md`
+2. `docs/progress/phase-log.md`
+3. `docs/methodology/work-methodology/`
 4. `README.md` or `AGENTS.md` if process changed
-5. `docs/future-improvements.md` for deferred ideas
+5. `docs/planning/roadmap-2.1.md` for deferred ideas
 
 Then tell the user:
 
@@ -194,7 +194,7 @@ Las siguientes skills de Claude Code estan instaladas a nivel usuario y disponib
 | `caveman` / `caveman-commit` / `caveman-review` / `caveman-compress` | Simplificar explicaciones, commits y revisiones |
 | `token-optimizer` / `token-coach` / `token-dashboard` / `fleet-auditor` | Optimizar uso de tokens en sesiones largas |
 
-Referencia completa con criterios de uso en `docs/work-methodology/available-skills.md`.
+Referencia completa con criterios de uso en `docs/methodology/work-methodology/available-skills.md`.
 
 ## Language and tone
 

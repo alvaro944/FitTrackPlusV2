@@ -88,4 +88,4 @@ campo `exerciseNameSnapshot` para compatibilidad con el historial existente.
 - `data/local/entity/RoutineExerciseEntity.kt`
 - `data/local/entity/WorkoutExerciseEntity.kt`
 - `domain/usecase/ObserveWorkoutStatsUseCase.kt` (normalizacion `exerciseKey`)
-- `docs/roadmap-2.1.md` (ExerciseCatalog global diferido)
+- `docs/planning/roadmap-2.1.md` (ExerciseCatalog global diferido)

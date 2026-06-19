@@ -1,14 +1,14 @@
 # FitTrackPlus Roadmap 2.1
 
-Este documento sustituye a `docs/future-improvements.md` como roadmap oficial de mejoras post-v1.
+Este documento sustituye a `docs/planning/roadmap-2.1.md` como roadmap oficial de mejoras post-v1.
 
 La primera version funcional queda **cerrada tecnicamente**: el nucleo local, las pantallas principales, el sistema visual, la intro, CI y la documentacion base existen y han pasado verificacion automatica cuando aplicaba. La validacion manual en movil/emulador sigue pendiente y no debe documentarse como completada hasta ejecutarla.
 
 Fuente de entrada:
 
 - Auditoria externa: `C:\Users\Alvaro\.claude\plans\y-en-otro-lado-cozy-gosling.md`
-- Backlog historico: `docs/mejoras-claude.md`
-- Estado vivo: `docs/project-progress.md`
+- Backlog historico: `docs/design/mejoras-claude.md`
+- Estado vivo: `docs/progress/project-progress.md`
 
 ## Snapshot De Avance (2026-04-26)
 
@@ -38,7 +38,7 @@ Decisiones inmediatas tras este pase:
 - No romper el invariante de historial por snapshots.
 - Cada fase de codigo debe cerrar con `.\gradlew.bat test` y `.\gradlew.bat build`.
 - Cada cambio visible debe tener validacion manual o quedar anotado como pendiente.
-- Al cerrar una fase, actualizar `docs/project-progress.md` y `docs/phase-log.md`.
+- Al cerrar una fase, actualizar `docs/progress/project-progress.md` y `docs/progress/phase-log.md`.
 
 ## Gate 0 - Cierre Tecnico Y Validacion Manual
 
@@ -72,7 +72,7 @@ Criterio de salida:
 Verificacion:
 
 - Manual en Android Studio, emulador o dispositivo fisico.
-- Registrar resultado en `docs/project-progress.md` y `docs/phase-log.md`.
+- Registrar resultado en `docs/progress/project-progress.md` y `docs/progress/phase-log.md`.
 
 ## Fase 2.1A - Estabilidad Y Fricciones Criticas
 
@@ -133,7 +133,7 @@ Pendiente para cerrar 2.1B oficialmente:
 
 - Commit del WIP de 2.1B.5 (comparativa + selector de tema).
 - Validacion manual conjunta 2.1B.1 a 2.1B.5 en dispositivo: plantillas, duplicar, reordenar, timer, filtros historial, periodos stats, comparativa de sesion, cambio de tema en caliente.
-- Anotar resultado en `docs/project-progress.md` y `docs/phase-log.md`.
+- Anotar resultado en `docs/progress/project-progress.md` y `docs/progress/phase-log.md`.
 
 ## Fase 2.1C - Portfolio WOW
 
@@ -185,7 +185,7 @@ Estas ideas quedan fuera del roadmap inmediato:
 
 Antes de empezar:
 
-- [ ] Leer `README.md`, `docs/project-plan.md`, `docs/project-progress.md`, `docs/phase-log.md` y este roadmap.
+- [ ] Leer `README.md`, `docs/planning/project-plan.md`, `docs/progress/project-progress.md`, `docs/progress/phase-log.md` y este roadmap.
 - [ ] Confirmar alcance exacto de la fase.
 - [ ] Crear o usar rama `codex/...` adecuada.
 - [ ] Revisar el area concreta que se va a tocar.
@@ -203,7 +203,7 @@ Antes de cerrar:
 - [ ] Ejecutar `.\gradlew.bat test` si hay codigo.
 - [ ] Ejecutar `.\gradlew.bat build` si hay codigo.
 - [ ] Hacer validacion manual si hay UI o flujo visible.
-- [ ] Actualizar `docs/project-progress.md`.
-- [ ] Actualizar `docs/phase-log.md`.
-- [ ] Actualizar `docs/work-methodology/` solo si aparece un aprendizaje especifico del repo.
-- [ ] Actualizar `docs/project-methodology/` solo si aparece una regla general reusable.
+- [ ] Actualizar `docs/progress/project-progress.md`.
+- [ ] Actualizar `docs/progress/phase-log.md`.
+- [ ] Actualizar `docs/methodology/work-methodology/` solo si aparece un aprendizaje especifico del repo.
+- [ ] Actualizar `docs/methodology/project-methodology/` solo si aparece una regla general reusable.

@@ -438,7 +438,7 @@ Cambios principales:
 - Se anadio `NavigationShellConfigTest` para evitar regresiones estructurales del shell.
 - Se actualizo `README.md` con el canal de descarga de APK preview.
 - Se anadio `.github/workflows/release-preview.yml` para publicar `FitTrackPlus-preview.apk` al subir tags `v*-preview*`.
-- Se anadieron al repo los artefactos de referencia de `docs/Final form Fit track 2/` y se excluyeron del versionado el `.zip` y `.thumbnail` locales.
+- Se anadieron al repo los artefactos de referencia de `docs/design/final-form-v2/` y se excluyeron del versionado el `.zip` y `.thumbnail` locales.
 
 Problemas encontrados:
 
@@ -561,8 +561,8 @@ Cambios principales:
 - Se agrego editor simple para dias y ejercicios.
 - Se agrego validacion basica de campos antes de guardar.
 - Se agrego `.kotlin/` a `.gitignore`.
-- Se creo `docs/work-methodology/` como guia de estudio y metodologia.
-- Se actualizo `docs/development-workflow.md` para incluir la guia metodologica en cada cierre de fase.
+- Se creo `docs/methodology/work-methodology/` como guia de estudio y metodologia.
+- Se actualizo `docs/methodology/project-methodology/README.md` para incluir la guia metodologica en cada cierre de fase.
 
 Problemas encontrados:
 
@@ -983,7 +983,7 @@ Pendiente:
 
 Motivo:
 
-- Se revisaron los cambios de documentacion, `CLAUDE.md` y `docs/mejoras-claude.md` para separar backlog util de propuestas fuera de alcance.
+- Se revisaron los cambios de documentacion, `CLAUDE.md` y `docs/design/mejoras-claude.md` para separar backlog util de propuestas fuera de alcance.
 
 Cambios principales:
 
@@ -991,7 +991,7 @@ Cambios principales:
 - Rutinas simplifica el copy repetido por tarjeta y deja la explicacion de snapshots en un unico bloque de contexto.
 - Entrenar muestra mejor feedback visual en cada serie registrada y eleva el tamano minimo tactil de los inputs.
 - Se creo `core/design/Spacing.kt` como primera base de tokens de espaciado para seguir normalizando la capa visual.
-- `docs/work-methodology/` ahora deja mas claro el trabajo multiagente, la prioridad de `CLAUDE.md` como regla operativa y la diferencia entre propuesta y decision.
+- `docs/methodology/work-methodology/` ahora deja mas claro el trabajo multiagente, la prioridad de `CLAUDE.md` como regla operativa y la diferencia entre propuesta y decision.
 
 Decisiones:
 
@@ -1211,7 +1211,7 @@ Cambios principales:
   - proteccion `isDirty` en editor de rutinas
   - tabs `Activas / Archivadas` con `Restaurar`
   - banner dismissible de snapshots persistido en DataStore
-- Se toma `docs/branding/Pantalla incio fondo claro/` como nueva referencia visual oficial para el arranque.
+- Se toma `docs/branding/splash-light/` como nueva referencia visual oficial para el arranque.
 - Esa referencia se aterriza a Compose nativo:
   - sin WebView
   - sin HTML embebido
@@ -1267,7 +1267,7 @@ Objetivo:
 
 Cambios principales:
 
-- se consolida la base reusable en `docs/project-methodology/`
+- se consolida la base reusable en `docs/methodology/project-methodology/`
 - se anaden documentos generales sobre:
   - principios operativos
   - jerarquia de decision
@@ -1277,15 +1277,15 @@ Cambios principales:
   - verificacion
   - adaptacion a proyectos nuevos
   - blueprints de ficheros
-- `docs/development-workflow.md` pasa a actuar como puente corto hacia la carpeta nueva
-- `docs/work-methodology/` queda como espacio de aprendizajes historicos y especificos del repo
-- `AGENTS.md` y `README.md` se actualizan para apuntar primero a `docs/project-methodology/`
+- `docs/methodology/project-methodology/README.md` pasa a actuar como puente corto hacia la carpeta nueva
+- `docs/methodology/work-methodology/` queda como espacio de aprendizajes historicos y especificos del repo
+- `AGENTS.md` y `README.md` se actualizan para apuntar primero a `docs/methodology/project-methodology/`
 
 Decisiones:
 
 - la metodologia general no debe vivir mezclada con detalles de Android, Java o Compose
 - el starter pack debe servir para crear despues `AGENTS.md`, roadmap, progreso y bitacora de proyectos nuevos con solo anadir stack, restricciones y plan
-- la carpeta canonica de metodologia pasa a ser `docs/project-methodology/`
+- la carpeta canonica de metodologia pasa a ser `docs/methodology/project-methodology/`
 
 Verificacion:
 
@@ -1301,7 +1301,7 @@ Objetivo:
 
 - hacer el starter pack mas practico para colaboracion multiagente
 - evitar que la metodologia general se actualice por rutina
-- eliminar restos especificos de stack dentro de `docs/project-methodology/`
+- eliminar restos especificos de stack dentro de `docs/methodology/project-methodology/`
 
 Cambios principales:
 
@@ -1312,7 +1312,7 @@ Cambios principales:
   - `anti-patterns.md`
   - `methodology-maintenance.md`
 - Se ajustan `README.md`, `multi-agent-model.md`, `iteration-model.md`, `documentation-system.md` y `file-blueprints.md`.
-- Se convierten archivos antiguos de `docs/project-methodology/` en puentes neutrales hacia la nueva estructura.
+- Se convierten archivos antiguos de `docs/methodology/project-methodology/` en puentes neutrales hacia la nueva estructura.
 - `AGENTS.md` queda alineado con la regla: la metodologia general solo cambia si aparece una regla reusable.
 
 Decisiones:
@@ -1320,13 +1320,13 @@ Decisiones:
 - Codex queda como ejecutor principal por defecto.
 - Claude u otros agentes pueden asistir o ejecutar tareas acotadas con ownership claro.
 - Todo relevo entre herramientas debe dejar handoff.
-- `docs/project-methodology/` cambia poco y no guarda detalles especificos de stack.
-- `docs/work-methodology/` queda como memoria de aprendizajes concretos del repo.
+- `docs/methodology/project-methodology/` cambia poco y no guarda detalles especificos de stack.
+- `docs/methodology/work-methodology/` queda como memoria de aprendizajes concretos del repo.
 
 Verificacion:
 
 - Revision documental completada.
-- Busqueda de referencias especificas de stack en `docs/project-methodology/` sin resultados.
+- Busqueda de referencias especificas de stack en `docs/methodology/project-methodology/` sin resultados.
 - No se ejecutan `test` ni `build` porque solo se modifico documentacion.
 
 ### Tercera pasada de calidad metodologica
@@ -1352,13 +1352,13 @@ Cambios principales:
 Decisiones:
 
 - La metodologia general sigue neutral al stack y no debe actualizarse en cierres ordinarios.
-- `docs/work-methodology/` se mantiene como memoria local del repo, no como fuente canonica.
+- `docs/methodology/work-methodology/` se mantiene como memoria local del repo, no como fuente canonica.
 - Codex sigue como ejecutor principal por defecto, con Claude u otros agentes en roles acotados salvo decision explicita.
 
 Verificacion:
 
 - Revision documental completada.
-- Busqueda de referencias especificas de stack en `docs/project-methodology/` sin resultados.
+- Busqueda de referencias especificas de stack en `docs/methodology/project-methodology/` sin resultados.
 - No se ejecutan `test` ni `build` porque solo se modifico documentacion.
 
 ### Aclaracion de kickoff metodologico
@@ -1378,7 +1378,7 @@ Cambios principales:
 
 Decisiones:
 
-- `docs/project-methodology/` sirve para configurar el sistema de trabajo.
+- `docs/methodology/project-methodology/` sirve para configurar el sistema de trabajo.
 - `AGENTS.md` es el documento operativo diario dentro de cada repo.
 - No se debe copiar toda la metodologia general dentro de `AGENTS.md`; solo las reglas ejecutables.
 
@@ -1455,13 +1455,13 @@ Objetivo:
 
 Cambios principales:
 
-- se crea `docs/roadmap-2.1.md` como documento canonico de mejoras post-v1
-- se elimina `docs/future-improvements.md`
+- se crea `docs/planning/roadmap-2.1.md` como documento canonico de mejoras post-v1
+- se elimina `docs/planning/roadmap-2.1.md`
 - `README.md` apunta al Roadmap 2.1 y actualiza el estado actual
-- `docs/project-plan.md` anade cierre tecnico v1 y la seccion Roadmap 2.1
-- `docs/project-progress.md` actualiza siguiente paso y fases post-v1
+- `docs/planning/project-plan.md` anade cierre tecnico v1 y la seccion Roadmap 2.1
+- `docs/progress/project-progress.md` actualiza siguiente paso y fases post-v1
 - `docs/adr/0002-sin-exercise-catalog.md` referencia el nuevo roadmap
-- `docs/mejoras-claude.md` queda marcado como historico, no como backlog vigente
+- `docs/design/mejoras-claude.md` queda marcado como historico, no como backlog vigente
 
 Decisiones:
 
@@ -1469,7 +1469,7 @@ Decisiones:
 - Gate 0 del Roadmap 2.1 es validar intro, navegacion, dark mode, accesibilidad y flujo completo en dispositivo/emulador
 - la primera fase de producto nueva pasa a ser Fase 2.1A de estabilidad y fricciones criticas
 - Firebase/sync sigue diferido hasta cerrar prioridades locales de V2.1
-- `docs/project-methodology/` no se modifica porque no aparecio una regla reusable nueva
+- `docs/methodology/project-methodology/` no se modifica porque no aparecio una regla reusable nueva
 
 Verificacion:
 
@@ -1496,15 +1496,15 @@ Cambios principales:
 
 - se confirma con busqueda en el repo que la app Android no tiene llamadas runtime a OpenAI ni IDs de modelo existentes
 - `AGENTS.md` anade una seccion OpenAI/GPT-5.5 para futuras integraciones
-- `docs/work-methodology/tips-and-skills.md` guarda el aprendizaje local de migracion
-- `docs/project-progress.md` registra que no habia superficie de API que cambiar
+- `docs/methodology/work-methodology/tips-and-skills.md` guarda el aprendizaje local de migracion
+- `docs/progress/project-progress.md` registra que no habia superficie de API que cambiar
 
 Decisiones:
 
 - no se toca codigo Android porque no hay integracion OpenAI en `app/src/main/kotlin`
 - si aparece OpenAI API en el futuro, partir de `gpt-5.5`, Responses API y `reasoning.effort = medium` para trabajo complejo
 - no exponer claves OpenAI en el cliente Android; disenar primero backend o proxy seguro
-- `docs/project-methodology/` no se modifica porque esto queda como aprendizaje especifico del repo
+- `docs/methodology/project-methodology/` no se modifica porque esto queda como aprendizaje especifico del repo
 
 Verificacion:
 
@@ -1573,8 +1573,8 @@ Decisiones:
 - Encargar los issues menores a Claude mediante handoff compartido.
 - Mantener los cambios limitados a UI/back behavior.
 - No tocar Firebase/sync, Room, repositorios ni arquitectura.
-- No actualizar `docs/project-methodology/` porque no aparecio una regla general reusable.
-- No actualizar `docs/work-methodology/` porque no aparecio un aprendizaje tecnico especifico nuevo que merezca regla local.
+- No actualizar `docs/methodology/project-methodology/` porque no aparecio una regla general reusable.
+- No actualizar `docs/methodology/work-methodology/` porque no aparecio un aprendizaje tecnico especifico nuevo que merezca regla local.
 
 Ajustes aplicados:
 
@@ -1649,8 +1649,8 @@ Decisiones:
 - No tocar Firebase/sync, schema Room ni repositorios por esta fase.
 - Calcular metricas de Historial en `HistoryDetailUiState`, no dentro del composable.
 - Mantener el editor de Rutinas simple; se anaden mensajes inline sin cambiar flujo ni navegacion.
-- No actualizar `docs/project-methodology/` porque no aparecio una regla general reusable.
-- No actualizar `docs/work-methodology/` porque no aparecio un aprendizaje especifico nuevo que merezca documentacion local.
+- No actualizar `docs/methodology/project-methodology/` porque no aparecio una regla general reusable.
+- No actualizar `docs/methodology/work-methodology/` porque no aparecio un aprendizaje especifico nuevo que merezca documentacion local.
 
 Verificacion realizada:
 
@@ -1822,7 +1822,7 @@ Cambios principales:
 - El resumen del listado incluye volumen total, duracion y numero de series.
 - `HistoryViewModel` conserva sesiones completas y expone la lista filtrada/ordenada para Compose.
 - Compose solo pinta controles y envia eventos de filtro/orden.
-- Se crea `docs/visual-improvements.md` como backlog visual no obligatorio.
+- Se crea `docs/design/visual-improvements.md` como backlog visual no obligatorio.
 - No se toca schema Room, Firebase/sync, repositorios ni reglas de snapshots.
 
 Tests anadidos o ampliados:
@@ -1880,7 +1880,7 @@ Cambios principales:
 - `StatsViewModel` conserva el ejercicio seleccionado si sigue existiendo en el nuevo periodo y limpia el punto seleccionado al cambiar periodo o ejercicio.
 - `LineChart` permite seleccionar puntos sin mover reglas de datos a Compose.
 - La grafica muestra un detalle del punto con fecha, peso maximo, volumen, reps y 1RM estimado.
-- `docs/visual-improvements.md` marca periodos y tooltip de Datos como aterrizados.
+- `docs/design/visual-improvements.md` marca periodos y tooltip de Datos como aterrizados.
 - No se toca schema Room, Firebase/sync, repositorios ni reglas de snapshots.
 
 Tests anadidos o ampliados:
@@ -1935,7 +1935,7 @@ Cambios principales:
 - `UserPreferencesRepository` persiste el modo de tema como string simple en DataStore.
 - `MainActivity` aplica el tema desde el root con `FitTrackPlusTheme`.
 - `Sistema` respeta `isSystemInDarkTheme()`, `Claro` fuerza light y `Oscuro` fuerza dark.
-- `docs/visual-improvements.md` marca comparativa de Historial y selector de tema como aterrizados.
+- `docs/design/visual-improvements.md` marca comparativa de Historial y selector de tema como aterrizados.
 
 Tests anadidos o ampliados:
 
@@ -2052,7 +2052,7 @@ Cambios principales:
 - `feature/launch/LaunchIntroScreen.kt` - `FitTrackPlusAppRoot` gate intro -> onboarding -> NavHost
 - `MainActivity.kt` - colecta `hasSeenOnboarding`, pasa `onOnboardingComplete` callback
 - `CLAUDE.md` - seccion de skills disponibles
-- `docs/work-methodology/available-skills.md` - documentacion completa de 12 skills
+- `docs/methodology/work-methodology/available-skills.md` - documentacion completa de 12 skills
 
 Tests anadidos:
 
@@ -2135,7 +2135,7 @@ Pendiente:
 Estado:
 
 - implementada y verificada sobre `codex/phase-2.1c-final-form-design`
-- fuente visual: `docs/Final form Fit track/`
+- fuente visual: `docs/design/final-form-v1/`
 
 Objetivo:
 

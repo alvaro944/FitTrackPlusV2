@@ -123,7 +123,7 @@ Pendiente:
 - Commit de cierre de Fase 5: `Complete phase 5 UX polish`.
 - Remoto configurado: `https://github.com/alvaro944/FitTrackPlusV2.git`.
 - Primera version funcional completa cerrada tecnicamente.
-- Roadmap post-v1 canonico creado en `docs/roadmap-2.1.md`; sustituye a `docs/future-improvements.md`.
+- Roadmap post-v1 canonico creado en `docs/planning/roadmap-2.1.md`; sustituye a `docs/planning/roadmap-2.1.md`.
 - Fase 6 cerrada tecnicamente.
 - Bloque 6 de polish visual y accesibilidad cerrado tecnicamente y verificado con `test` + `build`.
 - Bloque 7 CI implementado en `.github/workflows/ci.yml` para `push` en `main` y `codex/**`, y para `pull_request`.
@@ -143,8 +143,8 @@ Pendiente:
 - Issues menores de Gate 0 delegados a Claude en `docs/coordination/claude-gate0-minor-fixes.md`.
 - Branding cerrado: docs de marca, logo decidido, app icon generado con fondo crema.
 - Bloque 3 UX implementado en local: Ajustes, Inicio dinamico, feedback haptico, editor protegido y archivadas.
-- Trabajo visual actual: validar intro de arranque clara en Compose basada en `docs/branding/Pantalla incio fondo claro/`.
-- Starter pack metodologico reusable consolidado y afinado en `docs/project-methodology/`.
+- Trabajo visual actual: validar intro de arranque clara en Compose basada en `docs/branding/splash-light/`.
+- Starter pack metodologico reusable consolidado y afinado en `docs/methodology/project-methodology/`.
 - Tercera pasada metodologica aplicada: ownership multiagente, handoff Codex/Claude, modos ligero/fase y derivacion de `AGENTS.md` quedan mas operativos.
 - Kickoff metodologico documentado: la metodologia se usa para configurar el proyecto y `AGENTS.md` queda como referencia operativa diaria.
 - Colaboracion entre plataformas formalizada: Codex, Claude, herramientas visuales y revisores tienen roles, ownership y handoff definidos.
@@ -243,7 +243,7 @@ Pendiente:
     - dialogo de cambios sin guardar al navegar fuera del editor
     - steppers de peso/reps y estilo de serie completada
   - el dataset demo actual no muestra badge de progresion en la sesion `Pull` porque los ejercicios activos solo tienen una sesion historica cerrada; la logica de hints queda cubierta por tests unitarios
-- Backlog visual separado creado en `docs/visual-improvements.md`.
+- Backlog visual separado creado en `docs/design/visual-improvements.md`.
 - Siguiente foco real de producto: validacion manual final del shell/diseno integrado y, despues, cierre oficial de 2.1C antes de abrir sync/cloud o nuevas features grandes.
 - Migracion GPT-5.5 aplicada a agentes/docs: no hay integracion runtime OpenAI en la app, asi que no habia modelo de API que cambiar.
 
@@ -299,7 +299,7 @@ Implementado:
 - Limpieza de rutina activa cuando se archiva.
 - Validacion basica antes de guardar.
 - `.kotlin/` agregado a `.gitignore` como salida local de Gradle/Kotlin.
-- Guia de metodologia creada en `docs/work-methodology/`.
+- Guia de metodologia creada en `docs/methodology/work-methodology/`.
 
 ### Fase 2 - Registro de entrenamiento
 
@@ -390,12 +390,12 @@ Implementado:
 - Historial redisenado para listado y detalle con mejor legibilidad y estructura.
 - Datos redisenada con overview, bloques resumen, progreso y records usando el mismo lenguaje visual.
 - Navegacion rapida anadida desde Inicio a las tabs principales y desde Entrenar vacio a Rutinas.
-- Iteracion posterior de Fase 6 aplicada tras revisar `docs/mejoras-claude.md`:
+- Iteracion posterior de Fase 6 aplicada tras revisar `docs/design/mejoras-claude.md`:
   - Inicio deja de mostrar metricas engañosas y reorienta el CTA principal a preparar rutina.
   - Rutinas reduce ruido repetido sobre snapshots y centraliza ese contexto en un solo bloque.
   - Entrenar mejora el feedback visual por serie y garantiza mejor tamano tactil en inputs.
   - Se anaden tokens iniciales de espaciado para empezar a sacar `dp` hardcodeados del sistema visual.
-  - `docs/work-methodology/` refleja mejor la coordinacion multiagente con `Codex` como ejecutor principal.
+  - `docs/methodology/work-methodology/` refleja mejor la coordinacion multiagente con `Codex` como ejecutor principal.
 
 ### Bloque 3 - UX alta prioridad
 
@@ -437,7 +437,7 @@ Problemas encontrados:
 
 Implementado en workspace:
 
-- Nueva referencia visual oficial en `docs/branding/Pantalla incio fondo claro/`.
+- Nueva referencia visual oficial en `docs/branding/splash-light/`.
 - Intro de arranque aterrizada de HTML/CSS a Compose nativo, sin WebView ni video.
 - Asset del logo limpio copiado a `app/src/main/res/drawable-nodpi/launch_logo.png`.
 - `MainActivity` ahora arranca a traves de un `FitTrackPlusAppRoot` con una intro breve antes del `NavHost`.
@@ -498,7 +498,7 @@ Pendiente:
 - El redisenio visual de Fase 6 no cambia ViewModels, repositorios, Room ni DataStore.
 - Inicio gana navegacion util hacia tabs, pero sin crear nuevas reglas de negocio.
 - Firebase sigue fuera del MVP.
-- Al cerrar cada fase se actualiza tambien `docs/work-methodology/` con aprendizajes reutilizables.
+- Al cerrar cada fase se actualiza tambien `docs/methodology/work-methodology/` con aprendizajes reutilizables.
 
 ### Branding
 
@@ -511,14 +511,14 @@ Implementado:
 - Todos los tamaños de mipmap generados (mdpi a xxxhdpi) + ic_launcher-playstore.png.
 - `ic_launcher_background.xml` con fondo crema `#F4F4F1`.
 - Docs de marca cerrados: brand-foundation, logo-direction, color-system, typography, brand-questionnaire.
-- Nueva referencia oficial de arranque: `docs/branding/Pantalla incio fondo claro/`, aterrizada a Compose nativo.
+- Nueva referencia oficial de arranque: `docs/branding/splash-light/`, aterrizada a Compose nativo.
 
 ## Fase 2.1C - Final form visual
 
 Estado:
 
 - implementada y verificada sobre `codex/phase-2.1c-final-form-design`
-- basada en la referencia local `docs/Final form Fit track/`
+- basada en la referencia local `docs/design/final-form-v1/`
 - sin tocar Firebase, sync, Room schema, repositorios ni snapshots historicos
 
 Cambios aterrizados:
@@ -528,7 +528,7 @@ Cambios aterrizados:
 - Home gana tira semanal compacta y cards mas contenidas
 - Entrenar gana timer de descanso radial reutilizable
 - Ajustes gana selector segmentado de unidad y selector visual exclusivo de tema
-- mapeo entre referencia y Compose documentado en `docs/final-form-design-implementation.md`
+- mapeo entre referencia y Compose documentado en `docs/design/final-form-design-implementation.md`
 
 Pendiente:
 
@@ -542,16 +542,16 @@ Pendiente:
    - filtros y comparativa de Historial
    - periodos de Datos, heatmap y tooltip
    - onboarding, demo data, shortcuts, widget y notificacion activa
-2. Anotar el resultado en `docs/project-progress.md` y `docs/phase-log.md`.
+2. Anotar el resultado en `docs/progress/project-progress.md` y `docs/progress/phase-log.md`.
 3. Si la validacion sale limpia, cerrar oficialmente V2.1 local y dejar como siguiente linea mayor solo sync/cloud, export/import o pulido final de release.
 
 ## Roadmap 2.1
 
 Estado:
 
-- Documento canonico: `docs/roadmap-2.1.md`.
-- Sustituye al backlog antiguo `docs/future-improvements.md`.
-- `docs/mejoras-claude.md` queda como historico de propuestas, no como roadmap vigente.
+- Documento canonico: `docs/planning/roadmap-2.1.md`.
+- Sustituye al backlog antiguo `docs/planning/roadmap-2.1.md`.
+- `docs/design/mejoras-claude.md` queda como historico de propuestas, no como roadmap vigente.
 - Gate 0, 2.1A y 2.1B estan tecnicamente cerradas.
 - Fase 2.1C esta tecnicamente completa y pendiente solo de validacion manual para cierre oficial.
 - El producto local-first esta cerca del nivel final de desarrollo para esta etapa del roadmap.

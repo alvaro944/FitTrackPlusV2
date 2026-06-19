@@ -4,7 +4,7 @@ Este documento define cuando se actualiza la metodologia general.
 
 ## Regla Principal
 
-`docs/project-methodology/` cambia poco.
+`docs/methodology/project-methodology/` cambia poco.
 
 No se actualiza en cada iteracion por defecto.
 
@@ -39,9 +39,9 @@ Eso debe vivir en docs especificas del proyecto.
 
 ## Relacion Con `work-methodology/`
 
-`docs/work-methodology/` guarda aprendizajes especificos del repo.
+`docs/methodology/work-methodology/` guarda aprendizajes especificos del repo.
 
-Si un aprendizaje se repite y sirve para otros proyectos, puede promoverse a `docs/project-methodology/`.
+Si un aprendizaje se repite y sirve para otros proyectos, puede promoverse a `docs/methodology/project-methodology/`.
 
 ## Promocion De Una Regla
 

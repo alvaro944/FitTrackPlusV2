@@ -7,6 +7,6 @@ Los aprendizajes especificos de un repo no deben vivir en la metodologia general
 Regla actual:
 
 - aprendizajes concretos -> documentacion especifica del repo
-- reglas reusables -> `docs/project-methodology/`
+- reglas reusables -> `docs/methodology/project-methodology/`
 
 Ver `methodology-maintenance.md`.

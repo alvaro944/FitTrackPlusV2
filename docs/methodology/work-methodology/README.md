@@ -4,7 +4,7 @@ Esta carpeta deja de ser la fuente canonica de metodologia general.
 
 Ahora el starter pack reusable vive en:
 
-- `docs/project-methodology/README.md`
+- `docs/methodology/project-methodology/README.md`
 
 ## Para Que Queda Esta Carpeta
 
@@ -16,8 +16,8 @@ Como apoyo del repo actual:
 
 ## Regla Practica
 
-- si buscas metodologia portable entre proyectos -> ir a `docs/project-methodology/`
-- si buscas aprendizajes concretos de este repo -> usar `docs/work-methodology/`
+- si buscas metodologia portable entre proyectos -> ir a `docs/methodology/project-methodology/`
+- si buscas aprendizajes concretos de este repo -> usar `docs/methodology/work-methodology/`
 
 ## Aprendizajes Del Repo
 

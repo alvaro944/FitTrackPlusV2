@@ -7,12 +7,12 @@ Estas reglas mantienen el proyecto coherente en sesiones futuras con IA.
 Antes de editar codigo, revisar:
 
 1. `README.md`
-2. `docs/project-methodology/README.md`
-3. `docs/project-plan.md`
-4. `docs/project-progress.md`
-5. `docs/phase-log.md`
-6. `docs/architecture.md`
-7. `docs/work-methodology/README.md`
+2. `docs/methodology/project-methodology/README.md`
+3. `docs/planning/project-plan.md`
+4. `docs/progress/project-progress.md`
+5. `docs/progress/phase-log.md`
+6. `docs/architecture/overview.md`
+7. `docs/methodology/work-methodology/README.md`
 8. El area concreta que se va a tocar
 
 ## Modo De Trabajo
@@ -24,7 +24,7 @@ Antes de editar codigo, revisar:
 - `app/src/main/java` es legacy local y no forma parte del nuevo repo.
 - Mantener Firebase fuera del MVP hasta que el flujo local este cerrado.
 - Verificar antes de afirmar que algo esta terminado.
-- Al cerrar cada fase, actualizar `docs/project-methodology/` solo si aparece una regla general reusable; los aprendizajes especificos van a `docs/work-methodology/`.
+- Al cerrar cada fase, actualizar `docs/methodology/project-methodology/` solo si aparece una regla general reusable; los aprendizajes especificos van a `docs/methodology/work-methodology/`.
 - Al cerrar cada fase, comentar al usuario que avances, docs y aprendizajes se han anotado.
 
 ## OpenAI Y GPT-5.5
@@ -61,8 +61,8 @@ Antes de cerrar una fase:
 
 - Revisar cambios.
 - Ejecutar verificacion minima.
-- Actualizar `docs/project-progress.md`.
-- Actualizar `docs/phase-log.md`.
-- Actualizar `docs/project-methodology/` si aparece una regla reusable.
-- Actualizar `docs/work-methodology/` si aparece un aprendizaje especifico de este repo.
+- Actualizar `docs/progress/project-progress.md`.
+- Actualizar `docs/progress/phase-log.md`.
+- Actualizar `docs/methodology/project-methodology/` si aparece una regla reusable.
+- Actualizar `docs/methodology/work-methodology/` si aparece un aprendizaje especifico de este repo.
 - Informar al usuario que se hizo, que se verifico y que queda pendiente.

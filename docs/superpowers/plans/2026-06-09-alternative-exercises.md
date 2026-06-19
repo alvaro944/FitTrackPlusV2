@@ -81,9 +81,9 @@
 
 **Files:**
 - Modify: `README.md` (only if behavior/user-facing notes need mention)
-- Modify: `docs/project-progress.md`
-- Modify: `docs/phase-log.md`
-- Modify: `docs/work-methodology/README.md` or relevant file under `docs/work-methodology/`
+- Modify: `docs/progress/project-progress.md`
+- Modify: `docs/progress/phase-log.md`
+- Modify: `docs/methodology/work-methodology/README.md` or relevant file under `docs/methodology/work-methodology/`
 
 - [ ] **Step 1: Run `./gradlew test --no-daemon --console=plain`**
 - [ ] **Step 2: Run `./gradlew build --no-daemon --console=plain`**

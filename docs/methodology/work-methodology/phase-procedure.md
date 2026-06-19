@@ -17,10 +17,10 @@ Lectura minima recomendada:
 
 - `README.md`
 - `AGENTS.md` o equivalente
-- `docs/development-workflow.md`
-- `docs/project-progress.md`
-- `docs/phase-log.md`
-- `docs/work-methodology/`
+- `docs/methodology/project-methodology/README.md`
+- `docs/progress/project-progress.md`
+- `docs/progress/phase-log.md`
+- `docs/methodology/work-methodology/`
 - el area concreta que se va a tocar
 
 Si vienes de otra plataforma o editor, relee tambien:
