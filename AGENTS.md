@@ -15,6 +15,18 @@ Antes de editar codigo, revisar:
 7. `docs/methodology/work-methodology/README.md`
 8. El area concreta que se va a tocar
 
+## Idioma Y Tono
+
+- Respuestas al usuario en espanol de Espana. No usar voseo ni giros rioplatenses.
+- Artefactos tecnicos, codigo, identificadores y comentarios de codigo en ingles salvo que el contexto pida otra cosa.
+- Documentacion del proyecto en espanol claro, manteniendo el estilo existente del repo.
+
+## Ramas
+
+- No usar prefijos de agente o herramienta en nombres de rama.
+- Usar prefijos semanticos segun el tipo de trabajo: `feature/`, `bug/`, `fix/`, `refactor/`, `cherrypick/` o `docs/`.
+- El nombre de la rama debe describir lo que se toca, no quien lo ejecuta.
+
 ## Modo De Trabajo
 
 - Trabajar por fases pequenas.

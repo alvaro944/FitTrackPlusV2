@@ -26,3 +26,6 @@ docs/Fit track v2diseño.zip
 docs/branding/Pantalla inicio fondo oscuro.zip
 docs/branding/Fit track v2 (Remix).zip
 docs/design/final-form-v2/.thumbnail
+
+# Local agent caches
+.atl/.skill-registry.cache.json

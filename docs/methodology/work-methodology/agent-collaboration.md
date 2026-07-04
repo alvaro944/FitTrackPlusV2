@@ -39,7 +39,8 @@ Codex NO hace merge a main sin aprobacion explicita del usuario.
 
 ## Estrategia de ramas
 
-- Una rama por grupo de mejoras relacionadas: `codex/<nombre-descriptivo>`
+- Una rama por grupo de mejoras relacionadas, con prefijo semantico: `feature/`, `bug/`, `fix/`, `refactor/`, `cherrypick/` o `docs/`
+- No usar prefijos de agente o herramienta como `codex/`
 - Todo el trabajo del grupo va en esa rama hasta que esta completo
 - No se crean ramas por micro-cambios o fixes puntuales
 - El merge a main ocurre cuando el grupo entero esta verificado
@@ -60,7 +61,7 @@ Codex NO hace merge a main sin aprobacion explicita del usuario.
 2. Claude escribe spec en docs/superpowers/specs/<fecha>-<nombre>.md
 3. Claude escribe plan en docs/superpowers/plans/<fecha>-<nombre>.md
 4. Usuario revisa y aprueba
-5. Codex crea rama: codex/<nombre>
+5. Codex crea rama semantica: refactor/<nombre>, feature/<nombre>, bug/<nombre>, fix/<nombre>, cherrypick/<nombre> o docs/<nombre>
 6. Codex implementa segun spec y plan
 7. Codex verifica localmente (test + build)
 8. Codex hace commit limpio

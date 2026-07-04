@@ -152,17 +152,19 @@ Do not rely on it for release flows and do not let it leak into tests or non-deb
 
 ## Workflow y ramas
 
-El proyecto ya no trabaja en fases cerradas. Ahora trabaja en grupos de mejoras:
+El proyecto trabaja por grupos de mejoras relacionadas:
 
-- cada grupo de mejoras relacionadas va en una sola rama: `codex/<nombre-del-grupo>`
+- cada grupo de mejoras relacionadas va en una sola rama
 - no se crea una rama por cada pequeño cambio
 - todo el trabajo del grupo se hace en esa rama hasta que esta completo
 - Codex verifica localmente antes de hacer ningun commit
 - se hace commit limpio cuando el grupo esta verificado, no antes
 - se hace push y merge a main cuando todo el grupo esta done
+- las ramas no usan prefijos de agente o herramienta
+- usar prefijos semanticos segun el trabajo: `feature/`, `bug/`, `fix/`, `refactor/`, `cherrypick/` o `docs/`
 
-Ejemplo de rama correcta: `codex/ux-improvements`
-Ejemplo de rama incorrecta: `codex/fix-button-color`, `codex/minor-tweak`
+Ejemplo de rama correcta: `feature/ux-improvements`, `refactor/ui-component-grouping`
+Ejemplo de rama incorrecta: `codex/ux-improvements`, `codex/fix-button-color`, `codex/minor-tweak`
 
 Una mejora esta done cuando: compila, tests pasan, flujo manual verificado en emulador, docs alineados.
 

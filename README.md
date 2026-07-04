@@ -229,7 +229,7 @@ Run the full suite:
 
 ## CI
 
-GitHub Actions runs on every push to `main` and `codex/**` branches and on every pull request:
+GitHub Actions runs on every push to `main`, `feature/**`, `bug/**`, `fix/**`, `refactor/**`, `cherrypick/**` and `docs/**` branches, and on every pull request:
 
 1. **Detekt** — static analysis
 2. **Lint** — Android lint checks
