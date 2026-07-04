@@ -44,7 +44,6 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -100,6 +99,7 @@ import com.alvarocervantes.fittrackplus.domain.model.ProgressionHint
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
+import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
@@ -107,6 +107,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
 import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
 import com.alvarocervantes.fittrackplus.core.design.FitTrackRadialTimer
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
+import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
 import com.alvarocervantes.fittrackplus.core.design.primaryDark
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
@@ -380,9 +381,10 @@ private fun WorkoutContent(
                         message = "Selecciona una rutina en Rutinas para preparar el siguiente entrenamiento.",
                         supporting = "Primero crea o elige una rutina y marcala como activa."
                     ) {
-                        Button(onClick = onGoToRoutines) {
-                            Text("Ir a Rutinas")
-                        }
+                        FitTrackPrimaryButton(
+                            label = "Ir a Rutinas",
+                            onClick = onGoToRoutines
+                        )
                     }
                 }
             }
@@ -405,9 +407,10 @@ private fun WorkoutContent(
                         message = "Puede que la rutina activa no tenga dias o ejercicios disponibles.",
                         supporting = "Revisa la rutina actual antes de volver a intentarlo."
                     ) {
-                        FilledTonalButton(onClick = onRefresh) {
-                            Text("Revisar de nuevo")
-                        }
+                        FitTrackTonalButton(
+                            label = "Revisar de nuevo",
+                            onClick = onRefresh
+                        )
                     }
                 }
             }
@@ -453,20 +456,12 @@ private fun WorkoutPreviewCard(
                 HeroTag(text = "Semana ${preview.weekNumber}")
                 HeroTag(text = "${preview.exerciseCount} ejercicios")
             }
-            Button(
+            FitTrackPrimaryButton(
+                label = if (isStarting) "Iniciando entrenamiento" else "Iniciar entrenamiento",
                 onClick = onStartWorkout,
-                enabled = !isStarting
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = if (isStarting) "Iniciando entrenamiento" else "Iniciar entrenamiento",
-                    modifier = Modifier.padding(start = FitSpacing.sm)
-                )
-            }
+                enabled = !isStarting,
+                icon = Icons.Filled.PlayArrow
+            )
         }
     }
 }
@@ -550,21 +545,13 @@ private fun ActiveSessionSummary(
             contentDescription = "Progreso de series completadas del entrenamiento actual"
         )
 
-        Button(
+        FitTrackPrimaryButton(
+            label = if (isFinishing) "Finalizando entrenamiento" else "Finalizar entrenamiento",
             onClick = onFinishWorkout,
             enabled = !isFinishing,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Check,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            Text(
-                text = if (isFinishing) "Finalizando entrenamiento" else "Finalizar entrenamiento",
-                modifier = Modifier.padding(start = FitSpacing.sm)
-            )
-        }
+            modifier = Modifier.fillMaxWidth(),
+            icon = Icons.Filled.Check
+        )
     }
 }
 
@@ -1028,12 +1015,11 @@ private fun ExerciseAlternativesDialog(
                                 }
                             }
                         }
-                        FilledTonalButton(
+                        FitTrackTonalButton(
+                            label = "Crear alternativa",
                             onClick = onStartCreating,
                             modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Crear alternativa")
-                        }
+                        )
                     } else {
                         OutlinedTextField(
                             value = picker.draft.name,

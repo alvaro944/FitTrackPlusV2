@@ -16,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -32,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import kotlinx.coroutines.launch
 
@@ -107,23 +107,21 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 )
 
                 if (isLastPage) {
-                    Button(
+                    FitTrackPrimaryButton(
+                        label = "Empezar",
                         onClick = onComplete,
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Empezar")
-                    }
+                    )
                 } else {
-                    Button(
+                    FitTrackPrimaryButton(
+                        label = "Siguiente",
                         onClick = {
                             scope.launch {
                                 pagerState.animateScrollToPage(pagerState.currentPage + 1)
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Siguiente")
-                    }
+                    )
                 }
             }
         }

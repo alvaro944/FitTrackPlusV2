@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -40,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
@@ -203,19 +203,11 @@ fun HomeScreen(
                         )
                     }
 
-                    Button(
-                        onClick = if (hasActiveRoutine) onGoToWorkout else onGoToRoutines
-                    ) {
-                        Icon(
-                            imageVector = if (hasActiveRoutine) Icons.Filled.PlayArrow else Icons.AutoMirrored.Filled.List,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = if (hasActiveRoutine) "Ir a entrenar" else "Preparar rutina",
-                            modifier = Modifier.padding(start = FitSpacing.sm)
-                        )
-                    }
+                    FitTrackPrimaryButton(
+                        label = if (hasActiveRoutine) "Ir a entrenar" else "Preparar rutina",
+                        onClick = if (hasActiveRoutine) onGoToWorkout else onGoToRoutines,
+                        icon = if (hasActiveRoutine) Icons.Filled.PlayArrow else Icons.AutoMirrored.Filled.List
+                    )
 
                     if (!hasActiveRoutine && !uiState.isLoading) {
                         Text(

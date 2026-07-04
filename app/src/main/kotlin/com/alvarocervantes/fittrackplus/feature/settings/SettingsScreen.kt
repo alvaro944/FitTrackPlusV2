@@ -20,13 +20,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -51,6 +48,8 @@ import com.alvarocervantes.fittrackplus.BuildConfig
 import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackOutlinedButton
+import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
@@ -205,7 +204,8 @@ fun SettingsScreen(
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Button(
+                                FitTrackPrimaryButton(
+                                    label = "Instalar Health Connect",
                                     onClick = {
                                         context.startActivity(
                                             Intent(
@@ -217,9 +217,7 @@ fun SettingsScreen(
                                         )
                                     },
                                     modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Instalar Health Connect")
-                                }
+                                )
                             }
 
                             healthConnectConnected -> {
@@ -237,26 +235,22 @@ fun SettingsScreen(
                                         onGoalChange = viewModel::setDailyStepGoal
                                     )
                                 }
-                                OutlinedButton(
+                                FitTrackOutlinedButton(
+                                    label = "Desconectar Health Connect",
                                     onClick = viewModel::disconnectHealthConnect,
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.error
-                                    )
-                                ) {
-                                    Text("Desconectar Health Connect")
-                                }
+                                    destructive = true
+                                )
                             }
 
                             else -> {
-                                Button(
+                                FitTrackPrimaryButton(
+                                    label = "Conectar con Health Connect",
                                     onClick = {
                                         permissionsLauncher.launch(viewModel.requiredPermissions)
                                     },
                                     modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Conectar con Health Connect")
-                                }
+                                )
                             }
                         }
                     }
@@ -276,12 +270,11 @@ fun SettingsScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Button(
+                            FitTrackPrimaryButton(
+                                label = "Cargar datos demo",
                                 onClick = { showDemoDataDialog = true },
                                 modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Cargar datos demo")
-                            }
+                            )
                         }
                     }
                 }

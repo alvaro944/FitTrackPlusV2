@@ -38,15 +38,12 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -69,11 +66,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModelStoreOwner
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
+import com.alvarocervantes.fittrackplus.core.design.FitTrackAddButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackOutlinedButton
+import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
+import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
@@ -421,9 +422,10 @@ private fun RoutineListContent(
                         message = "Crea una rutina desde cero o usa una plantilla para tener una base editable.",
                         supporting = "Revisa la plantilla antes de guardar; no se toca el historial hasta entrenar."
                     ) {
-                        Button(onClick = onCreateRoutine) {
-                            Text("Crear rutina")
-                        }
+                        FitTrackPrimaryButton(
+                            label = "Crear rutina",
+                            onClick = onCreateRoutine
+                        )
                     }
                 }
             } else {
@@ -511,9 +513,10 @@ private fun RoutineTemplateCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            FilledTonalButton(onClick = { onUseTemplate(template.id) }) {
-                Text("Usar")
-            }
+            FitTrackTonalButton(
+                label = "Usar",
+                onClick = { onUseTemplate(template.id) }
+            )
         }
     }
 }
@@ -568,13 +571,17 @@ private fun RoutineListItem(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
                 ) {
-                    RoutineEditButton(
+                    FitTrackOutlinedButton(
+                        label = "Editar",
                         onClick = { onEditRoutine(routine.id) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.Edit
                     )
-                    RoutineArchiveButton(
+                    FitTrackOutlinedButton(
+                        label = "Archivar",
                         onClick = { onArchiveRoutine(routine) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.Archive
                     )
                 }
             } else {
@@ -582,78 +589,32 @@ private fun RoutineListItem(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)
                 ) {
-                    FilledTonalButton(
+                    FitTrackTonalButton(
+                        label = "Activar",
                         onClick = { onSetActiveRoutine(routine.id) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = "Activar",
-                            modifier = Modifier.padding(start = FitSpacing.sm)
-                        )
-                    }
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.Filled.Check
+                    )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
                     ) {
-                        RoutineEditButton(
+                        FitTrackOutlinedButton(
+                            label = "Editar",
                             onClick = { onEditRoutine(routine.id) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Filled.Edit
                         )
-                        RoutineArchiveButton(
+                        FitTrackOutlinedButton(
+                            label = "Archivar",
                             onClick = { onArchiveRoutine(routine) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Filled.Archive
                         )
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun RoutineEditButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Edit,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = "Editar",
-            modifier = Modifier.padding(start = FitSpacing.sm)
-        )
-    }
-}
-
-@Composable
-private fun RoutineArchiveButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Archive,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = "Archivar",
-            modifier = Modifier.padding(start = FitSpacing.sm)
-        )
     }
 }
 
@@ -692,20 +653,12 @@ private fun ArchivedRoutineListItem(
                     tone = FitTrackBadgeTone.Neutral
                 )
             }
-            FilledTonalButton(
+            FitTrackTonalButton(
+                label = "Restaurar",
                 onClick = { onRestoreRoutine(routine.id) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Unarchive,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "Restaurar",
-                    modifier = Modifier.padding(start = FitSpacing.sm)
-                )
-            }
+                modifier = Modifier.fillMaxWidth(),
+                icon = Icons.Filled.Unarchive
+            )
         }
     }
 }
@@ -831,20 +784,11 @@ private fun RoutineEditorContent(
         }
 
         item {
-            OutlinedButton(
+            FitTrackAddButton(
+                label = "Anadir dia",
                 onClick = onAddDay,
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "Anadir dia",
-                    modifier = Modifier.padding(start = FitSpacing.sm)
-                )
-            }
+            )
         }
 
         item {
@@ -862,27 +806,18 @@ private fun RoutineEditorContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
                 ) {
-                    OutlinedButton(
+                    FitTrackOutlinedButton(
+                        label = "Cancelar",
                         onClick = onClose,
                         modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Cancelar")
-                    }
-                    Button(
+                    )
+                    FitTrackPrimaryButton(
+                        label = if (state.isSaving) "Guardando" else "Guardar",
                         onClick = onSave,
                         enabled = editor.canSave && !state.isSaving,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = if (state.isSaving) "Guardando" else "Guardar",
-                            modifier = Modifier.padding(start = FitSpacing.sm)
-                        )
-                    }
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.Check
+                    )
                 }
             }
         }
@@ -1073,20 +1008,11 @@ private fun RoutineDayEditor(
                 )
             }
 
-            OutlinedButton(
+            FitTrackAddButton(
+                label = "Anadir ejercicio",
                 onClick = { onAddExercise(dayIndex) },
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "Anadir ejercicio",
-                    modifier = Modifier.padding(start = FitSpacing.sm)
-                )
-            }
+            )
         }
     }
 }
@@ -1483,12 +1409,11 @@ private fun ExerciseAlternativesEditorDialog(
                     }
                 }
 
-                FilledTonalButton(
+                FitTrackTonalButton(
+                    label = "Crear alternativa",
                     onClick = onStartCreateAlternative,
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Crear alternativa")
-                }
+                )
             }
         },
         confirmButton = {
