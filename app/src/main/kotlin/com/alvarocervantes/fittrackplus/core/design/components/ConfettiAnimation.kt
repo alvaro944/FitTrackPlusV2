@@ -32,7 +32,7 @@ private data class Particle(
 @Composable
 fun ConfettiAnimation(
     modifier: Modifier = Modifier,
-    colors: List<Color> = defaultConfettiColors,
+    colors: List<Color>,
     durationMs: Int = DURATION_MS,
     onFinished: () -> Unit = {}
 ) {
@@ -83,12 +83,3 @@ fun ConfettiAnimation(
         }
     }
 }
-
-private val defaultConfettiColors = listOf(
-    Color(0xFF4CAF50),
-    Color(0xFF2196F3),
-    Color(0xFFFF9800),
-    Color(0xFFE91E63),
-    Color(0xFF9C27B0),
-    Color(0xFFFFEB3B)
-)

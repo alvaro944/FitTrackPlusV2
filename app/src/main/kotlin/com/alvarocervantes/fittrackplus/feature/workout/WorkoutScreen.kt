@@ -87,6 +87,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
+import com.alvarocervantes.fittrackplus.core.design.success
+import com.alvarocervantes.fittrackplus.core.design.primaryMid
+import com.alvarocervantes.fittrackplus.core.design.accentSoft
+import com.alvarocervantes.fittrackplus.core.design.FitElevation
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
@@ -146,7 +150,7 @@ fun WorkoutScreen(
             Surface(
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp
+                tonalElevation = FitElevation.dialog
             ) {
                 Column(
                     modifier = Modifier.padding(FitSpacing.cardPadding),
@@ -236,6 +240,14 @@ fun WorkoutScreen(
             ) {
                 ConfettiAnimation(
                     modifier = Modifier.fillMaxSize(),
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.primaryMid,
+                        MaterialTheme.colorScheme.accentWarm,
+                        MaterialTheme.colorScheme.tertiary,
+                        MaterialTheme.colorScheme.success,
+                        MaterialTheme.colorScheme.accentSoft
+                    ),
                     onFinished = { viewModel.dismissCelebration() }
                 )
                 Box(
@@ -897,14 +909,14 @@ private fun ExerciseCompletionLabel(
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = null,
-                tint = Color(0xFF2E7D32),
+                tint = MaterialTheme.colorScheme.success,
                 modifier = Modifier.size(16.dp)
             )
         }
         Text(
             text = if (isExpanded && !isCompleted) "$label abiertas" else label,
             style = MaterialTheme.typography.labelMedium,
-            color = if (isCompleted) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant
+            color = if (isCompleted) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -927,7 +939,7 @@ private fun ExerciseAlternativesDialog(
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
+            tonalElevation = FitElevation.dialog
         ) {
             Column(
                 modifier = Modifier
@@ -1324,7 +1336,7 @@ private fun ProgressionHintButton(hint: ProgressionHint) {
                     "Sugerencia de bajar peso"
                 },
                 tint = if (hint == ProgressionHint.UP) {
-                    Color(0xFF2E7D32)
+                    MaterialTheme.colorScheme.success
                 } else {
                     MaterialTheme.colorScheme.accentWarm
                 }

@@ -24,10 +24,7 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @Composable
 fun FitTrackMetric(
@@ -56,10 +53,7 @@ fun FitTrackMetric(
             Text(
                 text = value,
                 color = accentColor,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                fontSize = if (compact) 24.sp else 30.sp,
-                lineHeight = if (compact) 26.sp else 32.sp
+                style = if (compact) FitTypographyExtras.monoMedium else FitTypographyExtras.monoLarge
             )
             if (unit != null) {
                 Text(
@@ -167,10 +161,7 @@ fun FitTrackRadialTimer(
             Text(
                 text = if (durationSeconds > 0) formatTimerLabel(remainingSeconds) else "--",
                 color = progressColor,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                fontSize = 28.sp,
-                lineHeight = 30.sp
+                style = FitTypographyExtras.monoTimer
             )
             Text(
                 text = label.uppercase(),

@@ -175,8 +175,8 @@ private fun BottomNavigationBar(
     onNavigate: (AppRoute) -> Unit
 ) {
     Surface(
-        shadowElevation = 10.dp,
-        tonalElevation = 0.dp,
+        shadowElevation = FitElevation.navBar,
+        tonalElevation = FitElevation.none,
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
             color = MaterialTheme.colorScheme.borderLight
@@ -448,7 +448,7 @@ private fun ShellMenuButton(
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 2.dp,
+        shadowElevation = FitElevation.menuButton,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.borderLight)
     ) {
         Box(contentAlignment = Alignment.Center) {

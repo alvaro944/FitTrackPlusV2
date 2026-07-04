@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val LightColors = lightColorScheme(
+val LightColors = lightColorScheme(
     primary = Color(0xFF1F6B57),
     onPrimary = Color.White,
     secondary = Color(0xFFC47A49),
@@ -35,7 +35,7 @@ private val LightColors = lightColorScheme(
     onError = Color.White
 )
 
-private val DarkColors = darkColorScheme(
+val DarkColors = darkColorScheme(
     primary = Color(0xFF2E8B6E),
     onPrimary = Color(0xFFEEF0EE),
     secondary = Color(0xFFD4895A),
@@ -63,7 +63,10 @@ data class FitTrackPlusExtraColors(
     val primaryMid: Color,
     val accentWarm: Color,
     val accentSoft: Color,
-    val errorSoft: Color
+    val errorSoft: Color,
+    val success: Color,
+    val onSuccess: Color,
+    val successSoft: Color
 )
 
 private val LightExtraColors = FitTrackPlusExtraColors(
@@ -76,7 +79,10 @@ private val LightExtraColors = FitTrackPlusExtraColors(
     primaryMid = Color(0xFF2E8B6E),
     accentWarm = Color(0xFFC47A49),
     accentSoft = Color(0xFFF0E0D3),
-    errorSoft = Color(0xFFF2DED9)
+    errorSoft = Color(0xFFF2DED9),
+    success = Color(0xFF_2E7D32),
+    onSuccess = Color(0xFFFFFFFF),
+    successSoft = Color(0xFFDCEDDD)
 )
 
 private val DarkExtraColors = FitTrackPlusExtraColors(
@@ -89,7 +95,10 @@ private val DarkExtraColors = FitTrackPlusExtraColors(
     primaryMid = Color(0xFF2E8B6E),
     accentWarm = Color(0xFFD4895A),
     accentSoft = Color(0xFF2D2018),
-    errorSoft = Color(0xFF2D1919)
+    errorSoft = Color(0xFF2D1919),
+    success = Color(0xFF66BB6A),
+    onSuccess = Color(0xFF10130F),
+    successSoft = Color(0xFF223524)
 )
 
 private val LocalFitTrackPlusExtraColors = staticCompositionLocalOf { LightExtraColors }
@@ -243,3 +252,15 @@ val ColorScheme.errorSoft: Color
 val ColorScheme.primaryMid: Color
     @Composable
     get() = FitTrackPlusStyle.extraColors.primaryMid
+
+val ColorScheme.success: Color
+    @Composable
+    get() = FitTrackPlusStyle.extraColors.success
+
+val ColorScheme.onSuccess: Color
+    @Composable
+    get() = FitTrackPlusStyle.extraColors.onSuccess
+
+val ColorScheme.successSoft: Color
+    @Composable
+    get() = FitTrackPlusStyle.extraColors.successSoft

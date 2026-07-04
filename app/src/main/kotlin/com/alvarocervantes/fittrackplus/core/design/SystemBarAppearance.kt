@@ -2,8 +2,8 @@ package com.alvarocervantes.fittrackplus.core.design
 
 import androidx.compose.ui.graphics.Color
 
-val LightSystemBarBackground = Color(0xFFF4F4F1)
-val DarkSystemBarBackground = Color(0xFF181A18)
+val LightSystemBarBackground = LightColors.background
+val DarkSystemBarBackground = DarkColors.background
 
 data class SystemBarAppearance(
     val statusBarBackground: Color,
