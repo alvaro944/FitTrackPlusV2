@@ -1265,8 +1265,8 @@ private fun workoutSetFieldColors(isCompleted: Boolean) = OutlinedTextFieldDefau
 )
 
 private val WORKOUT_SET_INDEX_SIZE = 40.dp
-private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.6f
-private const val WORKOUT_REPS_COLUMN_WEIGHT = 0.8f
+private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.2f
+private const val WORKOUT_REPS_COLUMN_WEIGHT = 1.0f
 
 @Composable
 private fun WorkoutLoadingSkeleton() {
