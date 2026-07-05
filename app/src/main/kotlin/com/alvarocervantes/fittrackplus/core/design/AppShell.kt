@@ -16,20 +16,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
@@ -56,6 +52,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSegmentedSelector
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackThemeModeSelector
 import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
 import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import com.alvarocervantes.fittrackplus.core.navigation.DrawerItem
@@ -271,15 +269,17 @@ private fun DrawerContent(
             }
 
             FitTrackSectionLabel(label = "Tema")
-            ThemeModeInlineSelector(
-                selectedMode = themeMode,
-                onSelectMode = onThemeModeChange
+            FitTrackThemeModeSelector(
+                selected = themeMode,
+                onSelect = onThemeModeChange,
+                showRadio = false
             )
 
             FitTrackSectionLabel(label = "Unidad")
-            WeightUnitInlineSelector(
-                selectedUnit = weightUnit,
-                onSelectUnit = onWeightUnitChange
+            FitTrackSegmentedSelector(
+                options = listOf("kg", "lb"),
+                selectedIndex = if (weightUnit == "lb") 1 else 0,
+                onSelect = { index -> onWeightUnitChange(if (index == 0) "kg" else "lb") }
             )
         }
     }
@@ -346,88 +346,6 @@ private fun DrawerActionRow(
                     text = supporting,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ThemeModeInlineSelector(
-    selectedMode: AppThemeMode,
-    onSelectMode: (AppThemeMode) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-    ) {
-        AppThemeMode.entries.forEach { mode ->
-            val icon = when (mode) {
-                AppThemeMode.System -> Icons.Filled.Smartphone
-                AppThemeMode.Light -> Icons.Filled.LightMode
-                AppThemeMode.Dark -> Icons.Filled.DarkMode
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(MaterialTheme.shapes.large)
-                    .background(
-                        if (selectedMode == mode) MaterialTheme.colorScheme.primarySoft
-                        else MaterialTheme.colorScheme.surfaceAlt
-                    )
-                    .clickable { onSelectMode(mode) }
-                    .padding(FitSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(FitSpacing.sm),
-                horizontalAlignment = Alignment.Start
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (selectedMode == mode) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = mode.label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (selectedMode == mode) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun WeightUnitInlineSelector(
-    selectedUnit: String,
-    onSelectUnit: (String) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .background(MaterialTheme.colorScheme.surfaceAlt)
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
-    ) {
-        listOf("kg", "lb").forEach { unit ->
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(MaterialTheme.shapes.small)
-                    .background(
-                        if (selectedUnit == unit) MaterialTheme.colorScheme.surface
-                        else MaterialTheme.colorScheme.surfaceAlt
-                    )
-                    .clickable { onSelectUnit(unit) }
-                    .padding(vertical = FitSpacing.sm),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = unit,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (selectedUnit == unit) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -113,5 +114,20 @@ fun FitTrackScreenHeader(
                 trailing()
             }
         }
+    }
+}
+
+@Composable
+fun FitTrackHeroTag(text: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .background(Color.White.copy(alpha = 0.10f), CircleShape)
+            .padding(horizontal = FitSpacing.smMd, vertical = FitSpacing.tiny)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White.copy(alpha = 0.78f)
+        )
     }
 }

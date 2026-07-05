@@ -4,8 +4,6 @@ package com.alvarocervantes.fittrackplus.feature.workout
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +20,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -86,8 +83,10 @@ import com.alvarocervantes.fittrackplus.core.design.primaryMid
 import com.alvarocervantes.fittrackplus.core.design.accentSoft
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
+import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroTag
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import com.alvarocervantes.fittrackplus.core.design.components.ConfettiAnimation
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackStepper
 import com.alvarocervantes.fittrackplus.domain.model.PrType
 import com.alvarocervantes.fittrackplus.domain.model.ProgressionHint
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
@@ -424,8 +423,8 @@ private fun WorkoutPreviewCard(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
             ) {
-                HeroTag(text = "Semana ${preview.weekNumber}")
-                HeroTag(text = "${preview.exerciseCount} ejercicios")
+                FitTrackHeroTag(text = "Semana ${preview.weekNumber}")
+                FitTrackHeroTag(text = "${preview.exerciseCount} ejercicios")
             }
             FitTrackPrimaryButton(
                 label = if (isStarting) "Iniciando entrenamiento" else "Iniciar entrenamiento",
@@ -434,21 +433,6 @@ private fun WorkoutPreviewCard(
                 icon = Icons.Filled.PlayArrow
             )
         }
-    }
-}
-
-@Composable
-private fun HeroTag(text: String) {
-    Box(
-        modifier = Modifier
-            .background(Color.White.copy(alpha = 0.10f), MaterialTheme.shapes.medium)
-            .padding(horizontal = FitSpacing.smMd, vertical = FitSpacing.tiny)
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = Color.White.copy(alpha = 0.78f)
-        )
     }
 }
 
@@ -1035,18 +1019,18 @@ private fun WeightFieldColumn(
     }
 
     Column(modifier = modifier) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically
+        FitTrackStepper(
+            value = weightText,
+            onIncrement = { onStepWeight(setId, 2.5) },
+            onDecrement = { onStepWeight(setId, -2.5) },
+            onLongIncrement = { onStepWeight(setId, 5.0) },
+            onLongDecrement = { onStepWeight(setId, -5.0) },
+            compact = true,
+            spacing = FitSpacing.xs,
+            decrementContentDescription = "Bajar peso de la serie ${setId}",
+            incrementContentDescription = "Subir peso de la serie ${setId}",
+            buttonContainer = true
         ) {
-            SetStepperButton(
-                icon = Icons.Filled.Remove,
-                contentDescription = "Bajar peso de la serie ${setId}",
-                onClick = { onStepWeight(setId, -2.5) },
-                onLongClick = { onStepWeight(setId, -5.0) },
-                minButtonSize = REPS_STEPPER_BUTTON_SIZE,
-                iconSize = REPS_STEPPER_ICON_SIZE
-            )
             OutlinedTextField(
                 value = fieldValue,
                 onValueChange = { value ->
@@ -1066,14 +1050,6 @@ private fun WeightFieldColumn(
                             fieldValue = selectAllWorkoutFieldValue(fieldValue)
                         }
                     }
-            )
-            SetStepperButton(
-                icon = Icons.Filled.Add,
-                contentDescription = "Subir peso de la serie ${setId}",
-                onClick = { onStepWeight(setId, 2.5) },
-                onLongClick = { onStepWeight(setId, 5.0) },
-                minButtonSize = REPS_STEPPER_BUTTON_SIZE,
-                iconSize = REPS_STEPPER_ICON_SIZE
             )
         }
         if (previousWeight != null) {
@@ -1171,17 +1147,15 @@ private fun WorkoutSetRow(
                 modifier = Modifier.weight(WORKOUT_REPS_COLUMN_WEIGHT),
                 verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.tiny),
-                    verticalAlignment = Alignment.CenterVertically
+                FitTrackStepper(
+                    value = set.repsText,
+                    onIncrement = { onStepReps(set.id, 1) },
+                    onDecrement = { onStepReps(set.id, -1) },
+                    compact = true,
+                    decrementContentDescription = "Bajar repeticiones de la serie ${set.setNumber}",
+                    incrementContentDescription = "Subir repeticiones de la serie ${set.setNumber}",
+                    buttonContainer = true
                 ) {
-                    SetStepperButton(
-                        icon = Icons.Filled.Remove,
-                        contentDescription = "Bajar repeticiones de la serie ${set.setNumber}",
-                        onClick = { onStepReps(set.id, -1) },
-                        minButtonSize = REPS_STEPPER_BUTTON_SIZE,
-                        iconSize = REPS_STEPPER_ICON_SIZE
-                    )
                     OutlinedTextField(
                         value = repsFieldValue,
                         onValueChange = { value ->
@@ -1201,13 +1175,6 @@ private fun WorkoutSetRow(
                                     repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)
                                 }
                             }
-                    )
-                    SetStepperButton(
-                        icon = Icons.Filled.Add,
-                        contentDescription = "Subir repeticiones de la serie ${set.setNumber}",
-                        onClick = { onStepReps(set.id, 1) },
-                        minButtonSize = REPS_STEPPER_BUTTON_SIZE,
-                        iconSize = REPS_STEPPER_ICON_SIZE
                     )
                 }
                 if (set.previousReps != null) {
@@ -1273,35 +1240,6 @@ private fun ProgressionHintButton(hint: ProgressionHint) {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun SetStepperButton(
-    icon: ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-    onLongClick: (() -> Unit)? = null,
-    minButtonSize: androidx.compose.ui.unit.Dp = 36.dp,
-    iconSize: androidx.compose.ui.unit.Dp = 18.dp
-) {
-    Box(
-        modifier = Modifier
-            .sizeIn(minWidth = minButtonSize, minHeight = minButtonSize)
-            .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.medium)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(iconSize)
-        )
-    }
-}
-
 internal fun selectAllWorkoutFieldValue(current: TextFieldValue): TextFieldValue {
     return current.copy(selection = TextRange(0, current.text.length))
 }
@@ -1342,8 +1280,6 @@ private fun workoutSetFieldColors(isCompleted: Boolean) = OutlinedTextFieldDefau
 )
 
 private val WORKOUT_SET_INDEX_SIZE = 40.dp
-private val REPS_STEPPER_BUTTON_SIZE = 28.dp
-private val REPS_STEPPER_ICON_SIZE = 16.dp
 private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.0f
 private const val WORKOUT_REPS_COLUMN_WEIGHT = 1.1f
 

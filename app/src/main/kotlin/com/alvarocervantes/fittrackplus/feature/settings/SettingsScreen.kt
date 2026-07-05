@@ -3,22 +3,14 @@ package com.alvarocervantes.fittrackplus.feature.settings
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,21 +30,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.BuildConfig
-import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackOutlinedButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
-import com.alvarocervantes.fittrackplus.core.design.primarySoft
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSegmentedSelector
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackStepper
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackThemeModeSelector
 import com.alvarocervantes.fittrackplus.core.design.textTertiary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -135,9 +125,10 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        UnitSelector(
-                            selectedUnit = weightUnit,
-                            onSelectUnit = viewModel::setWeightUnit
+                        FitTrackSegmentedSelector(
+                            options = listOf("kg", "lb"),
+                            selectedIndex = if (weightUnit == "lb") 1 else 0,
+                            onSelect = { index -> viewModel.setWeightUnit(if (index == 0) "kg" else "lb") }
                         )
                     }
                 }
@@ -155,9 +146,9 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        ThemeModeSelector(
-                            selectedMode = themeMode,
-                            onSelectMode = viewModel::setThemeMode
+                        FitTrackThemeModeSelector(
+                            selected = themeMode,
+                            onSelect = viewModel::setThemeMode
                         )
                     }
                 }
@@ -218,9 +209,18 @@ fun SettingsScreen(
                                         text = "Objetivo de pasos diarios",
                                         style = MaterialTheme.typography.bodyMedium
                                     )
-                                    StepGoalStepper(
-                                        goal = dailyStepGoal,
-                                        onGoalChange = viewModel::setDailyStepGoal
+                                    FitTrackStepper(
+                                        value = "%,d".format(dailyStepGoal),
+                                        onDecrement = {
+                                            if (dailyStepGoal > 1_000) {
+                                                viewModel.setDailyStepGoal(dailyStepGoal - 1_000)
+                                            }
+                                        },
+                                        onIncrement = {
+                                            viewModel.setDailyStepGoal(dailyStepGoal + 1_000)
+                                        },
+                                        compact = true,
+                                        decrementEnabled = dailyStepGoal > 1_000
                                     )
                                 }
                                 FitTrackOutlinedButton(
@@ -298,194 +298,5 @@ fun SettingsScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun StepGoalStepper(
-    goal: Int,
-    onGoalChange: (Int) -> Unit
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-    ) {
-        IconButton(
-            onClick = { if (goal > 1_000) onGoalChange(goal - 1_000) }
-        ) {
-            Icon(
-                imageVector = Icons.Default.Remove,
-                contentDescription = "Reducir objetivo",
-                modifier = Modifier.size(18.dp)
-            )
-        }
-        Text(
-            text = "%,d".format(goal),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        IconButton(
-            onClick = { onGoalChange(goal + 1_000) }
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Aumentar objetivo",
-                modifier = Modifier.size(18.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun UnitSelector(
-    selectedUnit: String,
-    onSelectUnit: (String) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .background(MaterialTheme.colorScheme.surfaceAlt)
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
-    ) {
-        UnitSegment(
-            label = "kg",
-            selected = selectedUnit == "kg",
-            onClick = { onSelectUnit("kg") },
-            modifier = Modifier.weight(1f)
-        )
-        UnitSegment(
-            label = "lb",
-            selected = selectedUnit == "lb",
-            onClick = { onSelectUnit("lb") },
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-private fun UnitSegment(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .clip(MaterialTheme.shapes.small)
-            .background(
-                if (selected) {
-                    MaterialTheme.colorScheme.surface
-                } else {
-                    MaterialTheme.colorScheme.surfaceAlt
-                }
-            )
-            .clickable(onClick = onClick)
-            .padding(vertical = FitSpacing.sm),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = if (selected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            }
-        )
-    }
-}
-
-@Composable
-private fun ThemeModeSelector(
-    selectedMode: AppThemeMode,
-    onSelectMode: (AppThemeMode) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-    ) {
-        AppThemeMode.entries.forEach { mode ->
-            ThemeModeOption(
-                mode = mode,
-                selected = selectedMode == mode,
-                onClick = { onSelectMode(mode) },
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ThemeModeOption(
-    mode: AppThemeMode,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .clip(MaterialTheme.shapes.large)
-            .background(
-                if (selected) {
-                    MaterialTheme.colorScheme.primarySoft
-                } else {
-                    MaterialTheme.colorScheme.surfaceAlt
-                }
-            )
-            .border(
-                width = 1.dp,
-                color = if (selected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.outline
-                },
-                shape = MaterialTheme.shapes.large
-            )
-            .clickable(onClick = onClick)
-            .padding(FitSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.sm),
-        horizontalAlignment = Alignment.Start
-    ) {
-        Box(
-            modifier = Modifier
-                .size(22.dp)
-                .clip(CircleShape)
-                .background(
-                    if (selected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.surface
-                    }
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onPrimary)
-                )
-            }
-        }
-        Text(
-            text = mode.label,
-            style = MaterialTheme.typography.labelLarge,
-            color = if (selected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            }
-        )
-        Text(
-            text = when (mode) {
-                AppThemeMode.System -> "Auto"
-                AppThemeMode.Light -> "Claro"
-                AppThemeMode.Dark -> "Oscuro"
-            }.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.textTertiary
-        )
     }
 }

@@ -77,6 +77,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackOutlinedButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackStepper
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
@@ -1199,16 +1200,52 @@ private fun RoutineExerciseEditor(
             modifier = Modifier.fillMaxWidth()
         )
 
-        ExerciseSetsStepper(
-            sets = currentSets,
-            error = exercise.targetSetsError,
-            onDecrease = {
-                onExerciseSetsChange(dayIndex, exerciseIndex, (currentSets - 1).coerceAtLeast(1).toString())
-            },
-            onIncrease = {
-                onExerciseSetsChange(dayIndex, exerciseIndex, (currentSets + 1).coerceAtMost(99).toString())
+        Column(
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+        ) {
+            Text(
+                text = "Series",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Box(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.large)
+                        .padding(horizontal = FitSpacing.sm, vertical = FitSpacing.xs)
+                ) {
+                    FitTrackStepper(
+                        value = currentSets.toString(),
+                        onDecrement = {
+                            onExerciseSetsChange(
+                                dayIndex,
+                                exerciseIndex,
+                                (currentSets - 1).coerceAtLeast(1).toString()
+                            )
+                        },
+                        onIncrement = {
+                            onExerciseSetsChange(
+                                dayIndex,
+                                exerciseIndex,
+                                (currentSets + 1).coerceAtMost(99).toString()
+                            )
+                        },
+                        decrementEnabled = currentSets > 1,
+                        incrementEnabled = currentSets < 99
+                    )
+                }
             }
-        )
+            exercise.targetSetsError?.let { error ->
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
 
         ExerciseRepsSelector(
             selectedReps = exercise.targetRepsText,
@@ -1366,71 +1403,6 @@ private fun ExerciseAlternativesEditorDialog(
             }
         }
     )
-}
-
-@Composable
-private fun ExerciseSetsStepper(
-    sets: Int,
-    error: String?,
-    onDecrease: () -> Unit,
-    onIncrease: () -> Unit
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-    ) {
-        Text(
-            text = "Series",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Start
-        ) {
-            Box(
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.large)
-                    .padding(horizontal = FitSpacing.sm, vertical = FitSpacing.xs)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-                ) {
-                    IconButton(
-                        onClick = onDecrease,
-                        enabled = sets > 1,
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Remove,
-                            contentDescription = "Reducir series"
-                        )
-                    }
-                    Text(
-                        text = sets.toString(),
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    IconButton(
-                        onClick = onIncrease,
-                        enabled = sets < 99,
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = "Aumentar series"
-                        )
-                    }
-                }
-            }
-        }
-        error?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
-    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)

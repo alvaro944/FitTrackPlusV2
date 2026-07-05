@@ -39,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroTag
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
@@ -189,11 +190,11 @@ fun HomeScreen(
                         }
                     } else if (uiState.totalSessions > 0) {
                         Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                            MiniHeroTag(
+                            FitTrackHeroTag(
                                 if (uiState.sessionsThisWeek == 0) "Sin sesiones esta semana"
                                 else "${uiState.sessionsThisWeek} sesion${if (uiState.sessionsThisWeek > 1) "es" else ""} esta semana"
                             )
-                            MiniHeroTag("${uiState.totalSessions} en total")
+                            FitTrackHeroTag("${uiState.totalSessions} en total")
                         }
                     } else {
                         Text(
@@ -458,22 +459,6 @@ private fun weeklySessionLabel(sessionsThisWeek: Int): String {
     val sessionWord = if (sessionsThisWeek == 1) "sesion" else "sesiones"
     val registeredWord = if (sessionsThisWeek == 1) "registrada" else "registradas"
     return "$sessionsThisWeek $sessionWord $registeredWord"
-}
-
-@Composable
-private fun MiniHeroTag(text: String) {
-    Box(
-        modifier = Modifier
-            .clip(MaterialTheme.shapes.medium)
-            .background(Color.White.copy(alpha = 0.10f))
-            .padding(horizontal = FitSpacing.smMd, vertical = FitSpacing.tiny)
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = Color.White.copy(alpha = 0.78f)
-        )
-    }
 }
 
 @Composable
