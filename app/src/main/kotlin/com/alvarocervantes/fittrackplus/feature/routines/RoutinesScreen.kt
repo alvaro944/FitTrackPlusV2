@@ -37,7 +37,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Unarchive
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -70,7 +69,10 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackAddButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
+import com.alvarocervantes.fittrackplus.core.design.FitTrackDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackInputDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackOutlinedButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
@@ -117,29 +119,17 @@ fun RoutinesScreen(
     }
 
     routinePendingArchive?.let { routine ->
-        AlertDialog(
-            onDismissRequest = { routinePendingArchive = null },
-            title = { Text("Archivar rutina") },
-            text = {
-                Text(
-                    text = "La rutina \"${routine.name}\" dejara de aparecer en la lista principal. Los entrenamientos antiguos no cambiaran."
-                )
+        FitTrackConfirmDialog(
+            title = "Archivar rutina",
+            text = "La rutina \"${routine.name}\" dejara de aparecer en la lista principal. Los entrenamientos antiguos no cambiaran.",
+            confirmLabel = "Archivar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                routinePendingArchive = null
+                viewModel.archiveRoutine(routine.id)
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        routinePendingArchive = null
-                        viewModel.archiveRoutine(routine.id)
-                    }
-                ) {
-                    Text("Archivar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { routinePendingArchive = null }) {
-                    Text("Cancelar")
-                }
-            }
+            onDismiss = { routinePendingArchive = null },
+            destructive = true
         )
     }
 
@@ -191,43 +181,27 @@ fun RoutinesScreen(
             )
         } else {
             if (editor.showCloseConfirmation || pendingNavigation != null) {
-                AlertDialog(
-                    onDismissRequest = {
+                FitTrackConfirmDialog(
+                    title = "Cambios sin guardar",
+                    text = "Tienes cambios sin guardar. ¿Quieres descartarlos?",
+                    confirmLabel = "Descartar",
+                    dismissLabel = "Seguir editando",
+                    onConfirm = {
+                        if (pendingNavigation != null) {
+                            viewModel.discardEditorChanges()
+                            appShellViewModel.confirmPendingNavigation()
+                        } else {
+                            viewModel.resolveCloseConfirmation(discard = true)
+                        }
+                    },
+                    onDismiss = {
                         if (pendingNavigation != null) {
                             appShellViewModel.dismissPendingNavigation()
                         } else {
                             viewModel.resolveCloseConfirmation(discard = false)
                         }
                     },
-                    title = { Text("Cambios sin guardar") },
-                    text = { Text("Tienes cambios sin guardar. ¿Quieres descartarlos?") },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                if (pendingNavigation != null) {
-                                    viewModel.discardEditorChanges()
-                                    appShellViewModel.confirmPendingNavigation()
-                                } else {
-                                    viewModel.resolveCloseConfirmation(discard = true)
-                                }
-                            }
-                        ) {
-                            Text("Descartar")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(
-                            onClick = {
-                                if (pendingNavigation != null) {
-                                    appShellViewModel.dismissPendingNavigation()
-                                } else {
-                                    viewModel.resolveCloseConfirmation(discard = false)
-                                }
-                            }
-                        ) {
-                            Text("Seguir editando")
-                        }
-                    }
+                    destructive = true
                 )
             }
             RoutineEditorContent(
@@ -1055,81 +1029,51 @@ private fun RoutineExerciseEditor(
             ?.let { draft ->
                 if (isValidTargetReps(draft)) null else "Usa 8, 8-12, AMRAP o RPE 8."
             }
-        AlertDialog(
-            onDismissRequest = { showCustomRepsDialog = false },
-            title = { Text("Reps personalizadas") },
-            text = {
-                OutlinedTextField(
-                    value = customRepsDraft,
-                    onValueChange = { customRepsDraft = it },
-                    label = { Text("Valor personalizado") },
-                    placeholder = { Text("12-15 o AMRAP") },
-                    isError = customRepsError != null,
-                    supportingText = customRepsError?.let { error ->
-                        { Text(error) }
-                    },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+        FitTrackInputDialog(
+            title = "Reps personalizadas",
+            value = customRepsDraft,
+            onValueChange = { customRepsDraft = it },
+            label = "Valor personalizado",
+            placeholder = "12-15 o AMRAP",
+            supportingText = customRepsError,
+            isError = customRepsError != null,
+            confirmLabel = "Guardar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onExerciseRepsChange(dayIndex, exerciseIndex, customRepsDraft.trim())
+                showCustomRepsDialog = false
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onExerciseRepsChange(dayIndex, exerciseIndex, customRepsDraft.trim())
-                        showCustomRepsDialog = false
-                    },
-                    enabled = isValidTargetReps(customRepsDraft)
-                ) {
-                    Text("Guardar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCustomRepsDialog = false }) {
-                    Text("Cancelar")
-                }
-            }
+            onDismiss = { showCustomRepsDialog = false },
+            confirmEnabled = isValidTargetReps(customRepsDraft)
         )
     }
 
     if (showNotesDialog) {
-        AlertDialog(
-            onDismissRequest = { showNotesDialog = false },
-            title = { Text(if (exercise.notes.isBlank()) "Anadir nota" else "Editar nota") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                    OutlinedTextField(
-                        value = notesDraft,
-                        onValueChange = { notesDraft = it },
-                        label = { Text("Notas") },
-                        minLines = 3,
-                        maxLines = 5,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    if (exercise.notes.isNotBlank()) {
-                        TextButton(
-                            onClick = {
-                                onExerciseNotesChange(dayIndex, exerciseIndex, "")
-                                showNotesDialog = false
-                            }
-                        ) {
-                            Text("Eliminar nota")
+        FitTrackInputDialog(
+            title = if (exercise.notes.isBlank()) "Anadir nota" else "Editar nota",
+            value = notesDraft,
+            onValueChange = { notesDraft = it },
+            label = "Notas",
+            singleLine = false,
+            minLines = 3,
+            maxLines = 5,
+            confirmLabel = "Guardar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onExerciseNotesChange(dayIndex, exerciseIndex, notesDraft)
+                showNotesDialog = false
+            },
+            onDismiss = { showNotesDialog = false },
+            extraContent = {
+                if (exercise.notes.isNotBlank()) {
+                    TextButton(
+                        onClick = {
+                            onExerciseNotesChange(dayIndex, exerciseIndex, "")
+                            showNotesDialog = false
                         }
+                    ) {
+                        Text("Eliminar nota")
                     }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onExerciseNotesChange(dayIndex, exerciseIndex, notesDraft)
-                        showNotesDialog = false
-                    }
-                ) {
-                    Text("Guardar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showNotesDialog = false }) {
-                    Text("Cancelar")
                 }
             }
         )
@@ -1310,10 +1254,10 @@ private fun ExerciseAlternativesEditorDialog(
     onAlternativeNotesChange: (Int, String) -> Unit,
     onCloseEditor: () -> Unit
 ) {
-    AlertDialog(
+    FitTrackDialog(
+        title = "Ejercicios alternativos",
         onDismissRequest = onDismiss,
-        title = { Text("Ejercicios alternativos") },
-        text = {
+        content = {
             Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
                 FitTrackCard(modifier = Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
@@ -1416,12 +1360,11 @@ private fun ExerciseAlternativesEditorDialog(
                 )
             }
         },
-        confirmButton = {
+        actions = {
             TextButton(onClick = onDismiss) {
                 Text("Cerrar")
             }
-        },
-        dismissButton = {}
+        }
     )
 }
 

@@ -8,8 +8,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -57,7 +54,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -81,7 +77,6 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -89,7 +84,6 @@ import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.success
 import com.alvarocervantes.fittrackplus.core.design.primaryMid
 import com.alvarocervantes.fittrackplus.core.design.accentSoft
-import com.alvarocervantes.fittrackplus.core.design.FitElevation
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
@@ -97,6 +91,8 @@ import com.alvarocervantes.fittrackplus.core.design.components.ConfettiAnimation
 import com.alvarocervantes.fittrackplus.domain.model.PrType
 import com.alvarocervantes.fittrackplus.domain.model.ProgressionHint
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
+import com.alvarocervantes.fittrackplus.core.design.FitTrackDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
@@ -147,49 +143,24 @@ fun WorkoutScreen(
     }
 
     if (showFinishConfirmation) {
-        Dialog(onDismissRequest = { showFinishConfirmation = false }) {
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = FitElevation.dialog
-            ) {
-                Column(
-                    modifier = Modifier.padding(FitSpacing.cardPadding),
-                    verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
-                ) {
-                    Text(
-                        text = "Finalizar entrenamiento",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = if (state.activeSession?.completedSetCount == 0) {
-                            "No hay series completadas. Si finalizas ahora, la sesion se descartara."
-                        } else {
-                            "Se guardara la sesion en el historial con las series registradas hasta ahora."
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = { showFinishConfirmation = false }) {
-                            Text("Seguir entrenando")
-                        }
-                        TextButton(
-                            onClick = {
-                                showFinishConfirmation = false
-                                viewModel.finishWorkout()
-                            }
-                        ) {
-                            Text("Finalizar")
-                        }
-                    }
-                }
-            }
+        val finishDialogText = if (state.activeSession?.completedSetCount == 0) {
+            "No hay series completadas. Si finalizas ahora, la sesion se descartara."
+        } else {
+            "Se guardara la sesion en el historial con las series registradas hasta ahora."
         }
+        FitTrackConfirmDialog(
+            title = "Finalizar entrenamiento",
+            text = finishDialogText,
+            confirmLabel = "Finalizar",
+            dismissLabel = "Seguir entrenando",
+            onConfirm = {
+                showFinishConfirmation = false
+                viewModel.finishWorkout()
+            },
+            onDismiss = { showFinishConfirmation = false },
+            confirmEnabled = !state.isFinishing,
+            destructive = false
+        )
     }
 
     state.alternativePicker?.let { picker ->
@@ -908,7 +879,6 @@ private fun ExerciseCompletionLabel(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ExerciseAlternativesDialog(
     picker: ExerciseAlternativesUiState,
@@ -922,155 +892,118 @@ private fun ExerciseAlternativesDialog(
     onDraftNotesChange: (String) -> Unit,
     onSaveAlternative: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = FitElevation.dialog
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(FitSpacing.cardPadding),
-                verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Ejercicios alternativos",
-                        style = MaterialTheme.typography.headlineSmall,
+    FitTrackDialog(
+        title = "Ejercicios alternativos",
+        onDismissRequest = onDismiss,
+        content = {
+            Text(
+                text = picker.title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (picker.draft == null) {
+                picker.options.forEach { option ->
+                    val onOptionClick = {
+                        if (option.variantKey == picker.currentVariantKey) {
+                            onDismiss()
+                        } else {
+                            onApplyVariant(option.variantKey)
+                        }
+                    }
+                    FitTrackCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onOptionClick)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = option.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (option.isDefault) {
+                                    FitTrackBadge(
+                                        label = "PREDET.",
+                                        tone = FitTrackBadgeTone.Active
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "${option.targetSets} series · ${option.targetRepsText} reps",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                Text(
+                                    text = if (option.isCurrent) "Usando ahora" else "Usar ahora",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+                FitTrackTonalButton(
+                    label = "Crear alternativa",
+                    onClick = onStartCreating,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                OutlinedTextField(
+                    value = picker.draft.name,
+                    onValueChange = onDraftNameChange,
+                    label = { Text("Nombre") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                    OutlinedTextField(
+                        value = picker.draft.targetSets,
+                        onValueChange = onDraftSetsChange,
+                        label = { Text("Series") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f)
                     )
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Cerrar dialogo de alternativas"
-                        )
-                    }
-                }
-                Column(
-                    modifier = Modifier
-                        .verticalScroll(rememberScrollState())
-                        .imePadding(),
-                    verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
-                ) {
-                    Text(
-                        text = picker.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    OutlinedTextField(
+                        value = picker.draft.targetRepsText,
+                        onValueChange = onDraftRepsChange,
+                        label = { Text("Reps") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
                     )
-                    if (picker.draft == null) {
-                        picker.options.forEach { option ->
-                            val onOptionClick = {
-                                if (option.variantKey == picker.currentVariantKey) {
-                                    onDismiss()
-                                } else {
-                                    onApplyVariant(option.variantKey)
-                                }
-                            }
-                            FitTrackCard(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable(onClick = onOptionClick)
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = option.name,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        if (option.isDefault) {
-                                            FitTrackBadge(
-                                                label = "PREDET.",
-                                                tone = FitTrackBadgeTone.Active
-                                            )
-                                        }
-                                    }
-                                    Text(
-                                        text = "${option.targetSets} series · ${option.targetRepsText} reps",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.End
-                                    ) {
-                                        Text(
-                                            text = if (option.isCurrent) "Usando ahora" else "Usar ahora",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        FitTrackTonalButton(
-                            label = "Crear alternativa",
-                            onClick = onStartCreating,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    } else {
-                        OutlinedTextField(
-                            value = picker.draft.name,
-                            onValueChange = onDraftNameChange,
-                            label = { Text("Nombre") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                            OutlinedTextField(
-                                value = picker.draft.targetSets,
-                                onValueChange = onDraftSetsChange,
-                                label = { Text("Series") },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.weight(1f)
-                            )
-                            OutlinedTextField(
-                                value = picker.draft.targetRepsText,
-                                onValueChange = onDraftRepsChange,
-                                label = { Text("Reps") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        OutlinedTextField(
-                            value = picker.draft.notes,
-                            onValueChange = onDraftNotesChange,
-                            label = { Text("Notas") },
-                            minLines = 2,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            TextButton(onClick = onCancelCreating) {
-                                Text("Cancelar")
-                            }
-                            TextButton(
-                                onClick = onSaveAlternative,
-                                enabled = picker.draft.canSave && !picker.isSaving
-                            ) {
-                                Text("Guardar y usar")
-                            }
-                        }
-                    }
+                }
+                OutlinedTextField(
+                    value = picker.draft.notes,
+                    onValueChange = onDraftNotesChange,
+                    label = { Text("Notas") },
+                    minLines = 2,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        actions = if (picker.draft != null) {
+            {
+                TextButton(onClick = onCancelCreating) {
+                    Text("Cancelar")
+                }
+                TextButton(
+                    onClick = onSaveAlternative,
+                    enabled = picker.draft.canSave && !picker.isSaving
+                ) {
+                    Text("Guardar y usar")
                 }
             }
-        }
-    }
+        } else null
+    )
 }
 
 @Composable

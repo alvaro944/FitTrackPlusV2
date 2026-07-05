@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +47,7 @@ import com.alvarocervantes.fittrackplus.BuildConfig
 import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackOutlinedButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
@@ -76,30 +76,18 @@ fun SettingsScreen(
     )
 
     if (showDemoDataDialog) {
-        AlertDialog(
-            onDismissRequest = { showDemoDataDialog = false },
-            title = { Text("Recargar datos demo") },
-            text = {
-                Text(
-                    "Esto eliminara todas tus rutinas y sesiones actuales " +
-                        "y las sustituira por datos de demo. Esta accion no se puede deshacer."
-                )
+        FitTrackConfirmDialog(
+            title = "Recargar datos demo",
+            text = "Esto eliminara todas tus rutinas y sesiones actuales " +
+                "y las sustituira por datos de demo. Esta accion no se puede deshacer.",
+            confirmLabel = "Recargar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                showDemoDataDialog = false
+                viewModel.reloadDemoData()
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDemoDataDialog = false
-                        viewModel.reloadDemoData()
-                    }
-                ) {
-                    Text("Recargar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDemoDataDialog = false }) {
-                    Text("Cancelar")
-                }
-            }
+            onDismiss = { showDemoDataDialog = false },
+            destructive = true
         )
     }
 

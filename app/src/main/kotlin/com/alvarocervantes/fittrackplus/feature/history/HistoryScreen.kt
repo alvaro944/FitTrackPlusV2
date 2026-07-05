@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +56,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
@@ -298,20 +298,15 @@ private fun HistoryDetailContent(
     val listState = rememberLazyListState()
 
     if (state.pendingEditExit != null) {
-        AlertDialog(
+        FitTrackConfirmDialog(
+            title = "Cambios sin guardar",
+            text = "Has modificado datos de esta sesion. ¿Quieres descartarlos?",
+            confirmLabel = "Descartar",
+            dismissLabel = "Guardar",
+            onConfirm = onConfirmDiscardChanges,
+            onDismiss = onConfirmSaveChanges,
             onDismissRequest = onCancelPendingEditExit,
-            title = { Text("Cambios sin guardar") },
-            text = { Text("Has modificado datos de esta sesion. ¿Quieres guardarlos?") },
-            confirmButton = {
-                TextButton(onClick = onConfirmSaveChanges) {
-                    Text("Guardar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onConfirmDiscardChanges) {
-                    Text("Descartar")
-                }
-            }
+            destructive = true
         )
     }
 
