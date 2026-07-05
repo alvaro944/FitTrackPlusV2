@@ -10,4 +10,12 @@
     <color name="gris_texto">#616161</color>       <!-- Texto secundario -->
     <color name="azul_claro">#BBDEFB</color>       <!-- Ripple color -->
     <color name="negro_bottom_nav_bar">#212121</color>       <!-- Negro suave personalizado -->
+
+    <!-- Replicas del tema v2 (core/design/Theme.kt LightColors), para que el chrome nativo
+         (selection handle, panel de copiar/pegar) coincida con la marca real en vez de este
+         set de colores legacy de la v1. -->
+    <color name="v2_emerald_primary">#1F6B57</color>
+    <color name="v2_copper_secondary">#C47A49</color>
+    <color name="v2_outline">#D5D0C5</color>
+    <color name="v2_on_surface">#161816</color>
 </resources>

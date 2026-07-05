@@ -1,10 +1,21 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+        This is the native Android (View-system) theme, applied at <application> level in
+        AndroidManifest.xml. All real UI is painted by Compose (core/design/Theme.kt), but
+        Android still uses THIS theme's colorAccent/colorControl* attributes to tint things
+        Compose does not draw itself: the text selection handle and the floating copy/cut/
+        paste toolbar. It was left over from the v1 (pre-Compose) app with an unrelated blue
+        palette and, critically, never defined colorAccent/colorControlActivated at all — so
+        Android fell back to the MaterialComponents library default (a generic teal/green),
+        which is what showed up as a mismatched, low-contrast selection handle and toolbar.
+        Colors below are aligned to the real v2 palette (core/design/Theme.kt LightColors).
+    -->
     <style name="Theme.FitTrackPlus" parent="Theme.MaterialComponents.Light.NoActionBar">
-        <item name="colorPrimary">@color/primario</item>
-        <item name="colorPrimaryVariant">@color/primario</item>
+        <item name="colorPrimary">@color/v2_emerald_primary</item>
+        <item name="colorPrimaryVariant">@color/v2_emerald_primary</item>
         <item name="colorOnPrimary">@color/blanco</item>
 
-        <item name="colorSecondary">@color/acento</item>
+        <item name="colorSecondary">@color/v2_copper_secondary</item>
         <item name="colorOnSecondary">@color/blanco</item>
 
         <item name="android:background">@color/base</item>
@@ -15,8 +26,13 @@
 
         <item name="android:colorBackground">@color/base</item>
 
-        <item name="colorTopBar">@color/primario</item>
+        <item name="colorTopBar">@color/v2_emerald_primary</item>
         <item name="colorBottomBar">@color/negro</item>
 
+        <!-- Governs the text selection handle and the copy/cut/paste toolbar tint. -->
+        <item name="colorAccent">@color/v2_emerald_primary</item>
+        <item name="colorControlActivated">@color/v2_emerald_primary</item>
+        <item name="colorControlNormal">@color/v2_outline</item>
+        <item name="android:textColorPrimary">@color/v2_on_surface</item>
     </style>
 </resources>
