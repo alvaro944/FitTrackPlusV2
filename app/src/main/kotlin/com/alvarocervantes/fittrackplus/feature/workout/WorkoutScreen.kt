@@ -1265,8 +1265,10 @@ private fun workoutSetFieldColors(isCompleted: Boolean) = OutlinedTextFieldDefau
 )
 
 private val WORKOUT_SET_INDEX_SIZE = 40.dp
-private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.0f
-private const val WORKOUT_REPS_COLUMN_WEIGHT = 1.1f
+// El peso puede llegar a 5 caracteres ("120,5") mientras que las reps nunca pasan de 2 cifras,
+// asi que la columna de peso recibe mas ancho que la de reps.
+private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.4f
+private const val WORKOUT_REPS_COLUMN_WEIGHT = 1.0f
 
 @Composable
 private fun WorkoutLoadingSkeleton() {
