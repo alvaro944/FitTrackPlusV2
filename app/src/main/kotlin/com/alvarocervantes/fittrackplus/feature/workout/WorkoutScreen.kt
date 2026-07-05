@@ -1155,7 +1155,6 @@ private fun WorkoutSetRow(
                     onIncrement = { onStepReps(set.id, 1) },
                     onDecrement = { onStepReps(set.id, -1) },
                     compact = true,
-                    spacing = FitSpacing.xs,
                     decrementContentDescription = "Bajar repeticiones de la serie ${set.setNumber}",
                     incrementContentDescription = "Subir repeticiones de la serie ${set.setNumber}",
                     buttonContainer = true
@@ -1267,7 +1266,7 @@ private fun workoutSetFieldColors(isCompleted: Boolean) = OutlinedTextFieldDefau
 
 private val WORKOUT_SET_INDEX_SIZE = 40.dp
 private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.0f
-private const val WORKOUT_REPS_COLUMN_WEIGHT = 1.0f
+private const val WORKOUT_REPS_COLUMN_WEIGHT = 1.1f
 
 @Composable
 private fun WorkoutLoadingSkeleton() {
