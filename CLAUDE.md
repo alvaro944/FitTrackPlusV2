@@ -6,7 +6,7 @@ This file provides guidance to Claude Code when working in this repository.
 
 FitTrackPlus v2 is a native Android app built with Kotlin, Jetpack Compose, Material 3, Room, Hilt, and DataStore. It is used to build gym routines, log real workouts, and keep a history that stays consistent even when routines change later.
 
-Current branch: `main` (stable, in daily use).
+Current branch: `main` (stable, in daily use). `develop` is the integration branch for work awaiting manual testing.
 
 Current status:
 
@@ -159,7 +159,6 @@ El proyecto trabaja por grupos de mejoras relacionadas:
 - todo el trabajo del grupo se hace en esa rama hasta que esta completo
 - Codex verifica localmente antes de hacer ningun commit
 - se hace commit limpio cuando el grupo esta verificado, no antes
-- se hace push y merge a main cuando todo el grupo esta done
 - las ramas no usan prefijos de agente o herramienta
 - usar prefijos semanticos segun el trabajo: `feature/`, `bug/`, `fix/`, `refactor/`, `cherrypick/` o `docs/`
 
@@ -167,6 +166,15 @@ Ejemplo de rama correcta: `feature/ux-improvements`, `refactor/ui-component-grou
 Ejemplo de rama incorrecta: `codex/ux-improvements`, `codex/fix-button-color`, `codex/minor-tweak`
 
 Una mejora esta done cuando: compila, tests pasan, flujo manual verificado en emulador, docs alineados.
+
+### Rama develop
+
+Desde 2026-07-06 el proyecto usa `develop` como rama de integracion:
+
+- las ramas de grupo (`feature/...`, `bug/...`, `fix/...`, `refactor/...`) se mergean a `develop` cuando el grupo esta tecnicamente completo (compila, tests pasan)
+- `develop` acumula trabajo pendiente de pasada manual; puede ir por delante de `main`
+- `main` solo se actualiza desde `develop` despues de que el usuario verifique manualmente en dispositivo/emulador
+- al abrir o retomar trabajo, comprobar si `develop` esta por delante de `main` y desde que rama partir (normalmente `develop`, no `main`)
 
 ## Phase closeout
 
