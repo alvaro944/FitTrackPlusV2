@@ -2,6 +2,27 @@
 
 Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso.
 
+## 2026-07-05 - Bugs de dogfooding: variantes de ejercicio, tema nativo, proporcion peso/reps
+
+Estado:
+
+- implementado en `bug/workout-input-ux-fixes` (rama nueva, sobre `refactor/ui-component-grouping`, aun sin mergear a `main`)
+- spec: `docs/superpowers/specs/2026-07-05-workout-input-ux-bugs.md`
+- **sin verificar con `./gradlew test`/`build`**: no hay JVM disponible en este entorno de trabajo. Pendiente ejecutar ambos antes de dar la rama por cerrada.
+- sin pasada manual en dispositivo (obligatoria para bugs B y C, ver abajo)
+
+Cambios cerrados:
+
+- **Bug A** (seleccion de texto al enfocar en variantes de ejercicio): los 4 campos (nombre, series, reps, notas) del dialogo de alternativas, tanto en el editor de rutina (`RoutinesScreen.kt`) como en el dialogo de alternativas durante el entrenamiento (`WorkoutScreen.kt`), no seleccionaban el texto existente al tocar el campo, causando concatenacion en vez de reemplazo (p. ej. "8" + "10" -> "810"). Se extrajo el patron ya usado correctamente en las filas de serie del entrenamiento a un componente compartido nuevo, `FitTrackSelectAllTextField` (`core/design/components/SelectAllTextField.kt`), y se aplico a los 8 campos. Las funciones `selectAllWorkoutFieldValue`/`syncWorkoutFieldValue` se movieron desde `WorkoutScreen.kt` a este archivo (renombradas `selectAllOnFocusValue`/`syncTextFieldValue`); se actualizo el test `WorkoutInputDefaultsTest.kt` acorde.
+- **Bug D** (proporcion peso/reps): `WORKOUT_WEIGHT_COLUMN_WEIGHT`/`WORKOUT_REPS_COLUMN_WEIGHT` en `WorkoutScreen.kt` estaban casi igualados (1.0f/1.1f, reps ligeramente mayor); se invirtio a 1.6f/0.8f para dar mas espacio al campo de peso (donde se escriben valores como "22,5") frente al de reps.
+- **Bugs B y C** (panel de copiar/pegar sin contraste + cuadrado blanco tras el handle de seleccion verde): causa raiz compartida — `Theme.FitTrackPlus` (`app/src/main/res/values/themes.xml`), aplicado a nivel `<application>`, era un tema nativo Android residual de la v1 con paleta azul (#1976D2) sin relacion con la marca real de la v2, y nunca definia `colorAccent`/`colorControlActivated`/`colorControlNormal` (los atributos que rigen el tinte del selection handle y el panel flotante de copiar/pegar, que son UI nativa no pintada por Compose). Se actualizaron los colores del tema a los reales de `core/design/Theme.kt` y se añadieron esos atributos explicitamente.
+
+Pendiente:
+
+- Ejecutar `./gradlew test` y `./gradlew build` (no disponibles en este entorno).
+- Pasada manual obligatoria: crear variante de ejercicio y comprobar seleccion de texto; seleccionar una palabra en cualquier campo y revisar contraste del panel copiar/pegar y aspecto del handle; escribir un peso tipo "22,5" y comprobar que no se corta.
+- Decidir si `refactor/ui-component-grouping` (base de esta rama) se mergea a `main` antes o despues de esta rama.
+
 ## 2026-06-17 - Compose experimental layout opt-in fix
 
 Estado:
