@@ -2,14 +2,16 @@
 
 Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso.
 
-## 2026-07-06 - Rama develop y confirmacion de borrado de ejercicio
+## 2026-07-06 - Rama develop, JDK local y confirmacion de borrado de ejercicio
 
 Estado:
 
 - creada la rama `develop` como rama de integracion (ver `CLAUDE.md`), apuntando al punto mas actualizado del proyecto (docs reorganizados + agrupacion de UI + bugs de dogfooding del 2026-07-05)
 - publicada en origin
-- revisadas todas las ramas locales y remotas buscando trabajo pendiente sin mergear: solo `codex/confirm-exercise-delete` (9 jun) tenia un commit sin integrar
-- esa rama es candidata a borrar: su funcionalidad quedo reimplementada en `develop` con los componentes actuales (ver abajo)
+- revisadas todas las ramas locales y remotas buscando trabajo pendiente sin mergear: solo `codex/confirm-exercise-delete` (9 jun) tenia un commit sin integrar; reimplementado y la rama vieja borrada (local y remota)
+- **JDK 17 instalado en la maquina de trabajo** via Homebrew (`brew install openjdk@17`, keg-only, se invoca con `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`). El proyecto pide JDK 17 (`sourceCompatibility`/`jvmTarget`, `app/build.gradle.kts`) y Gradle 8.7. A partir de ahora `./gradlew test`/`build` son ejecutables y verificables directamente, no solo por Codex.
+- nota: `gradlew` en este repo no tiene bit de ejecucion (`-rw-r--r--`); se invoca con `sh gradlew ...` en vez de `./gradlew ...`
+- **verificado con `sh gradlew test` y `sh gradlew build`: BUILD SUCCESSFUL en ambos**, cubre todo lo acumulado en `develop` (agrupacion de UI D1-D4, los 4 bugs de dogfooding, confirmacion de borrado)
 
 Cambios cerrados:
 
@@ -17,9 +19,7 @@ Cambios cerrados:
 
 Pendiente:
 
-- Ejecutar `./gradlew test` y `./gradlew build` (no disponibles en este entorno: sin JVM).
-- Pasada manual: borrar un ejercicio del editor de rutina y confirmar que aparece el dialogo con el nombre correcto.
-- Decidir si se borra la rama `codex/confirm-exercise-delete` (local y remota), ya superada.
+- Pasada manual en dispositivo/emulador (test y build automaticos ya no bloquean esto, pero el flujo visual si requiere ojos humanos): borrar un ejercicio y confirmar el dialogo; los bugs B/C del selector de texto nativo (2026-07-05); el resto del flujo de entrenamiento con los ajustes de peso/reps.
 
 ## 2026-07-05 - Bugs de dogfooding: variantes de ejercicio, tema nativo, proporcion peso/reps
 

@@ -100,6 +100,16 @@ Minimum verification for any code change:
 
 For UI changes, also do a manual pass in emulator/device when possible. `adb` is not currently on PATH in this workspace, so manual validation may remain pending in `docs/progress/project-progress.md`.
 
+### macOS / Claude Code environment notes
+
+- Requires JDK 17 (see `sourceCompatibility`/`jvmTarget` in `app/build.gradle.kts`) and Gradle 8.7.
+- If `java`/`./gradlew` are unavailable: `brew install openjdk@17` (keg-only, not symlinked into PATH by default). Invoke with an explicit `JAVA_HOME`:
+  ```bash
+  export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+  sh gradlew test
+  ```
+- `gradlew` in this repo does not carry the executable bit (`-rw-r--r--`). Invoke it as `sh gradlew ...` rather than `./gradlew ...`, or `chmod +x gradlew` once if you prefer the direct form.
+
 ## Source layout rule
 
 The v2 code lives in `app/src/main/kotlin/`.
