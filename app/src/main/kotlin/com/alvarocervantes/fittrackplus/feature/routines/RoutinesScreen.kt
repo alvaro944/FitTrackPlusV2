@@ -77,6 +77,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackOutlinedButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackStepper
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
@@ -1326,7 +1327,7 @@ private fun ExerciseAlternativesEditorDialog(
                     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
                         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
                             if (isEditing) {
-                                OutlinedTextField(
+                                FitTrackSelectAllTextField(
                                     value = alternative.name,
                                     onValueChange = { onAlternativeNameChange(index, it) },
                                     label = { Text("Nombre") },
@@ -1334,14 +1335,14 @@ private fun ExerciseAlternativesEditorDialog(
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                                    OutlinedTextField(
+                                    FitTrackSelectAllTextField(
                                         value = alternative.targetSets,
                                         onValueChange = { onAlternativeSetsChange(index, it) },
                                         label = { Text("Series") },
                                         singleLine = true,
                                         modifier = Modifier.weight(1f)
                                     )
-                                    OutlinedTextField(
+                                    FitTrackSelectAllTextField(
                                         value = alternative.targetRepsText,
                                         onValueChange = { onAlternativeRepsChange(index, it) },
                                         label = { Text("Reps") },
@@ -1349,10 +1350,11 @@ private fun ExerciseAlternativesEditorDialog(
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
-                                OutlinedTextField(
+                                FitTrackSelectAllTextField(
                                     value = alternative.notes,
                                     onValueChange = { onAlternativeNotesChange(index, it) },
                                     label = { Text("Notas") },
+                                    singleLine = false,
                                     minLines = 2,
                                     modifier = Modifier.fillMaxWidth()
                                 )

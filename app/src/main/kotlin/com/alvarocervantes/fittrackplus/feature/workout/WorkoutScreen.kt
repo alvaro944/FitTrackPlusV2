@@ -70,7 +70,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -86,7 +85,10 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroTag
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import com.alvarocervantes.fittrackplus.core.design.components.ConfettiAnimation
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackStepper
+import com.alvarocervantes.fittrackplus.core.design.components.selectAllOnFocusValue
+import com.alvarocervantes.fittrackplus.core.design.components.syncTextFieldValue
 import com.alvarocervantes.fittrackplus.domain.model.PrType
 import com.alvarocervantes.fittrackplus.domain.model.ProgressionHint
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
@@ -941,7 +943,7 @@ private fun ExerciseAlternativesDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {
-                OutlinedTextField(
+                FitTrackSelectAllTextField(
                     value = picker.draft.name,
                     onValueChange = onDraftNameChange,
                     label = { Text("Nombre") },
@@ -949,7 +951,7 @@ private fun ExerciseAlternativesDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                    OutlinedTextField(
+                    FitTrackSelectAllTextField(
                         value = picker.draft.targetSets,
                         onValueChange = onDraftSetsChange,
                         label = { Text("Series") },
@@ -957,7 +959,7 @@ private fun ExerciseAlternativesDialog(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
+                    FitTrackSelectAllTextField(
                         value = picker.draft.targetRepsText,
                         onValueChange = onDraftRepsChange,
                         label = { Text("Reps") },
@@ -965,10 +967,11 @@ private fun ExerciseAlternativesDialog(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                OutlinedTextField(
+                FitTrackSelectAllTextField(
                     value = picker.draft.notes,
                     onValueChange = onDraftNotesChange,
                     label = { Text("Notas") },
+                    singleLine = false,
                     minLines = 2,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1004,7 +1007,7 @@ private fun WeightFieldColumn(
     val interactionSource = remember { MutableInteractionSource() }
 
     LaunchedEffect(weightText) {
-        fieldValue = syncWorkoutFieldValue(
+        fieldValue = syncTextFieldValue(
             current = fieldValue,
             externalText = weightText
         )
@@ -1013,7 +1016,7 @@ private fun WeightFieldColumn(
     LaunchedEffect(interactionSource) {
         interactionSource.interactions.collect { interaction ->
             if (interaction is PressInteraction.Release) {
-                fieldValue = selectAllWorkoutFieldValue(fieldValue)
+                fieldValue = selectAllOnFocusValue(fieldValue)
             }
         }
     }
@@ -1047,7 +1050,7 @@ private fun WeightFieldColumn(
                     .heightIn(min = 56.dp)
                     .onFocusChanged { focusState ->
                         if (focusState.isFocused) {
-                            fieldValue = selectAllWorkoutFieldValue(fieldValue)
+                            fieldValue = selectAllOnFocusValue(fieldValue)
                         }
                     }
             )
@@ -1080,7 +1083,7 @@ private fun WorkoutSetRow(
     val repsInteractionSource = remember { MutableInteractionSource() }
 
     LaunchedEffect(set.repsText) {
-        repsFieldValue = syncWorkoutFieldValue(
+        repsFieldValue = syncTextFieldValue(
             current = repsFieldValue,
             externalText = set.repsText
         )
@@ -1089,7 +1092,7 @@ private fun WorkoutSetRow(
     LaunchedEffect(repsInteractionSource) {
         repsInteractionSource.interactions.collect { interaction ->
             if (interaction is PressInteraction.Release) {
-                repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)
+                repsFieldValue = selectAllOnFocusValue(repsFieldValue)
             }
         }
     }
@@ -1172,7 +1175,7 @@ private fun WorkoutSetRow(
                             .heightIn(min = 56.dp)
                             .onFocusChanged { focusState ->
                                 if (focusState.isFocused) {
-                                    repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)
+                                    repsFieldValue = selectAllOnFocusValue(repsFieldValue)
                                 }
                             }
                     )
@@ -1240,24 +1243,6 @@ private fun ProgressionHintButton(hint: ProgressionHint) {
     }
 }
 
-internal fun selectAllWorkoutFieldValue(current: TextFieldValue): TextFieldValue {
-    return current.copy(selection = TextRange(0, current.text.length))
-}
-
-internal fun syncWorkoutFieldValue(
-    current: TextFieldValue,
-    externalText: String
-): TextFieldValue {
-    return if (current.text == externalText) {
-        current
-    } else {
-        TextFieldValue(
-            text = externalText,
-            selection = TextRange(externalText.length, externalText.length)
-        )
-    }
-}
-
 @Composable
 private fun workoutSetFieldColors(isCompleted: Boolean) = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -1280,8 +1265,8 @@ private fun workoutSetFieldColors(isCompleted: Boolean) = OutlinedTextFieldDefau
 )
 
 private val WORKOUT_SET_INDEX_SIZE = 40.dp
-private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.0f
-private const val WORKOUT_REPS_COLUMN_WEIGHT = 1.1f
+private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.6f
+private const val WORKOUT_REPS_COLUMN_WEIGHT = 0.8f
 
 @Composable
 private fun WorkoutLoadingSkeleton() {

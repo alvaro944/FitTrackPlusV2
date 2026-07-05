@@ -2,6 +2,8 @@ package com.alvarocervantes.fittrackplus.feature.workout
 
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import com.alvarocervantes.fittrackplus.core.design.components.selectAllOnFocusValue
+import com.alvarocervantes.fittrackplus.core.design.components.syncTextFieldValue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -207,8 +209,8 @@ class WorkoutInputDefaultsTest {
     }
 
     @Test
-    fun selectAllWorkoutFieldValue_selectsFullText() {
-        val result = selectAllWorkoutFieldValue(
+    fun selectAllOnFocusValue_selectsFullText() {
+        val result = selectAllOnFocusValue(
             TextFieldValue(
                 text = "100",
                 selection = TextRange(1, 1)
@@ -219,8 +221,8 @@ class WorkoutInputDefaultsTest {
     }
 
     @Test
-    fun syncWorkoutFieldValue_updatesTextWhenExternalValueChanges() {
-        val result = syncWorkoutFieldValue(
+    fun syncTextFieldValue_updatesTextWhenExternalValueChanges() {
+        val result = syncTextFieldValue(
             current = TextFieldValue(
                 text = "8",
                 selection = TextRange(0, 1)
