@@ -14,13 +14,19 @@ Estado:
 Cambios cerrados:
 
 - **Bug A** (seleccion de texto al enfocar en variantes de ejercicio): los 4 campos (nombre, series, reps, notas) del dialogo de alternativas, tanto en el editor de rutina (`RoutinesScreen.kt`) como en el dialogo de alternativas durante el entrenamiento (`WorkoutScreen.kt`), no seleccionaban el texto existente al tocar el campo, causando concatenacion en vez de reemplazo (p. ej. "8" + "10" -> "810"). Se extrajo el patron ya usado correctamente en las filas de serie del entrenamiento a un componente compartido nuevo, `FitTrackSelectAllTextField` (`core/design/components/SelectAllTextField.kt`), y se aplico a los 8 campos. Las funciones `selectAllWorkoutFieldValue`/`syncWorkoutFieldValue` se movieron desde `WorkoutScreen.kt` a este archivo (renombradas `selectAllOnFocusValue`/`syncTextFieldValue`); se actualizo el test `WorkoutInputDefaultsTest.kt` acorde.
-- **Bug D** (proporcion peso/reps): `WORKOUT_WEIGHT_COLUMN_WEIGHT`/`WORKOUT_REPS_COLUMN_WEIGHT` en `WorkoutScreen.kt` estaban casi igualados (1.0f/1.1f, reps ligeramente mayor); se invirtio a 1.6f/0.8f para dar mas espacio al campo de peso (donde se escriben valores como "22,5") frente al de reps.
+- **Bug D** (campos de peso/reps desajustados, numeros que no caben, altura que crece al vaciar): la causa raiz NO era la proporcion de columnas sino una regresion de la fase de agrupacion (D4). El `SetStepperButton` original de la fila de serie ocupaba 28dp por boton; al unificarse en `FitTrackStepperButton` paso a usar `minimumInteractiveComponentSize()` (48dp). Con 4 botones por fila (2 peso + 2 reps), eso roba ~80dp de ancho a los campos, dejando los numeros sin sitio. Fix en `core/design/components/Stepper.kt`: el modo `compact` (peso/reps del entreno y objetivo de pasos en ajustes) vuelve a 28dp con icono 16dp; el modo no-compact (editor de rutina) mantiene los 48dp de accesibilidad. Una vez recuperado el ancho, se ajusto la proporcion de columnas a 1.15f/1.0f (peso algo mas ancho que reps, porque el peso puede tener 5 caracteres "120,5" y las reps nunca pasan de 2 cifras). Validado visualmente por el usuario en dispositivo.
+  - Nota importante: durante la depuracion se intentaron varios valores a ciegas (1.6/0.8, 1.1/1.0 + touch target 40dp, 1.0/1.0) que empeoraban la vista, porque el cuello de botella real eran los botones, no el reparto entre columnas. Ademas, un "revert" intermedio solo devolvio `Stepper.kt` al estado de la rama de agrupacion (que ya tenia los 48dp), por lo que seguia roto: de ahi la confusion de "aunque lo pusimos como antes, sigue mal".
 - **Bugs B y C** (panel de copiar/pegar sin contraste + cuadrado blanco tras el handle de seleccion verde): causa raiz compartida — `Theme.FitTrackPlus` (`app/src/main/res/values/themes.xml`), aplicado a nivel `<application>`, era un tema nativo Android residual de la v1 con paleta azul (#1976D2) sin relacion con la marca real de la v2, y nunca definia `colorAccent`/`colorControlActivated`/`colorControlNormal` (los atributos que rigen el tinte del selection handle y el panel flotante de copiar/pegar, que son UI nativa no pintada por Compose). Se actualizaron los colores del tema a los reales de `core/design/Theme.kt` y se añadieron esos atributos explicitamente.
+
+Validacion:
+
+- Bugs A y D: confirmados visualmente por el usuario en dispositivo ("perfecto asi si").
+- Bugs B y C: pendiente de pasada manual (seleccionar una palabra y revisar contraste del panel copiar/pegar y aspecto del handle).
 
 Pendiente:
 
-- Ejecutar `./gradlew test` y `./gradlew build` (no disponibles en este entorno).
-- Pasada manual obligatoria: crear variante de ejercicio y comprobar seleccion de texto; seleccionar una palabra en cualquier campo y revisar contraste del panel copiar/pegar y aspecto del handle; escribir un peso tipo "22,5" y comprobar que no se corta.
+- Ejecutar `./gradlew test` y `./gradlew build` (no disponibles en este entorno: sin JVM).
+- Verificacion manual de bugs B y C.
 - Decidir si `refactor/ui-component-grouping` (base de esta rama) se mergea a `main` antes o despues de esta rama.
 
 ## 2026-06-17 - Compose experimental layout opt-in fix
