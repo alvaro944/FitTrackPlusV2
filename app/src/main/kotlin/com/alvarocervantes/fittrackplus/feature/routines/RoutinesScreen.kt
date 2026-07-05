@@ -674,6 +674,25 @@ private fun RoutineEditorContent(
     val imeBottom = with(LocalDensity.current) {
         WindowInsets.ime.getBottom(this).toDp()
     }
+    var exercisePendingRemoval by remember { mutableStateOf<PendingExerciseRemoval?>(null) }
+
+    exercisePendingRemoval?.let { pendingRemoval ->
+        FitTrackConfirmDialog(
+            title = "Eliminar ejercicio",
+            text = exerciseRemovalMessage(
+                exerciseIndex = pendingRemoval.exerciseIndex,
+                exerciseName = pendingRemoval.exerciseName
+            ),
+            confirmLabel = "Eliminar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onRemoveExercise(pendingRemoval.dayIndex, pendingRemoval.exerciseIndex)
+                exercisePendingRemoval = null
+            },
+            onDismiss = { exercisePendingRemoval = null },
+            destructive = true
+        )
+    }
 
     LazyColumn(
         state = listState,
@@ -755,7 +774,13 @@ private fun RoutineEditorContent(
                 onSetExerciseDefaultVariant = onSetExerciseDefaultVariant,
                 onDuplicateExercise = onDuplicateExercise,
                 onMoveExercise = onMoveExercise,
-                onRemoveExercise = onRemoveExercise
+                onRemoveExercise = { selectedDayIndex, selectedExerciseIndex, exerciseName ->
+                    exercisePendingRemoval = PendingExerciseRemoval(
+                        dayIndex = selectedDayIndex,
+                        exerciseIndex = selectedExerciseIndex,
+                        exerciseName = exerciseName
+                    )
+                }
             )
         }
 
@@ -827,7 +852,7 @@ private fun RoutineDayEditor(
     onSetExerciseDefaultVariant: (Int, Int, String?) -> Unit,
     onDuplicateExercise: (Int, Int) -> Unit,
     onMoveExercise: (Int, Int, MoveDirection) -> Unit,
-    onRemoveExercise: (Int, Int) -> Unit
+    onRemoveExercise: (Int, Int, String) -> Unit
 ) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -1014,7 +1039,7 @@ private fun RoutineExerciseEditor(
     onSetExerciseDefaultVariant: (Int, Int, String?) -> Unit,
     onDuplicateExercise: (Int, Int) -> Unit,
     onMoveExercise: (Int, Int, MoveDirection) -> Unit,
-    onRemoveExercise: (Int, Int) -> Unit
+    onRemoveExercise: (Int, Int, String) -> Unit
 ) {
     val currentSets = exercise.targetSets.toIntOrNull()?.coerceIn(1, 99) ?: 3
     val hasCustomReps = exercise.targetRepsText !in repsPresetOptions
@@ -1177,7 +1202,7 @@ private fun RoutineExerciseEditor(
                     )
                 }
                 IconButton(
-                    onClick = { onRemoveExercise(dayIndex, exerciseIndex) },
+                    onClick = { onRemoveExercise(dayIndex, exerciseIndex, exercise.name) },
                     enabled = canRemove,
                     modifier = Modifier.minimumInteractiveComponentSize()
                 ) {
@@ -1273,6 +1298,24 @@ private fun RoutineExerciseEditor(
                 showNotesDialog = true
             }
         )
+    }
+}
+
+private data class PendingExerciseRemoval(
+    val dayIndex: Int,
+    val exerciseIndex: Int,
+    val exerciseName: String
+)
+
+internal fun exerciseRemovalMessage(
+    exerciseIndex: Int,
+    exerciseName: String
+): String {
+    val trimmedName = exerciseName.trim()
+    return if (trimmedName.isNotEmpty()) {
+        "Se eliminara \"$trimmedName\" de la rutina. Esta accion no se puede deshacer."
+    } else {
+        "Se eliminara el ejercicio ${exerciseIndex + 1} de la rutina. Esta accion no se puede deshacer."
     }
 }
 

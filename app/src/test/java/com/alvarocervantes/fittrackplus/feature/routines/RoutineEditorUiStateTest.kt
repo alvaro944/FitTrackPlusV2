@@ -73,6 +73,28 @@ class RoutineEditorUiStateTest {
         assertEquals(null, collapsedAgain.expandedDayIndex)
     }
 
+    @Test
+    fun exerciseRemovalMessageUsesExerciseNameWhenPresent() {
+        assertEquals(
+            "Se eliminara \"Press banca\" de la rutina. Esta accion no se puede deshacer.",
+            exerciseRemovalMessage(
+                exerciseIndex = 1,
+                exerciseName = "Press banca"
+            )
+        )
+    }
+
+    @Test
+    fun exerciseRemovalMessageFallsBackToPositionWhenNameIsBlank() {
+        assertEquals(
+            "Se eliminara el ejercicio 3 de la rutina. Esta accion no se puede deshacer.",
+            exerciseRemovalMessage(
+                exerciseIndex = 2,
+                exerciseName = "   "
+            )
+        )
+    }
+
     private fun validEditor(
         routineName: String = "Push Pull Legs",
         dayName: String = "Push",
