@@ -17,7 +17,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.alvarocervantes.fittrackplus.core.design.components.FitTrackTextToolbarProvider
 
 val LightColors = lightColorScheme(
     primary = Color(0xFF1F6B57),
@@ -209,9 +208,8 @@ fun FitTrackPlusTheme(
             colorScheme = colorScheme,
             typography = AppTypography,
             shapes = AppShapes,
-        ) {
-            FitTrackTextToolbarProvider(content = content)
-        }
+            content = content
+        )
     }
 }
 

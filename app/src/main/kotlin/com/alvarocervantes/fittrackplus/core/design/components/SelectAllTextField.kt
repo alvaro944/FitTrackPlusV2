@@ -69,23 +69,25 @@ fun FitTrackSelectAllTextField(
         }
     }
 
-    OutlinedTextField(
-        value = fieldValue,
-        onValueChange = { newValue ->
-            fieldValue = newValue
-            onValueChange(newValue.text)
-        },
-        modifier = modifier.onFocusChanged { focusState ->
-            if (focusState.isFocused) {
-                fieldValue = maybeSelectAllOnFocusValue(fieldValue, selectAllOnFocus)
-            }
-        },
-        label = label,
-        placeholder = placeholder,
-        singleLine = singleLine,
-        minLines = minLines,
-        keyboardOptions = keyboardOptions,
-        colors = colors,
-        interactionSource = interactionSource
-    )
+    DisableNativeTextToolbar {
+        OutlinedTextField(
+            value = fieldValue,
+            onValueChange = { newValue ->
+                fieldValue = newValue
+                onValueChange(newValue.text)
+            },
+            modifier = modifier.onFocusChanged { focusState ->
+                if (focusState.isFocused) {
+                    fieldValue = maybeSelectAllOnFocusValue(fieldValue, selectAllOnFocus)
+                }
+            },
+            label = label,
+            placeholder = placeholder,
+            singleLine = singleLine,
+            minLines = minLines,
+            keyboardOptions = keyboardOptions,
+            colors = colors,
+            interactionSource = interactionSource
+        )
+    }
 }
