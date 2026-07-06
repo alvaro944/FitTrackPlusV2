@@ -208,14 +208,7 @@ class RoutinesViewModel @Inject constructor(
     fun addExerciseAlternative(dayIndex: Int, exerciseIndex: Int) {
         updateEditor { editor ->
             editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
-                exercise.copy(
-                    alternatives = exercise.alternatives + RoutineExerciseAlternativeEditorUiState(
-                        name = exercise.name,
-                        targetSets = exercise.targetSets,
-                        targetRepsText = exercise.targetRepsText,
-                        notes = exercise.notes
-                    )
-                )
+                exercise.withSeedAlternative()
             }
         }
     }
@@ -537,6 +530,31 @@ data class RoutineExerciseAlternativeEditorUiState(
         } else {
             "Usa 8, 8-12, AMRAP o RPE 8."
         }
+}
+
+internal fun RoutineExerciseEditorUiState.withSeedAlternative(): RoutineExerciseEditorUiState {
+    val seed = RoutineExerciseAlternativeEditorUiState(
+        name = name,
+        targetSets = targetSets,
+        targetRepsText = targetRepsText,
+        notes = notes
+    )
+    return if (alternatives.lastOrNull()?.isUntouchedSeedFor(this) == true) {
+        this
+    } else {
+        copy(alternatives = alternatives + seed)
+    }
+}
+
+private fun RoutineExerciseAlternativeEditorUiState.isUntouchedSeedFor(
+    exercise: RoutineExerciseEditorUiState
+): Boolean {
+    return alternativeId == null &&
+        variantKey == null &&
+        name == exercise.name &&
+        targetSets == exercise.targetSets &&
+        targetRepsText == exercise.targetRepsText &&
+        notes == exercise.notes
 }
 
 internal fun isValidTargetReps(value: String): Boolean {
