@@ -2158,3 +2158,11 @@ Verificacion:
 Pendiente:
 
 - validacion manual conjunta en dispositivo/emulador junto con el resto de 2.1B/2.1C
+
+## 2026-07-06 - Pendiente: toolbar de selección de texto en inputs Compose
+
+- Contexto: en campos de peso/reps y variantes, el menú flotante nativo de selección (`Copiar`, `Cortar`, `Seleccionar todo`) aparecía con fondo/texto muy claros y sin contraste en tema claro.
+- Intentos realizados: tema nativo con colores de action mode y toolbar propio global con `LocalTextToolbar`.
+- Resultado: el tema nativo no afectó al popup en el dispositivo probado; el toolbar propio global provocó parpadeos/apariciones intermitentes.
+- Decisión temporal: se desactiva el menú nativo en los inputs problemáticos para evitar el popup ilegible/parpadeante, manteniendo la selección/reemplazo del texto.
+- Deuda futura: implementar un toolbar de selección estable y acotado a inputs, con contraste correcto: en tema claro, barra oscura con texto claro; en tema oscuro, barra clara u otra combinación accesible. Validar manualmente en dispositivo real.
