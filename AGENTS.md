@@ -1,80 +1,72 @@
 # FitTrackPlus Agent Rules
 
-Estas reglas mantienen el proyecto coherente en sesiones futuras con IA.
+Reglas ligeras para trabajar cómodo en este proyecto. No conviertas cada tarea en un proceso SDD: SDD solo cuando se pida explícitamente o la feature sea grande.
 
-## Lectura Inicial
+## Idioma y tono
 
-Antes de editar codigo, revisar:
+- Respuestas al usuario en español de España. No usar voseo ni giros rioplatenses.
+- Artefactos técnicos, código, identificadores y comentarios de código en inglés salvo que el contexto pida otra cosa.
+- Documentación del proyecto en español claro, manteniendo el estilo existente del repo.
 
-1. `README.md`
-2. `docs/methodology/project-methodology/README.md`
-3. `docs/planning/project-plan.md`
-4. `docs/progress/project-progress.md`
-5. `docs/progress/phase-log.md`
-6. `docs/architecture/overview.md`
-7. `docs/methodology/work-methodology/README.md`
-8. El area concreta que se va a tocar
-
-## Idioma Y Tono
-
-- Respuestas al usuario en espanol de Espana. No usar voseo ni giros rioplatenses.
-- Artefactos tecnicos, codigo, identificadores y comentarios de codigo en ingles salvo que el contexto pida otra cosa.
-- Documentacion del proyecto en espanol claro, manteniendo el estilo existente del repo.
-
-## Ramas
+## Ramas y commits
 
 - No usar prefijos de agente o herramienta en nombres de rama.
-- Usar prefijos semanticos segun el tipo de trabajo: `feature/`, `bug/`, `fix/`, `refactor/`, `cherrypick/` o `docs/`.
-- El nombre de la rama debe describir lo que se toca, no quien lo ejecuta.
+- Usar prefijos semánticos: `feature/`, `bug/`, `fix/`, `refactor/`, `cherrypick/` o `docs/`.
+- El nombre de la rama debe describir lo que se toca, no quién lo ejecuta.
+- Commits con Conventional Commits, sin `Co-Authored-By` ni atribución IA.
 
-## Modo De Trabajo
+## Lectura inicial
 
-- Trabajar por fases pequenas.
+- No leer toda la documentación por defecto.
+- Para tareas normales, revisar solo el área afectada y los docs necesarios.
+- Para fases grandes, planificación o SDD, revisar los docs relevantes:
+  - `README.md`
+  - `docs/methodology/project-methodology/README.md`
+  - `docs/planning/project-plan.md`
+  - `docs/progress/project-progress.md`
+  - `docs/progress/phase-log.md`
+  - `docs/architecture/overview.md`
+  - `docs/methodology/work-methodology/README.md`
+
+## Modo de trabajo
+
+- Trabajar por cambios pequeños y acotados.
 - Usar una rama por fase cuando el workspace tenga git.
 - No mezclar refactors con features.
 - La v2 vive en `app/src/main/kotlin`.
 - `app/src/main/java` es legacy local y no forma parte del nuevo repo.
-- Mantener Firebase fuera del MVP hasta que el flujo local este cerrado.
-- Verificar antes de afirmar que algo esta terminado.
-- Al cerrar cada fase, actualizar `docs/methodology/project-methodology/` solo si aparece una regla general reusable; los aprendizajes especificos van a `docs/methodology/work-methodology/`.
-- Al cerrar cada fase, comentar al usuario que avances, docs y aprendizajes se han anotado.
-
-## OpenAI Y GPT-5.5
-
-- El repo no tiene integracion runtime con OpenAI en la app Android actual.
-- Si se anade una integracion OpenAI futura, usar `gpt-5.5` como modelo base para tareas complejas de razonamiento, codigo o agentes.
-- Usar Responses API como punto de partida para flujos con herramientas, razonamiento o contexto largo.
-- Empezar con `reasoning.effort = medium` para trabajo complejo; bajar a `low` o `none` solo si el flujo es simple, barato o sensible a latencia y las pruebas lo sostienen.
-- Mantener prompts cortos y orientados a resultado: objetivo, criterios de exito, restricciones, evidencia disponible y forma de salida.
-- No poner claves OpenAI en el cliente Android. Si aparece uso de API, disenar primero una capa backend o proxy seguro.
+- Mantener Firebase fuera del MVP hasta que el flujo local esté cerrado.
+- Verificar antes de afirmar que algo está terminado.
+- Subagentes solo para tareas grandes o independientes donde aporten valor real.
+- No lanzar emulador salvo petición explícita del usuario.
 
 ## Arquitectura
 
-- Compose no debe contener logica de negocio.
+- Compose no debe contener lógica de negocio.
 - ViewModels deben exponer estado observable y recibir eventos.
 - Repositorios ocultan Room/DataStore a la UI.
 - Casos de uso solo cuando encapsulan reglas reutilizables o importantes.
-- El historial se guarda como snapshot historico.
+- El historial se guarda como snapshot histórico.
 
-## Verificacion Minima
+## Verificación mínima
 
-Para cambios de codigo:
+Para cambios de código, usar los comandos disponibles en este entorno, normalmente:
 
-```powershell
-.\gradlew.bat test
-.\gradlew.bat build
+```bash
+./gradlew test
+./gradlew build
 ```
 
-Para cambios de UI, hacer tambien una pasada manual en emulador o dispositivo cuando sea posible.
+En Windows/PowerShell puede equivaler a:
 
-## Cierre De Fase
+```powershell
+.\\gradlew.bat test
+.\\gradlew.bat build
+```
 
-Antes de cerrar una fase:
+Para cambios de UI, hacer pasada manual en emulador o dispositivo solo cuando el usuario lo pida o cuando se acuerde explícitamente.
 
-- Revisar cambios.
-- Ejecutar verificacion minima.
-- Actualizar `docs/progress/project-progress.md`.
-- Actualizar `docs/progress/phase-log.md`.
-- Actualizar `docs/methodology/project-methodology/` si aparece una regla reusable.
-- Actualizar `docs/methodology/work-methodology/` si aparece un aprendizaje especifico de este repo.
-- Informar al usuario que se hizo, que se verifico y que queda pendiente.
+## Documentación de progreso
+
+- Actualizar docs de progreso/metodología solo cuando la tarea lo requiera o deje un aprendizaje reusable.
+- No mezclar cambios documentales ajenos con una feature o bugfix pequeño.
