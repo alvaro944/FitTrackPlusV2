@@ -22,6 +22,11 @@ fun selectAllOnFocusValue(current: TextFieldValue): TextFieldValue {
     return current.copy(selection = TextRange(0, current.text.length))
 }
 
+/** Applies select-all behavior only for fields where replacing the full value is desired. */
+fun maybeSelectAllOnFocusValue(current: TextFieldValue, selectAllOnFocus: Boolean): TextFieldValue {
+    return if (selectAllOnFocus) selectAllOnFocusValue(current) else current
+}
+
 /** Mirrors an external string into a [TextFieldValue], keeping the cursor at the end when the text changes externally. */
 fun syncTextFieldValue(current: TextFieldValue, externalText: String): TextFieldValue {
     return if (current.text == externalText) {
@@ -34,6 +39,7 @@ fun syncTextFieldValue(current: TextFieldValue, externalText: String): TextField
 /**
  * OutlinedTextField wrapper that selects all of its text when focused or tapped, so typing
  * over an existing value (e.g. "8" -> "10") replaces it instead of concatenating into it.
+ * Set [selectAllOnFocus] to false for free-text fields where caret placement is preferable.
  */
 @Composable
 fun FitTrackSelectAllTextField(
@@ -44,6 +50,7 @@ fun FitTrackSelectAllTextField(
     placeholder: @Composable (() -> Unit)? = null,
     singleLine: Boolean = true,
     minLines: Int = 1,
+    selectAllOnFocus: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     colors: TextFieldColors = OutlinedTextFieldDefaults.colors()
 ) {
@@ -57,28 +64,30 @@ fun FitTrackSelectAllTextField(
     LaunchedEffect(interactionSource) {
         interactionSource.interactions.collect { interaction ->
             if (interaction is PressInteraction.Release) {
-                fieldValue = selectAllOnFocusValue(fieldValue)
+                fieldValue = maybeSelectAllOnFocusValue(fieldValue, selectAllOnFocus)
             }
         }
     }
 
-    OutlinedTextField(
-        value = fieldValue,
-        onValueChange = { newValue ->
-            fieldValue = newValue
-            onValueChange(newValue.text)
-        },
-        modifier = modifier.onFocusChanged { focusState ->
-            if (focusState.isFocused) {
-                fieldValue = selectAllOnFocusValue(fieldValue)
-            }
-        },
-        label = label,
-        placeholder = placeholder,
-        singleLine = singleLine,
-        minLines = minLines,
-        keyboardOptions = keyboardOptions,
-        colors = colors,
-        interactionSource = interactionSource
-    )
+    DisableNativeTextToolbar {
+        OutlinedTextField(
+            value = fieldValue,
+            onValueChange = { newValue ->
+                fieldValue = newValue
+                onValueChange(newValue.text)
+            },
+            modifier = modifier.onFocusChanged { focusState ->
+                if (focusState.isFocused) {
+                    fieldValue = maybeSelectAllOnFocusValue(fieldValue, selectAllOnFocus)
+                }
+            },
+            label = label,
+            placeholder = placeholder,
+            singleLine = singleLine,
+            minLines = minLines,
+            keyboardOptions = keyboardOptions,
+            colors = colors,
+            interactionSource = interactionSource
+        )
+    }
 }

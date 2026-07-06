@@ -85,6 +85,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroTag
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import com.alvarocervantes.fittrackplus.core.design.components.ConfettiAnimation
+import com.alvarocervantes.fittrackplus.core.design.components.DisableNativeTextToolbar
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackStepper
 import com.alvarocervantes.fittrackplus.core.design.components.selectAllOnFocusValue
@@ -948,6 +949,7 @@ private fun ExerciseAlternativesDialog(
                     onValueChange = onDraftNameChange,
                     label = { Text("Nombre") },
                     singleLine = true,
+                    selectAllOnFocus = false,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
@@ -1034,26 +1036,28 @@ private fun WeightFieldColumn(
             incrementContentDescription = "Subir peso de la serie ${setId}",
             buttonContainer = true
         ) {
-            OutlinedTextField(
-                value = fieldValue,
-                onValueChange = { value ->
-                    fieldValue = value
-                    onSetWeightChange(setId, value.text)
-                },
-                placeholder = { Text("Kg") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                colors = workoutSetFieldColors(isCompleted = isCompleted),
-                interactionSource = interactionSource,
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 56.dp)
-                    .onFocusChanged { focusState ->
-                        if (focusState.isFocused) {
-                            fieldValue = selectAllOnFocusValue(fieldValue)
+            DisableNativeTextToolbar {
+                OutlinedTextField(
+                    value = fieldValue,
+                    onValueChange = { value ->
+                        fieldValue = value
+                        onSetWeightChange(setId, value.text)
+                    },
+                    placeholder = { Text("Kg") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    colors = workoutSetFieldColors(isCompleted = isCompleted),
+                    interactionSource = interactionSource,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 56.dp)
+                        .onFocusChanged { focusState ->
+                            if (focusState.isFocused) {
+                                fieldValue = selectAllOnFocusValue(fieldValue)
+                            }
                         }
-                    }
-            )
+                )
+            }
         }
         if (previousWeight != null) {
             Text(
@@ -1159,26 +1163,28 @@ private fun WorkoutSetRow(
                     incrementContentDescription = "Subir repeticiones de la serie ${set.setNumber}",
                     buttonContainer = true
                 ) {
-                    OutlinedTextField(
-                        value = repsFieldValue,
-                        onValueChange = { value ->
-                            repsFieldValue = value
-                            onSetRepsChange(set.id, value.text)
-                        },
-                        placeholder = { Text("Reps") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = workoutSetFieldColors(isCompleted = set.isCompleted),
-                        interactionSource = repsInteractionSource,
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = 56.dp)
-                            .onFocusChanged { focusState ->
-                                if (focusState.isFocused) {
-                                    repsFieldValue = selectAllOnFocusValue(repsFieldValue)
+                    DisableNativeTextToolbar {
+                        OutlinedTextField(
+                            value = repsFieldValue,
+                            onValueChange = { value ->
+                                repsFieldValue = value
+                                onSetRepsChange(set.id, value.text)
+                            },
+                            placeholder = { Text("Reps") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            colors = workoutSetFieldColors(isCompleted = set.isCompleted),
+                            interactionSource = repsInteractionSource,
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 56.dp)
+                                .onFocusChanged { focusState ->
+                                    if (focusState.isFocused) {
+                                        repsFieldValue = selectAllOnFocusValue(repsFieldValue)
+                                    }
                                 }
-                            }
-                    )
+                        )
+                    }
                 }
                 if (set.previousReps != null) {
                     Text(

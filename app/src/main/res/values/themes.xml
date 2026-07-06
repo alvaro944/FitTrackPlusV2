@@ -34,5 +34,10 @@
         <item name="colorControlActivated">@color/v2_emerald_primary</item>
         <item name="colorControlNormal">@color/v2_outline</item>
         <item name="android:textColorPrimary">@color/v2_on_surface</item>
+        <item name="android:textColorPrimaryInverse">@color/v2_action_mode_text</item>
+        <item name="android:textColorPrimaryInverseDisableOnly">@color/v2_action_mode_text</item>
+        <item name="android:textColorPrimaryInverseNoDisable">@color/v2_action_mode_text</item>
+        <item name="android:actionMenuTextColor">@color/v2_action_mode_text</item>
+        <item name="android:colorBackgroundFloating">@color/v2_action_mode_background</item>
     </style>
 </resources>
