@@ -18,4 +18,6 @@
     <color name="v2_copper_secondary">#C47A49</color>
     <color name="v2_outline">#D5D0C5</color>
     <color name="v2_on_surface">#161816</color>
+    <color name="v2_action_mode_background">#161816</color>
+    <color name="v2_action_mode_text">#FCFBF7</color>
 </resources>
