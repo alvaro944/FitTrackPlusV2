@@ -306,73 +306,49 @@ class WorkoutViewModel @Inject constructor(
 
     fun updateSetWeight(setId: Long, weightText: String) {
         val set = _uiState.value.activeSession?.findSet(setId) ?: return
-        val previousSetWasIncomplete = !isWorkoutSetCompleted(
-            weightText = set.weightText,
-            repsText = set.repsText
-        )
         val sanitizedWeightText = sanitizeWorkoutWeightInput(weightText)
-        val exercise = _uiState.value.activeSession?.exercises
-            ?.firstOrNull { ex -> ex.sets.any { it.id == setId } }
-        val shouldAutoStartTimer = shouldAutoStartRestTimerOnSetCompletion(
-            previousWeightText = set.weightText,
-            previousRepsText = set.repsText,
-            nextWeightText = sanitizedWeightText,
-            nextRepsText = set.repsText,
-            timer = _uiState.value.restTimer
-        )
         updateSetState(setId) {
-            it.copy(
-                weightText = sanitizedWeightText,
-                isCompleted = isWorkoutSetCompleted(sanitizedWeightText, it.repsText)
-            )
-        }
-        if (shouldAutoStartTimer) {
-            startRestTimer(_uiState.value.restTimer.durationSeconds.takeIf { it > 0 } ?: DEFAULT_REST_TIMER_SECONDS)
+            updateWorkoutSetWeightInput(it, sanitizedWeightText)
         }
         persistSet(
             setId = setId,
             weightText = sanitizedWeightText,
             repsText = set.repsText,
-            exerciseName = exercise?.name,
-            variantKey = exercise?.variantKey,
-            previousSetWasIncomplete = previousSetWasIncomplete
+            isCompleted = false
         )
     }
 
     fun updateSetReps(setId: Long, repsText: String) {
         val set = _uiState.value.activeSession?.findSet(setId) ?: return
-        val previousSetWasIncomplete = !isWorkoutSetCompleted(
-            weightText = set.weightText,
-            repsText = set.repsText
-        )
-        val exercise = _uiState.value.activeSession?.exercises
-            ?.firstOrNull { ex -> ex.sets.any { it.id == setId } }
-        val shouldAutoStartTimer = shouldAutoStartRestTimerOnSetCompletion(
-            previousWeightText = set.weightText,
-            previousRepsText = set.repsText,
-            nextWeightText = set.weightText,
-            nextRepsText = repsText,
-            timer = _uiState.value.restTimer
-        )
         updateSetState(setId) {
-            it.copy(
-                repsText = repsText,
-                isCompleted = isWorkoutSetCompleted(
-                    weightText = it.weightText,
-                    repsText = repsText
-                )
-            )
-        }
-        if (shouldAutoStartTimer) {
-            startRestTimer(_uiState.value.restTimer.durationSeconds.takeIf { it > 0 } ?: DEFAULT_REST_TIMER_SECONDS)
+            updateWorkoutSetRepsInput(it, repsText)
         }
         persistSet(
             setId = setId,
             weightText = set.weightText,
             repsText = repsText,
+            isCompleted = false
+        )
+    }
+
+    fun completeSet(setId: Long) {
+        val session = _uiState.value.activeSession ?: return
+        val set = session.findSet(setId) ?: return
+        if (!isWorkoutSetReadyToComplete(set.weightText, set.repsText, set.isCompleted)) return
+
+        val exercise = session.exercises.firstOrNull { ex -> ex.sets.any { it.id == setId } }
+        updateSetState(setId) { it.copy(isCompleted = true) }
+        if (shouldAutoStartRestTimerOnManualSetCompletion(_uiState.value.restTimer)) {
+            startRestTimer(_uiState.value.restTimer.durationSeconds.takeIf { it > 0 } ?: DEFAULT_REST_TIMER_SECONDS)
+        }
+        persistSet(
+            setId = setId,
+            weightText = set.weightText,
+            repsText = set.repsText,
             exerciseName = exercise?.name,
             variantKey = exercise?.variantKey,
-            previousSetWasIncomplete = previousSetWasIncomplete
+            previousSetWasIncomplete = true,
+            isCompleted = true
         )
     }
 
@@ -480,7 +456,8 @@ class WorkoutViewModel @Inject constructor(
         repsText: String,
         exerciseName: String? = null,
         variantKey: String? = null,
-        previousSetWasIncomplete: Boolean = false
+        previousSetWasIncomplete: Boolean = false,
+        isCompleted: Boolean? = null
     ) {
         viewModelScope.launch {
             runCatching {
@@ -489,10 +466,13 @@ class WorkoutViewModel @Inject constructor(
                     weightText = weightText,
                     repsText = repsText
                 )
+                if (isCompleted != null) {
+                    workoutRepository.updateSetCompletion(setId, isCompleted)
+                }
             }.onSuccess {
                 val reps = repsText.toIntOrNull() ?: 0
                 val weightKg = parseWorkoutWeightInput(weightText) ?: 0.0
-                if (previousSetWasIncomplete && isWorkoutSetCompleted(weightText, repsText)) {
+                if (previousSetWasIncomplete && isCompleted == true) {
                     _setCompletionHapticEvent.trySend(Unit)
                 }
                 if (previousSetWasIncomplete && exerciseName != null && variantKey != null) {
@@ -823,7 +803,7 @@ private fun WorkoutSessionWithExercises.toUiState(): ActiveWorkoutSessionUiState
                                 setNumber = set.setNumber,
                                 weightText = if (set.weightKg > 0.0) set.weightKg.toInputText() else "",
                                 repsText = if (set.reps > 0) set.reps.toString() else "",
-                                isCompleted = set.weightKg > 0.0 && set.reps > 0
+                                isCompleted = set.isCompleted
                             )
                         }
                 )
@@ -994,6 +974,22 @@ internal fun isWorkoutSetCompleted(weightText: String, repsText: String): Boolea
     return weightKg > 0.0 && reps > 0
 }
 
+internal fun isWorkoutSetReadyToComplete(
+    weightText: String,
+    repsText: String,
+    isCompleted: Boolean
+): Boolean {
+    return !isCompleted && isWorkoutSetCompleted(weightText, repsText)
+}
+
+internal fun updateWorkoutSetWeightInput(set: WorkoutSetUiState, weightText: String): WorkoutSetUiState {
+    return set.copy(weightText = weightText, isCompleted = false)
+}
+
+internal fun updateWorkoutSetRepsInput(set: WorkoutSetUiState, repsText: String): WorkoutSetUiState {
+    return set.copy(repsText = repsText, isCompleted = false)
+}
+
 internal fun shouldAutoStartRestTimerOnSetCompletion(
     previousWeightText: String,
     previousRepsText: String,
@@ -1006,4 +1002,10 @@ internal fun shouldAutoStartRestTimerOnSetCompletion(
     }
     return !isWorkoutSetCompleted(previousWeightText, previousRepsText) &&
         isWorkoutSetCompleted(nextWeightText, nextRepsText)
+}
+
+internal fun shouldAutoStartRestTimerOnManualSetCompletion(timer: RestTimerUiState): Boolean {
+    return timer.autoStartEnabled &&
+        timer.status != RestTimerStatus.Running &&
+        timer.status != RestTimerStatus.Paused
 }

@@ -3,6 +3,7 @@
 package com.alvarocervantes.fittrackplus.feature.workout
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -193,6 +194,7 @@ fun WorkoutScreen(
                 onFinishWorkout = { showFinishConfirmation = true },
                 onSetWeightChange = viewModel::updateSetWeight,
                 onSetRepsChange = viewModel::updateSetReps,
+                onCompleteSet = viewModel::completeSet,
                 onStepWeight = viewModel::stepSetWeight,
                 onStepReps = viewModel::stepSetReps,
                 onStartRestTimer = viewModel::startRestTimer,
@@ -254,6 +256,7 @@ private fun WorkoutContent(
     onFinishWorkout: () -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit,
     onStartRestTimer: (Int) -> Unit,
@@ -340,6 +343,7 @@ private fun WorkoutContent(
                         onToggleExpanded = onToggleExerciseExpanded,
                         onSetWeightChange = onSetWeightChange,
                         onSetRepsChange = onSetRepsChange,
+                        onCompleteSet = onCompleteSet,
                         onStepWeight = onStepWeight,
                         onStepReps = onStepReps
                     )
@@ -732,6 +736,7 @@ private fun WorkoutExerciseCard(
     onToggleExpanded: (Long) -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit
 ) {
@@ -824,6 +829,7 @@ private fun WorkoutExerciseCard(
                             set = set,
                             onSetWeightChange = onSetWeightChange,
                             onSetRepsChange = onSetRepsChange,
+                            onCompleteSet = onCompleteSet,
                             onStepWeight = onStepWeight,
                             onStepReps = onStepReps
                         )
@@ -1075,13 +1081,20 @@ private fun WorkoutSetRow(
     set: WorkoutSetUiState,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit
 ) {
-    val rowBackground = if (set.isCompleted) {
-        MaterialTheme.colorScheme.primarySoft
+    val isReadyToComplete = isWorkoutSetReadyToComplete(set.weightText, set.repsText, set.isCompleted)
+    val rowBackground = when {
+        set.isCompleted -> MaterialTheme.colorScheme.primarySoft
+        isReadyToComplete -> MaterialTheme.colorScheme.primarySoft.copy(alpha = 0.45f)
+        else -> MaterialTheme.colorScheme.surfaceAlt
+    }
+    val rowBorderColor = if (isReadyToComplete) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
     } else {
-        MaterialTheme.colorScheme.surfaceAlt
+        Color.Transparent
     }
     var repsFieldValue by remember(set.id) { mutableStateOf(TextFieldValue(set.repsText)) }
     val repsInteractionSource = remember { MutableInteractionSource() }
@@ -1106,41 +1119,17 @@ private fun WorkoutSetRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(rowBackground, MaterialTheme.shapes.large)
+                .border(width = 1.dp, color = rowBorderColor, shape = MaterialTheme.shapes.large)
                 .padding(FitSpacing.smMd),
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
             verticalAlignment = Alignment.Top
         ) {
-            Box(
-                modifier = Modifier
-                    .padding(top = 6.dp)
-                    .size(WORKOUT_SET_INDEX_SIZE)
-                    .background(
-                        color = if (set.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                        shape = CircleShape
-                    )
-                    .semantics {
-                        contentDescription = if (set.isCompleted) {
-                            "Serie ${set.setNumber} completada"
-                        } else {
-                            "Serie ${set.setNumber} pendiente"
-                        }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                if (set.isCompleted) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                } else {
-                    Text(
-                        text = set.setNumber.toString(),
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            }
+            WorkoutSetCompletionButton(
+                setNumber = set.setNumber,
+                isCompleted = set.isCompleted,
+                isReadyToComplete = isReadyToComplete,
+                onClick = { onCompleteSet(set.id) }
+            )
             WeightFieldColumn(
                 setId = set.id,
                 weightText = set.weightText,
@@ -1201,6 +1190,51 @@ private fun WorkoutSetRow(
                 label = if (set.prType == PrType.MaxWeight) "PR PESO" else "PR VOLUMEN",
                 tone = FitTrackBadgeTone.Warm,
                 modifier = Modifier.padding(start = FitSpacing.smMd, top = 2.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun WorkoutSetCompletionButton(
+    setNumber: Int,
+    isCompleted: Boolean,
+    isReadyToComplete: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor = when {
+        isCompleted -> MaterialTheme.colorScheme.primary
+        isReadyToComplete -> MaterialTheme.colorScheme.primarySoft
+        else -> MaterialTheme.colorScheme.surface
+    }
+    val borderColor = if (isReadyToComplete) MaterialTheme.colorScheme.primary else Color.Transparent
+    val contentDescription = when {
+        isCompleted -> "Serie $setNumber completada"
+        isReadyToComplete -> "Completar serie $setNumber"
+        else -> "Serie $setNumber pendiente"
+    }
+
+    Box(
+        modifier = Modifier
+            .padding(top = 6.dp)
+            .size(WORKOUT_SET_INDEX_SIZE)
+            .background(color = backgroundColor, shape = CircleShape)
+            .border(width = if (isReadyToComplete) 1.dp else 0.dp, color = borderColor, shape = CircleShape)
+            .clickable(enabled = isReadyToComplete, onClick = onClick)
+            .semantics { this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center
+    ) {
+        if (isCompleted) {
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(18.dp)
+            )
+        } else {
+            Text(
+                text = setNumber.toString(),
+                style = MaterialTheme.typography.labelLarge
             )
         }
     }

@@ -64,6 +64,30 @@ class WorkoutInputDefaultsTest {
     }
 
     @Test
+    fun workoutSetReadyToComplete_requiresInputsAndNotCompleted() {
+        assertFalse(isWorkoutSetReadyToComplete(weightText = "", repsText = "10", isCompleted = false))
+        assertFalse(isWorkoutSetReadyToComplete(weightText = "20", repsText = "10", isCompleted = true))
+        assertTrue(isWorkoutSetReadyToComplete(weightText = "20", repsText = "10", isCompleted = false))
+    }
+
+    @Test
+    fun updateWorkoutSetInput_keepsSetUncompletedWhenInputsBecomeReady() {
+        val set = WorkoutSetUiState(
+            id = 1,
+            setNumber = 1,
+            weightText = "",
+            repsText = "10",
+            isCompleted = false
+        )
+
+        val result = updateWorkoutSetWeightInput(set, weightText = "60")
+
+        assertEquals("60", result.weightText)
+        assertFalse(result.isCompleted)
+        assertTrue(isWorkoutSetReadyToComplete(result.weightText, result.repsText, result.isCompleted))
+    }
+
+    @Test
     fun shouldAutoStartRestTimerOnSetCompletion_onlyTriggersWhenLastFieldCompletesSet() {
         val timer = RestTimerUiState(autoStartEnabled = true)
 
@@ -92,6 +116,17 @@ class WorkoutInputDefaultsTest {
                 nextWeightText = "25",
                 nextRepsText = "10",
                 timer = timer
+            )
+        )
+    }
+
+    @Test
+    fun shouldAutoStartRestTimerOnManualSetCompletion_respectsAutoStartAndTimerStatus() {
+        assertTrue(shouldAutoStartRestTimerOnManualSetCompletion(RestTimerUiState(autoStartEnabled = true)))
+        assertFalse(shouldAutoStartRestTimerOnManualSetCompletion(RestTimerUiState(autoStartEnabled = false)))
+        assertFalse(
+            shouldAutoStartRestTimerOnManualSetCompletion(
+                RestTimerUiState(autoStartEnabled = true, status = RestTimerStatus.Running)
             )
         )
     }

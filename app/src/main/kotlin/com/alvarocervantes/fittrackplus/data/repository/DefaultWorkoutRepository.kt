@@ -113,7 +113,7 @@ class DefaultWorkoutRepository @Inject constructor(
         return database.withTransaction {
             val workoutExercise = workoutDao.getExercise(workoutExerciseId) ?: return@withTransaction false
             val currentSets = workoutDao.getSetsForExercise(workoutExerciseId)
-            val hasRecordedData = currentSets.any { it.weightKg > 0.0 || it.reps > 0 }
+            val hasRecordedData = currentSets.any { it.weightKg > 0.0 || it.reps > 0 || it.isCompleted }
             if (hasRecordedData) {
                 return@withTransaction false
             }
@@ -145,9 +145,15 @@ class DefaultWorkoutRepository @Inject constructor(
         workoutDao.updateSet(
             set.copy(
                 weightKg = weightKg.coerceAtLeast(0.0),
-                reps = reps.coerceAtLeast(0)
+                reps = reps.coerceAtLeast(0),
+                isCompleted = false
             )
         )
+    }
+
+    override suspend fun updateSetCompletion(setId: Long, isCompleted: Boolean) {
+        val set = workoutDao.getSet(setId) ?: return
+        workoutDao.updateSet(set.copy(isCompleted = isCompleted))
     }
 
     override suspend fun finishSession(sessionId: Long, notes: String?) {
