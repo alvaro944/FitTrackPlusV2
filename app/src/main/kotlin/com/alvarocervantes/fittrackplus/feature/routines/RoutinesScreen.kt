@@ -1375,6 +1375,7 @@ private fun ExerciseAlternativesEditorDialog(
                                     onValueChange = { onAlternativeNameChange(index, it) },
                                     label = { Text("Nombre") },
                                     singleLine = true,
+                                    selectAllOnFocus = false,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {

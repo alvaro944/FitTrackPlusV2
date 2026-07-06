@@ -2,6 +2,7 @@ package com.alvarocervantes.fittrackplus.feature.workout
 
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import com.alvarocervantes.fittrackplus.core.design.components.maybeSelectAllOnFocusValue
 import com.alvarocervantes.fittrackplus.core.design.components.selectAllOnFocusValue
 import com.alvarocervantes.fittrackplus.core.design.components.syncTextFieldValue
 import org.junit.Assert.assertEquals
@@ -218,6 +219,19 @@ class WorkoutInputDefaultsTest {
         )
 
         assertEquals(TextRange(0, 3), result.selection)
+    }
+
+    @Test
+    fun maybeSelectAllOnFocusValue_keepsCaretWhenSelectAllIsDisabled() {
+        val result = maybeSelectAllOnFocusValue(
+            current = TextFieldValue(
+                text = "Bench Press",
+                selection = TextRange(5, 5)
+            ),
+            selectAllOnFocus = false
+        )
+
+        assertEquals(TextRange(5, 5), result.selection)
     }
 
     @Test

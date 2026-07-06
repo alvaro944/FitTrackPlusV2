@@ -948,6 +948,7 @@ private fun ExerciseAlternativesDialog(
                     onValueChange = onDraftNameChange,
                     label = { Text("Nombre") },
                     singleLine = true,
+                    selectAllOnFocus = false,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
