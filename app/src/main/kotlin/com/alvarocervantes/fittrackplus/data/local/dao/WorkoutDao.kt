@@ -90,6 +90,7 @@ interface WorkoutDao {
         INNER JOIN workout_sessions sess ON we.sessionId = sess.id
         WHERE we.performedVariantKey = :variantKey
         AND sess.finishedAt IS NOT NULL
+        AND ws.isCompleted = 1
         AND ws.setNumber = :setNumber
         ORDER BY sess.startedAt DESC
         LIMIT 1
@@ -102,6 +103,7 @@ interface WorkoutDao {
         INNER JOIN workout_sessions sess ON we.sessionId = sess.id
         WHERE we.performedVariantKey = :variantKey
         AND sess.finishedAt IS NOT NULL
+        AND ws.isCompleted = 1
         AND ws.setNumber = :setNumber
         ORDER BY sess.startedAt DESC
         LIMIT 1
@@ -114,6 +116,7 @@ interface WorkoutDao {
         INNER JOIN workout_sessions sess ON we.sessionId = sess.id
         WHERE we.performedVariantKey = :variantKey
         AND sess.finishedAt IS NOT NULL
+        AND ws.isCompleted = 1
         AND ws.reps > 0
     """)
     suspend fun getMaxWeightForExercise(variantKey: String): Double?
@@ -124,6 +127,7 @@ interface WorkoutDao {
         INNER JOIN workout_sessions sess ON we.sessionId = sess.id
         WHERE we.performedVariantKey = :variantKey
         AND sess.finishedAt IS NOT NULL
+        AND ws.isCompleted = 1
         AND ws.reps > 0
         AND ws.weightKg > 0
     """)
@@ -135,6 +139,7 @@ interface WorkoutDao {
         INNER JOIN workout_sessions sess ON we.sessionId = sess.id
         WHERE we.performedVariantKey = :variantKey
         AND sess.finishedAt IS NOT NULL
+        AND ws.isCompleted = 1
         AND ws.reps > 0
         GROUP BY sess.id
         ORDER BY sess.finishedAt DESC, sess.startedAt DESC

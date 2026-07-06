@@ -2166,3 +2166,10 @@ Pendiente:
 - Resultado: el tema nativo no afectó al popup en el dispositivo probado; el toolbar propio global provocó parpadeos/apariciones intermitentes.
 - Decisión temporal: se desactiva el menú nativo en los inputs problemáticos para evitar el popup ilegible/parpadeante, manteniendo la selección/reemplazo del texto.
 - Deuda futura: implementar un toolbar de selección estable y acotado a inputs, con contraste correcto: en tema claro, barra oscura con texto claro; en tema oscuro, barra clara u otra combinación accesible. Validar manualmente en dispositivo real.
+
+## 2026-07-06 - Confirmacion manual de series durante entrenamiento
+
+- Cambio: rellenar peso y repeticiones deja la serie en estado "lista para completar", pero ya no la marca como completada automaticamente.
+- Confirmacion: el circulo numerado de la serie pasa a ser accion tactil cuando los dos campos son validos; al tocarlo se completa la serie, se actualiza el contador, se dispara haptic/PR y se respeta el auto-start del descanso.
+- Persistencia: `workout_sets` gana `isCompleted` con migracion Room 2→3 para que refrescar la sesion no reconstruya completado solo por tener peso/reps.
+- Pendiente: validacion manual en dispositivo durante un entrenamiento real.

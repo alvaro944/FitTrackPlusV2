@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.alvarocervantes.fittrackplus.core.database.FitTrackPlusDatabase
 import com.alvarocervantes.fittrackplus.core.database.MIGRATION_1_2
+import com.alvarocervantes.fittrackplus.core.database.MIGRATION_2_3
 import com.alvarocervantes.fittrackplus.data.local.dao.RoutineDao
 import com.alvarocervantes.fittrackplus.data.local.dao.WorkoutDao
 import dagger.Module
@@ -25,7 +26,7 @@ object DatabaseModule {
             context,
             FitTrackPlusDatabase::class.java,
             "fittrackplus_v2.db"
-        ).addMigrations(MIGRATION_1_2).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
     }
 
     @Provides
