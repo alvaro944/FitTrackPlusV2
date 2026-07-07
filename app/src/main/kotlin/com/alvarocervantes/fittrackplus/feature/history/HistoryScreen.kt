@@ -30,6 +30,10 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,7 +47,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -95,6 +101,7 @@ fun HistoryScreen(
             onBackToList = viewModel::requestBackToList,
             onPeriodFilterChange = viewModel::setPeriodFilter,
             onSortOrderChange = viewModel::setSortOrder,
+            onRoutineFilterChange = viewModel::setRoutineFilter,
             onToggleEditMode = viewModel::toggleEditMode,
             onSetWeightChange = viewModel::updateSetWeight,
             onSetRepsChange = viewModel::updateSetReps,
@@ -113,6 +120,7 @@ private fun HistoryContent(
     onBackToList: () -> Unit,
     onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
     onSortOrderChange: (HistorySortOrder) -> Unit,
+    onRoutineFilterChange: (String?) -> Unit,
     onToggleEditMode: () -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
@@ -151,7 +159,8 @@ private fun HistoryContent(
                 contentPadding = contentPadding,
                 onSessionClick = onSessionClick,
                 onPeriodFilterChange = onPeriodFilterChange,
-                onSortOrderChange = onSortOrderChange
+                onSortOrderChange = onSortOrderChange,
+                onRoutineFilterChange = onRoutineFilterChange
             )
         }
     }
@@ -163,7 +172,8 @@ private fun HistoryListContent(
     contentPadding: PaddingValues,
     onSessionClick: (Long) -> Unit,
     onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
-    onSortOrderChange: (HistorySortOrder) -> Unit
+    onSortOrderChange: (HistorySortOrder) -> Unit,
+    onRoutineFilterChange: (String?) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -189,8 +199,11 @@ private fun HistoryListContent(
                 HistoryFilterControls(
                     selectedPeriod = state.selectedPeriod,
                     selectedSort = state.selectedSort,
+                    selectedRoutineName = state.selectedRoutineName,
+                    availableRoutineNames = state.availableRoutineNames,
                     onPeriodFilterChange = onPeriodFilterChange,
-                    onSortOrderChange = onSortOrderChange
+                    onSortOrderChange = onSortOrderChange,
+                    onRoutineFilterChange = onRoutineFilterChange
                 )
             }
         }
@@ -216,7 +229,7 @@ private fun HistoryListContent(
                     FitTrackEmptyState(
                         icon = Icons.Filled.History,
                         title = "Sin sesiones para este filtro",
-                        message = "Cambia el periodo o el orden para ver mas sesiones.",
+                        message = "Cambia el periodo o la rutina para ver mas sesiones.",
                         supporting = "El historial completo sigue guardado."
                     )
                 }
@@ -244,8 +257,11 @@ private fun HistoryListContent(
 private fun HistoryFilterControls(
     selectedPeriod: HistoryPeriodFilter,
     selectedSort: HistorySortOrder,
+    selectedRoutineName: String?,
+    availableRoutineNames: List<String>,
     onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
-    onSortOrderChange: (HistorySortOrder) -> Unit
+    onSortOrderChange: (HistorySortOrder) -> Unit,
+    onRoutineFilterChange: (String?) -> Unit
 ) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
@@ -278,6 +294,68 @@ private fun HistoryFilterControls(
                         label = { Text(sort.label) }
                     )
                 }
+            }
+            FitTrackSectionLabel(label = "Rutina")
+            RoutineFilterDropdown(
+                selectedRoutineName = selectedRoutineName,
+                availableRoutineNames = availableRoutineNames,
+                onRoutineFilterChange = onRoutineFilterChange
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RoutineFilterDropdown(
+    selectedRoutineName: String?,
+    availableRoutineNames: List<String>,
+    onRoutineFilterChange: (String?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val allRoutinesLabel = "Todas las rutinas"
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        OutlinedTextField(
+            value = selectedRoutineName ?: allRoutinesLabel,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            label = { Text("Rutina") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text(allRoutinesLabel) },
+                onClick = {
+                    onRoutineFilterChange(null)
+                    expanded = false
+                }
+            )
+            availableRoutineNames.forEach { routineName ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = routineName,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    onClick = {
+                        onRoutineFilterChange(routineName)
+                        expanded = false
+                    }
+                )
             }
         }
     }

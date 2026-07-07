@@ -14,6 +14,8 @@ import com.alvarocervantes.fittrackplus.domain.usecase.UpdateWorkoutSetUseCase
 import com.alvarocervantes.fittrackplus.feature.workout.parseWorkoutWeightInput
 import com.alvarocervantes.fittrackplus.feature.workout.sanitizeWorkoutWeightInput
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.text.Collator
+import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,6 +56,7 @@ class HistoryViewModel @Inject constructor(
                         sessions = allSessions.applyHistoryFilters(
                             period = state.selectedPeriod,
                             sort = state.selectedSort,
+                            selectedRoutineName = state.selectedRoutineName,
                             nowMillis = System.currentTimeMillis()
                         ),
                         selectedSessionId = nextSelectedId,
@@ -274,6 +277,7 @@ class HistoryViewModel @Inject constructor(
                 sessions = state.allSessions.applyHistoryFilters(
                     period = period,
                     sort = state.selectedSort,
+                    selectedRoutineName = state.selectedRoutineName,
                     nowMillis = System.currentTimeMillis()
                 )
             )
@@ -287,6 +291,21 @@ class HistoryViewModel @Inject constructor(
                 sessions = state.allSessions.applyHistoryFilters(
                     period = state.selectedPeriod,
                     sort = sort,
+                    selectedRoutineName = state.selectedRoutineName,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    fun setRoutineFilter(routineName: String?) {
+        _uiState.update { state ->
+            state.copy(
+                selectedRoutineName = routineName,
+                sessions = state.allSessions.applyHistoryFilters(
+                    period = state.selectedPeriod,
+                    sort = state.selectedSort,
+                    selectedRoutineName = routineName,
                     nowMillis = System.currentTimeMillis()
                 )
             )
@@ -301,12 +320,15 @@ data class HistoryUiState(
     val sessions: List<HistorySessionUiState> = emptyList(),
     val selectedPeriod: HistoryPeriodFilter = HistoryPeriodFilter.All,
     val selectedSort: HistorySortOrder = HistorySortOrder.Recent,
+    val selectedRoutineName: String? = null,
     val selectedSessionId: Long? = null,
     val selectedDetail: HistoryDetailUiState? = null,
     val isEditMode: Boolean = false,
     val pendingEditExit: HistoryEditExitAction? = null,
     val message: String? = null
-)
+) {
+    val availableRoutineNames: List<String> = allSessions.availableRoutineNames()
+}
 
 enum class HistoryEditExitAction {
     FinishEditing,
@@ -430,9 +452,20 @@ private fun WorkoutHistorySummary.toUiState(): HistorySessionUiState {
 fun List<HistorySessionUiState>.applyHistoryFilters(
     period: HistoryPeriodFilter,
     sort: HistorySortOrder,
-    nowMillis: Long
+    nowMillis: Long,
+    selectedRoutineName: String? = null
 ): List<HistorySessionUiState> {
-    return filterByPeriod(period, nowMillis).sortByOrder(sort)
+    return filterByPeriod(period, nowMillis)
+        .filterByRoutine(selectedRoutineName)
+        .sortByOrder(sort)
+}
+
+fun List<HistorySessionUiState>.availableRoutineNames(): List<String> {
+    val spanishCollator = Collator.getInstance(Locale("es", "ES"))
+    return map { session -> session.routineName.trim() }
+        .filter { routineName -> routineName.isNotBlank() }
+        .distinct()
+        .sortedWith(spanishCollator)
 }
 
 private fun List<HistorySessionUiState>.filterByPeriod(
@@ -445,6 +478,13 @@ private fun List<HistorySessionUiState>.filterByPeriod(
         HistoryPeriodFilter.LastTwelveWeeks -> nowMillis - 12 * 7 * DAY_MILLIS
     }
     return filter { session -> session.finishedAt >= cutoff }
+}
+
+private fun List<HistorySessionUiState>.filterByRoutine(
+    selectedRoutineName: String?
+): List<HistorySessionUiState> {
+    val routineName = selectedRoutineName?.trim()?.takeIf { it.isNotBlank() } ?: return this
+    return filter { session -> session.routineName == routineName }
 }
 
 private fun List<HistorySessionUiState>.sortByOrder(sort: HistorySortOrder): List<HistorySessionUiState> {
