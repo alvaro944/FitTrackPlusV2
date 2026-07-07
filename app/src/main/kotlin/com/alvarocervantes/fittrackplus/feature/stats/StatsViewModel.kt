@@ -249,6 +249,8 @@ data class StatsUiState(
     val focusedSessionVolumes: List<SessionVolumeUiState> = sessionVolumes
         .filter { session -> selectedRoutineName == null || session.routineName == selectedRoutineName }
         .filter { session -> selectedDayName == null || session.dayName == selectedDayName }
+    val focusedSessionVolumesChronological: List<SessionVolumeUiState> = focusedSessionVolumes
+        .sortedBy { session -> session.finishedAt }
     val focusedExerciseProgress: List<ExerciseProgressUiState> = exerciseProgress
         .filter { progress -> selectedRoutineName == null || progress.routineName == selectedRoutineName }
         .filter { progress -> selectedDayName == null || progress.dayName == selectedDayName }
@@ -257,6 +259,10 @@ data class StatsUiState(
         .filter { records -> selectedRoutineName == null || records.routineName == selectedRoutineName }
         .filter { records -> selectedDayName == null || records.dayName == selectedDayName }
         .sortedWith(compareBy<ExerciseRecordsUiState> { it.exercisePosition }.thenBy { it.exerciseName })
+    val selectedExerciseProgress: ExerciseProgressUiState? = selectedExerciseScopeKey
+        ?.let { scopeKey -> focusedExerciseProgress.firstOrNull { progress -> progress.scopeKey == scopeKey } }
+    val selectedExerciseRecords: ExerciseRecordsUiState? = selectedExerciseScopeKey
+        ?.let { scopeKey -> focusedExerciseRecords.firstOrNull { records -> records.scopeKey == scopeKey } }
 }
 
 data class SessionVolumeUiState(

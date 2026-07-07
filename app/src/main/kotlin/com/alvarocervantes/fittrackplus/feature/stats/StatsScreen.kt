@@ -233,28 +233,25 @@ private fun StatsContent(
                     }
                 }
 
-                item { FitTrackSectionLabel(label = "Volumen por sesion") }
-                items(
-                    items = state.focusedSessionVolumes,
-                    key = { session -> session.sessionId }
-                ) { session ->
-                    SessionVolumeCard(session = session)
+                if (state.focusedSessionVolumesChronological.isNotEmpty()) {
+                    item { FitTrackSectionLabel(label = "Volumen por sesion") }
+                    item {
+                        SessionVolumeTrendCard(sessions = state.focusedSessionVolumesChronological)
+                    }
                 }
 
-                item { FitTrackSectionLabel(label = "Progreso por ejercicio") }
-                items(
-                    items = state.focusedExerciseProgress,
-                    key = { progress -> progress.scopeKey }
-                ) { progress ->
-                    ExerciseProgressCard(progress = progress)
+                state.selectedExerciseProgress?.let { progress ->
+                    item { FitTrackSectionLabel(label = "Progreso del ejercicio") }
+                    item {
+                        ExerciseProgressCard(progress = progress)
+                    }
                 }
 
-                item { FitTrackSectionLabel(label = "Mejores marcas") }
-                items(
-                    items = state.focusedExerciseRecords,
-                    key = { records -> records.scopeKey }
-                ) { records ->
-                    ExerciseRecordsCard(records = records)
+                state.selectedExerciseRecords?.let { records ->
+                    item { FitTrackSectionLabel(label = "Mejores marcas") }
+                    item {
+                        ExerciseRecordsCard(records = records)
+                    }
                 }
             }
         }
@@ -546,39 +543,78 @@ private fun ConsistencyDayCell(
 }
 
 @Composable
-private fun SessionVolumeCard(session: SessionVolumeUiState) {
+private fun SessionVolumeTrendCard(sessions: List<SessionVolumeUiState>) {
+    val first = sessions.firstOrNull()
+    val last = sessions.lastOrNull()
+    val delta = if (first != null && last != null) last.totalVolumeKg - first.totalVolumeKg else 0.0
+    val selectedSessions = sessions.takeLast(8)
+
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
             ) {
                 Text(
-                    text = session.routineName,
+                    text = "Tendencia de volumen",
                     style = MaterialTheme.typography.titleLarge,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = session.dayName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = formatDate(session.finishedAt),
+                    text = "${sessions.size} sesiones registradas",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             FitTrackMetric(
-                value = session.totalVolumeKg.toDisplayText(),
+                value = last?.totalVolumeKg?.toDisplayText() ?: "0",
                 unit = "kg",
-                label = "volumen",
+                label = "ultima",
                 accent = FitTrackMetricAccent.Primary,
                 compact = true
+            )
+        }
+
+        if (selectedSessions.size >= 2) {
+            LineChart(
+                points = selectedSessions.map { session -> session.finishedAt to session.totalVolumeKg.toFloat() },
+                pointLabels = selectedSessions.map { session -> session.totalVolumeKg.toDisplayText() },
+                xAxisLabels = selectedSessions.map { session -> formatChartDate(session.finishedAt) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+            )
+        } else {
+            Text(
+                text = "Se necesitan al menos 2 sesiones para ver tendencia.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = first?.let { "Inicio ${it.totalVolumeKg.toDisplayText()} kg" } ?: "Sin datos",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = when {
+                    delta > 0.0 -> "+${delta.toDisplayText()} kg"
+                    delta < 0.0 -> "${delta.toDisplayText()} kg"
+                    else -> "sin cambio"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (delta >= 0.0) MaterialTheme.colorScheme.accentWarm
+                else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

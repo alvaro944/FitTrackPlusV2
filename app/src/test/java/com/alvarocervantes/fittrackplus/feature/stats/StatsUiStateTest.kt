@@ -174,6 +174,53 @@ class StatsUiStateTest {
         assertEquals(2, state.exerciseCount)
     }
 
+    @Test
+    fun selectedExerciseLimitsProgressAndRecordsDetail() {
+        val state = sampleStatsUiState(
+            exerciseProgress = listOf(
+                sampleExerciseProgress(
+                    scopeKey = "alvaro|pierna|squat",
+                    routineName = "Rutina Álvaro",
+                    dayName = "Pierna",
+                    exerciseName = "Sentadilla",
+                    exercisePosition = 0
+                ),
+                sampleExerciseProgress(
+                    scopeKey = "alvaro|pierna|rdl",
+                    routineName = "Rutina Álvaro",
+                    dayName = "Pierna",
+                    exerciseName = "Peso muerto rumano",
+                    exercisePosition = 1
+                )
+            ),
+            exerciseRecords = listOf(
+                sampleExerciseRecords("alvaro|pierna|squat", "Rutina Álvaro", "Pierna", "Sentadilla", 0),
+                sampleExerciseRecords("alvaro|pierna|rdl", "Rutina Álvaro", "Pierna", "Peso muerto rumano", 1)
+            )
+        ).copy(
+            selectedRoutineName = "Rutina Álvaro",
+            selectedDayName = "Pierna",
+            selectedExerciseScopeKey = "alvaro|pierna|rdl",
+            selectedExerciseName = "Peso muerto rumano"
+        )
+
+        assertEquals("Peso muerto rumano", state.selectedExerciseProgress?.exerciseName)
+        assertEquals("Peso muerto rumano", state.selectedExerciseRecords?.exerciseName)
+    }
+
+    @Test
+    fun focusedSessionVolumesAreChronologicalForTrendCharts() {
+        val state = sampleStatsUiState(
+            sessionVolumes = listOf(
+                sessionVolume(3),
+                sessionVolume(1),
+                sessionVolume(2)
+            )
+        )
+
+        assertEquals(listOf(1L, 2L, 3L), state.focusedSessionVolumesChronological.map { it.sessionId })
+    }
+
     private fun sampleState(
         selectedPeriod: WorkoutStatsPeriod = WorkoutStatsPeriod.All,
         selectedExerciseName: String? = null,
