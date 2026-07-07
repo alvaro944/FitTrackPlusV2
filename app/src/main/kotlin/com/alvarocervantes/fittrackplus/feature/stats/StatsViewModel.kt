@@ -15,9 +15,11 @@ import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHeatmapUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutStatsUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ReadDailyStepsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.text.Collator
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
+import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -129,6 +131,35 @@ class StatsViewModel @Inject constructor(
         }
     }
 
+    fun selectRoutine(routineName: String) {
+        _uiState.update { state ->
+            state.copy(
+                selectedRoutineName = routineName,
+                selectedDayName = null,
+                selectedExerciseScopeKey = null,
+                selectedExerciseName = null,
+                selectedProgressPoint = null
+            ).withValidFocusSelection()
+        }
+    }
+
+    fun selectDay(dayName: String) {
+        _uiState.update { state ->
+            state.copy(
+                selectedDayName = dayName,
+                selectedExerciseScopeKey = null,
+                selectedExerciseName = null,
+                selectedProgressPoint = null
+            ).withValidFocusSelection()
+        }
+    }
+
+    fun selectExerciseScope(scopeKey: String) {
+        _uiState.update { state ->
+            state.withSelectedExerciseScope(scopeKey)
+        }
+    }
+
     fun selectProgressPoint(sessionId: Long) {
         _uiState.update { state ->
             state.withSelectedProgressPoint(sessionId)
@@ -178,6 +209,9 @@ data class StatsUiState(
     val exerciseProgress: List<ExerciseProgressUiState> = emptyList(),
     val exerciseRecords: List<ExerciseRecordsUiState> = emptyList(),
     val selectedPeriod: WorkoutStatsPeriod = WorkoutStatsPeriod.All,
+    val selectedRoutineName: String? = null,
+    val selectedDayName: String? = null,
+    val selectedExerciseScopeKey: String? = null,
     val selectedExerciseName: String? = null,
     val progressPoints: List<ProgressChartPointUiState> = emptyList(),
     val selectedProgressPoint: ProgressChartPointUiState? = null,
@@ -189,6 +223,28 @@ data class StatsUiState(
     val isEmpty: Boolean = sessionVolumes.isEmpty() &&
         exerciseProgress.isEmpty() &&
         exerciseRecords.isEmpty()
+    val availableRoutineNames: List<String> = sessionVolumes
+        .map { session -> session.routineName.trim() }
+        .filter { name -> name.isNotBlank() }
+        .distinct()
+        .sortedWith(spanishCollator())
+    val availableDayNames: List<String> = sessionVolumes
+        .filter { session -> selectedRoutineName == null || session.routineName == selectedRoutineName }
+        .map { session -> session.dayName.trim() }
+        .filter { name -> name.isNotBlank() }
+        .distinct()
+        .sortedWith(spanishCollator())
+    val focusedSessionVolumes: List<SessionVolumeUiState> = sessionVolumes
+        .filter { session -> selectedRoutineName == null || session.routineName == selectedRoutineName }
+        .filter { session -> selectedDayName == null || session.dayName == selectedDayName }
+    val focusedExerciseProgress: List<ExerciseProgressUiState> = exerciseProgress
+        .filter { progress -> selectedRoutineName == null || progress.routineName == selectedRoutineName }
+        .filter { progress -> selectedDayName == null || progress.dayName == selectedDayName }
+        .sortedWith(compareBy<ExerciseProgressUiState> { it.exercisePosition }.thenBy { it.exerciseName })
+    val focusedExerciseRecords: List<ExerciseRecordsUiState> = exerciseRecords
+        .filter { records -> selectedRoutineName == null || records.routineName == selectedRoutineName }
+        .filter { records -> selectedDayName == null || records.dayName == selectedDayName }
+        .sortedWith(compareBy<ExerciseRecordsUiState> { it.exercisePosition }.thenBy { it.exerciseName })
 }
 
 data class SessionVolumeUiState(
@@ -201,7 +257,11 @@ data class SessionVolumeUiState(
 
 data class ExerciseProgressUiState(
     val exerciseKey: String,
+    val scopeKey: String = exerciseKey,
+    val routineName: String = "",
+    val dayName: String = "",
     val exerciseName: String,
+    val exercisePosition: Int = Int.MAX_VALUE,
     val entries: List<ExerciseProgressEntryUiState>
 )
 
@@ -225,7 +285,11 @@ data class ProgressChartPointUiState(
 
 data class ExerciseRecordsUiState(
     val exerciseKey: String,
+    val scopeKey: String = exerciseKey,
+    val routineName: String = "",
+    val dayName: String = "",
     val exerciseName: String,
+    val exercisePosition: Int = Int.MAX_VALUE,
     val maxWeight: ExerciseSetRecordUiState?,
     val maxReps: ExerciseSetRecordUiState?,
     val bestSetVolume: ExerciseSetRecordUiState?,
@@ -267,7 +331,11 @@ private fun WorkoutSessionVolume.toUiState(): SessionVolumeUiState {
 private fun ExerciseProgress.toUiState(): ExerciseProgressUiState {
     return ExerciseProgressUiState(
         exerciseKey = exerciseKey,
+        scopeKey = scopeKey,
+        routineName = routineName,
+        dayName = dayName,
         exerciseName = exerciseName,
+        exercisePosition = exercisePosition,
         entries = entries.map { it.toUiState() }
     )
 }
@@ -286,7 +354,11 @@ private fun ExerciseProgressEntry.toUiState(): ExerciseProgressEntryUiState {
 private fun ExerciseRecords.toUiState(): ExerciseRecordsUiState {
     return ExerciseRecordsUiState(
         exerciseKey = exerciseKey,
+        scopeKey = scopeKey,
+        routineName = routineName,
+        dayName = dayName,
         exerciseName = exerciseName,
+        exercisePosition = exercisePosition,
         maxWeight = maxWeight?.toUiState(),
         maxReps = maxReps?.toUiState(),
         bestSetVolume = bestSetVolume?.toUiState(),
@@ -309,16 +381,17 @@ fun StatsUiState.withStatsPeriod(
     period: WorkoutStatsPeriod,
     stats: StatsUiState
 ): StatsUiState {
-    val retainedExerciseName = selectedExerciseName?.takeIf { selectedName ->
-        stats.exerciseProgress.any { progress -> progress.exerciseName == selectedName }
-    }
     return stats.copy(
         selectedPeriod = period,
-        selectedExerciseName = retainedExerciseName,
+        selectedRoutineName = selectedRoutineName,
+        selectedDayName = selectedDayName,
+        selectedExerciseScopeKey = selectedExerciseScopeKey,
+        selectedExerciseName = selectedExerciseName,
         selectedProgressPoint = null,
+        heatmapDays = heatmapDays,
         weeklyStepsData = weeklyStepsData,
         canGoToNextWeek = canGoToNextWeek
-    ).withProgressPointsForSelection()
+    ).withValidFocusSelection()
 }
 
 fun StatsUiState.withSelectedExercise(name: String): StatsUiState {
@@ -327,6 +400,36 @@ fun StatsUiState.withSelectedExercise(name: String): StatsUiState {
         ?.exerciseName
     return copy(
         selectedExerciseName = selectedName,
+        selectedExerciseScopeKey = exerciseProgress.firstOrNull { it.exerciseName == selectedName }?.scopeKey,
+        selectedProgressPoint = null
+    ).withProgressPointsForSelection()
+}
+
+fun StatsUiState.withSelectedExerciseScope(scopeKey: String): StatsUiState {
+    val selected = focusedExerciseProgress.firstOrNull { progress -> progress.scopeKey == scopeKey }
+    return copy(
+        selectedExerciseScopeKey = selected?.scopeKey,
+        selectedExerciseName = selected?.exerciseName,
+        selectedProgressPoint = null
+    ).withProgressPointsForSelection()
+}
+
+fun StatsUiState.withValidFocusSelection(): StatsUiState {
+    val routine = selectedRoutineName?.takeIf { routineName -> routineName in availableRoutineNames }
+        ?: availableRoutineNames.firstOrNull()
+    val stateWithRoutine = copy(selectedRoutineName = routine)
+    val day = stateWithRoutine.selectedDayName?.takeIf { dayName -> dayName in stateWithRoutine.availableDayNames }
+        ?: stateWithRoutine.availableDayNames.firstOrNull()
+    val stateWithDay = stateWithRoutine.copy(selectedDayName = day)
+    val selectedExercise = stateWithDay.selectedExerciseScopeKey
+        ?.let { scopeKey ->
+            stateWithDay.focusedExerciseProgress.firstOrNull { progress -> progress.scopeKey == scopeKey }
+        }
+        ?: stateWithDay.focusedExerciseProgress.firstOrNull()
+
+    return stateWithDay.copy(
+        selectedExerciseScopeKey = selectedExercise?.scopeKey,
+        selectedExerciseName = selectedExercise?.exerciseName,
         selectedProgressPoint = null
     ).withProgressPointsForSelection()
 }
@@ -338,10 +441,11 @@ fun StatsUiState.withSelectedProgressPoint(sessionId: Long): StatsUiState {
 }
 
 fun StatsUiState.withProgressPointsForSelection(): StatsUiState {
-    val name = selectedExerciseName
+    val scopeKey = selectedExerciseScopeKey
         ?: return copy(progressPoints = emptyList(), selectedProgressPoint = null)
-    val exercise = exerciseProgress.firstOrNull { it.exerciseName == name }
+    val exercise = exerciseProgress.firstOrNull { it.scopeKey == scopeKey }
         ?: return copy(
+            selectedExerciseScopeKey = null,
             selectedExerciseName = null,
             progressPoints = emptyList(),
             selectedProgressPoint = null
@@ -366,3 +470,5 @@ fun StatsUiState.withProgressPointsForSelection(): StatsUiState {
         selectedProgressPoint = retainedPoint
     )
 }
+
+private fun spanishCollator(): Collator = Collator.getInstance(Locale("es", "ES"))

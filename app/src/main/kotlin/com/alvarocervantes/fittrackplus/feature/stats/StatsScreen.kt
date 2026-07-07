@@ -93,7 +93,9 @@ fun StatsScreen(
             state = state,
             contentPadding = padding,
             onPeriodFilterChange = viewModel::setPeriodFilter,
-            onSelectExercise = viewModel::selectExercise,
+            onSelectRoutine = viewModel::selectRoutine,
+            onSelectDay = viewModel::selectDay,
+            onSelectExercise = viewModel::selectExerciseScope,
             onSelectProgressPoint = viewModel::selectProgressPoint,
             onClearSelectedProgressPoint = viewModel::clearSelectedProgressPoint,
             onHeatmapDayClick = viewModel::onHeatmapDayClick,
@@ -108,6 +110,8 @@ private fun StatsContent(
     state: StatsUiState,
     contentPadding: PaddingValues,
     onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
+    onSelectRoutine: (String) -> Unit,
+    onSelectDay: (String) -> Unit,
     onSelectExercise: (String) -> Unit,
     onSelectProgressPoint: (Long) -> Unit,
     onClearSelectedProgressPoint: () -> Unit,
@@ -181,6 +185,19 @@ private fun StatsContent(
                     SummaryGrid(state = state)
                 }
 
+                if (state.availableRoutineNames.isNotEmpty()) {
+                    item {
+                        StatsFocusControls(
+                            routineNames = state.availableRoutineNames,
+                            selectedRoutineName = state.selectedRoutineName,
+                            dayNames = state.availableDayNames,
+                            selectedDayName = state.selectedDayName,
+                            onSelectRoutine = onSelectRoutine,
+                            onSelectDay = onSelectDay
+                        )
+                    }
+                }
+
                 if (state.weeklyStepsData != null) {
                     item { FitTrackSectionLabel(label = "Actividad") }
                     item {
@@ -205,10 +222,11 @@ private fun StatsContent(
                     }
                 }
 
-                if (state.exerciseProgress.isNotEmpty()) {
+                if (state.focusedExerciseProgress.isNotEmpty()) {
                     item {
                         ProgressChartCard(
-                            exerciseNames = state.exerciseProgress.map { it.exerciseName },
+                            exercises = state.focusedExerciseProgress,
+                            selectedExerciseScopeKey = state.selectedExerciseScopeKey,
                             selectedExerciseName = state.selectedExerciseName,
                             progressPoints = state.progressPoints,
                             selectedProgressPoint = state.selectedProgressPoint,
@@ -221,7 +239,7 @@ private fun StatsContent(
 
                 item { FitTrackSectionLabel(label = "Volumen por sesion") }
                 items(
-                    items = state.sessionVolumes,
+                    items = state.focusedSessionVolumes,
                     key = { session -> session.sessionId }
                 ) { session ->
                     SessionVolumeCard(session = session)
@@ -229,16 +247,16 @@ private fun StatsContent(
 
                 item { FitTrackSectionLabel(label = "Progreso por ejercicio") }
                 items(
-                    items = state.exerciseProgress,
-                    key = { progress -> progress.exerciseKey }
+                    items = state.focusedExerciseProgress,
+                    key = { progress -> progress.scopeKey }
                 ) { progress ->
                     ExerciseProgressCard(progress = progress)
                 }
 
                 item { FitTrackSectionLabel(label = "Mejores marcas") }
                 items(
-                    items = state.exerciseRecords,
-                    key = { records -> records.exerciseKey }
+                    items = state.focusedExerciseRecords,
+                    key = { records -> records.scopeKey }
                 ) { records ->
                     ExerciseRecordsCard(records = records)
                 }
@@ -265,6 +283,89 @@ private fun StatsPeriodControls(
                     selected = selectedPeriod == period,
                     onClick = { onPeriodFilterChange(period) },
                     label = { Text(period.label) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatsFocusControls(
+    routineNames: List<String>,
+    selectedRoutineName: String?,
+    dayNames: List<String>,
+    selectedDayName: String?,
+    onSelectRoutine: (String) -> Unit,
+    onSelectDay: (String) -> Unit
+) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Vista enfocada",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = "Elige rutina y dia para ver solo sus sesiones, ejercicios y marcas.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        StatsDropdown(
+            label = "Rutina",
+            value = selectedRoutineName ?: "Selecciona rutina",
+            options = routineNames,
+            onSelect = onSelectRoutine
+        )
+        StatsDropdown(
+            label = "Dia",
+            value = selectedDayName ?: "Selecciona dia",
+            options = dayNames,
+            onSelect = onSelectDay
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StatsDropdown(
+    label: String,
+    value: String,
+    options: List<String>,
+    onSelect: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it && options.isNotEmpty() }
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = option,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    onClick = {
+                        onSelect(option)
+                        expanded = false
+                    }
                 )
             }
         }
@@ -468,7 +569,8 @@ private fun RecordRow(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProgressChartCard(
-    exerciseNames: List<String>,
+    exercises: List<ExerciseProgressUiState>,
+    selectedExerciseScopeKey: String?,
     selectedExerciseName: String?,
     progressPoints: List<ProgressChartPointUiState>,
     selectedProgressPoint: ProgressChartPointUiState?,
@@ -502,11 +604,17 @@ private fun ProgressChartCard(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                exerciseNames.forEach { name ->
+                exercises.forEach { exercise ->
                     DropdownMenuItem(
-                        text = { Text(name) },
+                        text = {
+                            Text(
+                                text = exercise.exerciseName,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
                         onClick = {
-                            onSelectExercise(name)
+                            onSelectExercise(exercise.scopeKey)
                             expanded = false
                         }
                     )
@@ -517,14 +625,14 @@ private fun ProgressChartCard(
         when {
             selectedExerciseName == null -> {
                 Text(
-                    text = "Selecciona un ejercicio para ver la evolucion de su peso maximo.",
+                    text = "Selecciona un ejercicio de este dia para ver la evolucion de su peso maximo.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             progressPoints.size < 2 -> {
                 Text(
-                    text = "Se necesitan al menos 2 sesiones de '${selectedExerciseName}' para mostrar el grafico.",
+                    text = "Se necesitan al menos 2 sesiones de '$selectedExerciseName' en esta seleccion para mostrar el grafico.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -24,6 +24,10 @@ data class WorkoutSessionVolume(
 data class ExerciseProgress(
     val exerciseKey: String,
     val exerciseName: String,
+    val scopeKey: String = exerciseKey,
+    val routineName: String = "",
+    val dayName: String = "",
+    val exercisePosition: Int = Int.MAX_VALUE,
     val entries: List<ExerciseProgressEntry>
 )
 
@@ -39,6 +43,10 @@ data class ExerciseProgressEntry(
 data class ExerciseRecords(
     val exerciseKey: String,
     val exerciseName: String,
+    val scopeKey: String = exerciseKey,
+    val routineName: String = "",
+    val dayName: String = "",
+    val exercisePosition: Int = Int.MAX_VALUE,
     val maxWeight: ExerciseSetRecord?,
     val maxReps: ExerciseSetRecord?,
     val bestSetVolume: ExerciseSetRecord?,

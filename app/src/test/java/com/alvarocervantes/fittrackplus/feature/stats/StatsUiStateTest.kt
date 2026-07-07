@@ -1,6 +1,7 @@
 package com.alvarocervantes.fittrackplus.feature.stats
 
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
+import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -43,7 +44,7 @@ class StatsUiStateTest {
     fun setStatsPeriod_preservesExistingExerciseWhenStillPresentAndClearsPoint() {
         val state = sampleState(
             selectedPeriod = WorkoutStatsPeriod.All,
-            selectedExerciseName = "Bench Press",
+            selectedExerciseScopeKey = "ppl|push|bench press",
             selectedProgressPoint = progressPoint(sessionId = 2)
         )
 
@@ -54,13 +55,14 @@ class StatsUiStateTest {
 
         assertEquals(WorkoutStatsPeriod.LastFourWeeks, updated.selectedPeriod)
         assertEquals("Bench Press", updated.selectedExerciseName)
+        assertEquals("ppl|push|bench press", updated.selectedExerciseScopeKey)
         assertNull(updated.selectedProgressPoint)
         assertEquals(listOf(1L, 2L), updated.progressPoints.map { it.sessionId })
     }
 
     @Test
     fun setStatsPeriod_clearsExerciseWhenItNoLongerExists() {
-        val state = sampleState(selectedExerciseName = "Bench Press")
+        val state = sampleState(selectedExerciseScopeKey = "ppl|push|bench press")
 
         val updated = state.withStatsPeriod(
             period = WorkoutStatsPeriod.LastFourWeeks,
@@ -72,36 +74,121 @@ class StatsUiStateTest {
         assertNull(updated.selectedProgressPoint)
     }
 
+    @Test
+    fun setStatsPeriodPreservesHeatmapDays() {
+        val heatmap = listOf(HeatmapDay(epochDay = 1, totalVolumeKg = 500.0, intensityLevel = 2))
+        val state = sampleState().copy(heatmapDays = heatmap)
+
+        val updated = state.withStatsPeriod(
+            period = WorkoutStatsPeriod.LastFourWeeks,
+            stats = sampleStatsUiState()
+        )
+
+        assertEquals(heatmap, updated.heatmapDays)
+    }
+
+    @Test
+    fun focusedDataUsesSelectedRoutineAndDay() {
+        val state = sampleStatsUiState(
+            sessionVolumes = listOf(
+                sessionVolume(1, routineName = "Rutina Álvaro", dayName = "Pierna"),
+                sessionVolume(2, routineName = "Rutina prueba", dayName = "Push"),
+                sessionVolume(3, routineName = "Rutina Álvaro", dayName = "Push")
+            ),
+            exerciseProgress = listOf(
+                sampleExerciseProgress(
+                    scopeKey = "alvaro|pierna|squat",
+                    routineName = "Rutina Álvaro",
+                    dayName = "Pierna",
+                    exerciseName = "Sentadilla",
+                    exercisePosition = 0
+                ),
+                sampleExerciseProgress(
+                    scopeKey = "alvaro|pierna|rdl",
+                    routineName = "Rutina Álvaro",
+                    dayName = "Pierna",
+                    exerciseName = "Peso muerto rumano",
+                    exercisePosition = 1
+                ),
+                sampleExerciseProgress(
+                    scopeKey = "test|push|bench",
+                    routineName = "Rutina prueba",
+                    dayName = "Push",
+                    exerciseName = "Press banca",
+                    exercisePosition = 0
+                )
+            ),
+            exerciseRecords = listOf(
+                sampleExerciseRecords("alvaro|pierna|squat", "Rutina Álvaro", "Pierna", "Sentadilla", 0),
+                sampleExerciseRecords("alvaro|pierna|rdl", "Rutina Álvaro", "Pierna", "Peso muerto rumano", 1),
+                sampleExerciseRecords("test|push|bench", "Rutina prueba", "Push", "Press banca", 0)
+            )
+        ).copy(
+            selectedRoutineName = "Rutina Álvaro",
+            selectedDayName = "Pierna"
+        ).withValidFocusSelection()
+
+        assertEquals(listOf("Rutina Álvaro", "Rutina prueba"), state.availableRoutineNames)
+        assertEquals(listOf("Pierna", "Push"), state.availableDayNames)
+        assertEquals(listOf(1L), state.focusedSessionVolumes.map { it.sessionId })
+        assertEquals(
+            listOf("Sentadilla", "Peso muerto rumano"),
+            state.focusedExerciseProgress.map { it.exerciseName }
+        )
+        assertEquals(
+            listOf("Sentadilla", "Peso muerto rumano"),
+            state.focusedExerciseRecords.map { it.exerciseName }
+        )
+    }
+
     private fun sampleState(
         selectedPeriod: WorkoutStatsPeriod = WorkoutStatsPeriod.All,
         selectedExerciseName: String? = null,
+        selectedExerciseScopeKey: String? = null,
         selectedProgressPoint: ProgressChartPointUiState? = null
     ): StatsUiState = sampleStatsUiState().copy(
         selectedPeriod = selectedPeriod,
         selectedExerciseName = selectedExerciseName,
+        selectedExerciseScopeKey = selectedExerciseScopeKey,
         selectedProgressPoint = selectedProgressPoint
     ).withProgressPointsForSelection()
 
     private fun sampleStatsUiState(
-        exerciseProgress: List<ExerciseProgressUiState> = listOf(sampleExerciseProgress())
+        sessionVolumes: List<SessionVolumeUiState> = listOf(sessionVolume()),
+        exerciseProgress: List<ExerciseProgressUiState> = listOf(sampleExerciseProgress()),
+        exerciseRecords: List<ExerciseRecordsUiState> = emptyList()
     ): StatsUiState = StatsUiState(
         isLoading = false,
-        sessionVolumes = listOf(
-            SessionVolumeUiState(
-                sessionId = 1,
-                routineName = "PPL",
-                dayName = "Push",
-                finishedAt = 100,
-                totalVolumeKg = 500.0
-            )
-        ),
+        sessionVolumes = sessionVolumes,
         exerciseProgress = exerciseProgress,
-        exerciseRecords = emptyList()
+        exerciseRecords = exerciseRecords
     )
 
-    private fun sampleExerciseProgress(): ExerciseProgressUiState = ExerciseProgressUiState(
+    private fun sessionVolume(
+        sessionId: Long = 1,
+        routineName: String = "PPL",
+        dayName: String = "Push"
+    ): SessionVolumeUiState = SessionVolumeUiState(
+        sessionId = sessionId,
+        routineName = routineName,
+        dayName = dayName,
+        finishedAt = sessionId * 100,
+        totalVolumeKg = 500.0
+    )
+
+    private fun sampleExerciseProgress(
+        scopeKey: String = "ppl|push|bench press",
+        routineName: String = "PPL",
+        dayName: String = "Push",
+        exerciseName: String = "Bench Press",
+        exercisePosition: Int = 0
+    ): ExerciseProgressUiState = ExerciseProgressUiState(
+        scopeKey = scopeKey,
         exerciseKey = "bench press",
-        exerciseName = "Bench Press",
+        routineName = routineName,
+        dayName = dayName,
+        exerciseName = exerciseName,
+        exercisePosition = exercisePosition,
         entries = listOf(
             ExerciseProgressEntryUiState(
                 sessionId = 2,
@@ -120,6 +207,25 @@ class StatsUiStateTest {
                 estimatedOneRepMaxKg = 114.0
             )
         )
+    )
+
+    private fun sampleExerciseRecords(
+        scopeKey: String,
+        routineName: String,
+        dayName: String,
+        exerciseName: String,
+        exercisePosition: Int
+    ): ExerciseRecordsUiState = ExerciseRecordsUiState(
+        scopeKey = scopeKey,
+        exerciseKey = scopeKey.substringAfterLast("|"),
+        routineName = routineName,
+        dayName = dayName,
+        exerciseName = exerciseName,
+        exercisePosition = exercisePosition,
+        maxWeight = null,
+        maxReps = null,
+        bestSetVolume = null,
+        bestEstimatedOneRepMax = null
     )
 
     private fun progressPoint(sessionId: Long): ProgressChartPointUiState = ProgressChartPointUiState(
