@@ -39,8 +39,5 @@
         <item name="android:textColorPrimaryInverseNoDisable">@color/v2_action_mode_text</item>
         <item name="android:actionMenuTextColor">@color/v2_action_mode_text</item>
         <item name="android:colorBackgroundFloating">@color/v2_action_mode_background</item>
-        <item name="android:textSelectHandle">@drawable/text_select_handle</item>
-        <item name="android:textSelectHandleLeft">@drawable/text_select_handle_left</item>
-        <item name="android:textSelectHandleRight">@drawable/text_select_handle_right</item>
     </style>
 </resources>
