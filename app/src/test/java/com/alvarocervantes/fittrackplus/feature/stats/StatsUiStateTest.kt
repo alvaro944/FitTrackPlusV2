@@ -9,6 +9,11 @@ import org.junit.Test
 class StatsUiStateTest {
 
     @Test
+    fun defaultStatsPeriodStartsAtLastFourWeeks() {
+        assertEquals(WorkoutStatsPeriod.LastFourWeeks, StatsUiState().selectedPeriod)
+    }
+
+    @Test
     fun selectExercise_keepsChronologicalProgressPointsAndClearsSelectedPoint() {
         val state = sampleState(selectedProgressPoint = progressPoint(sessionId = 99))
 
@@ -141,6 +146,34 @@ class StatsUiStateTest {
         )
     }
 
+    @Test
+    fun activeRoutineIsPreferredWhenAvailable() {
+        val state = sampleStatsUiState(
+            sessionVolumes = listOf(
+                sessionVolume(1, routineId = 10, routineName = "Rutina prueba", dayId = 100, dayName = "Push"),
+                sessionVolume(2, routineId = 20, routineName = "Rutina Álvaro", dayId = 200, dayName = "Pierna")
+            )
+        ).copy(activeRoutineId = 20)
+            .withValidFocusSelection()
+
+        assertEquals("Rutina Álvaro", state.selectedRoutineName)
+        assertEquals("Pierna", state.selectedDayName)
+    }
+
+    @Test
+    fun summaryUsesBestSessionInsteadOfGlobalExerciseCount() {
+        val state = sampleStatsUiState(
+            sessionVolumes = listOf(
+                sessionVolume(1, totalVolumeKg = 500.0),
+                sessionVolume(2, totalVolumeKg = 750.0),
+                sessionVolume(3, totalVolumeKg = 650.0)
+            )
+        )
+
+        assertEquals(3, state.sessionCount)
+        assertEquals(750.0, state.bestSessionVolumeKg, 0.0)
+    }
+
     private fun sampleState(
         selectedPeriod: WorkoutStatsPeriod = WorkoutStatsPeriod.All,
         selectedExerciseName: String? = null,
@@ -166,14 +199,19 @@ class StatsUiStateTest {
 
     private fun sessionVolume(
         sessionId: Long = 1,
+        routineId: Long? = 1,
         routineName: String = "PPL",
-        dayName: String = "Push"
+        dayId: Long? = 10,
+        dayName: String = "Push",
+        totalVolumeKg: Double = 500.0
     ): SessionVolumeUiState = SessionVolumeUiState(
         sessionId = sessionId,
+        routineId = routineId,
         routineName = routineName,
+        dayId = dayId,
         dayName = dayName,
         finishedAt = sessionId * 100,
-        totalVolumeKg = 500.0
+        totalVolumeKg = totalVolumeKg
     )
 
     private fun sampleExerciseProgress(

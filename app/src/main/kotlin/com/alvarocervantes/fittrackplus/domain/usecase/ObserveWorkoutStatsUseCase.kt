@@ -87,7 +87,9 @@ private fun List<FinishedSession>.toSessionVolumes(): List<WorkoutSessionVolume>
         val session = finishedSession.session.session
         WorkoutSessionVolume(
             sessionId = session.id,
+            routineId = session.routineId,
             routineName = session.routineNameSnapshot,
+            dayId = session.routineDayId,
             dayName = session.dayNameSnapshot,
             startedAt = session.startedAt,
             finishedAt = finishedSession.finishedAt,

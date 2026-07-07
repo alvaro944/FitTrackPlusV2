@@ -43,21 +43,32 @@ class StatsViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
-    private val selectedPeriod = MutableStateFlow(WorkoutStatsPeriod.All)
+    private val selectedPeriod = MutableStateFlow(WorkoutStatsPeriod.LastFourWeeks)
+    private val activeRoutineId = MutableStateFlow<Long?>(null)
     private val _selectedWeekStart = MutableStateFlow(currentWeekMonday())
     private val _uiState = MutableStateFlow(StatsUiState())
     val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
 
     init {
-        selectedPeriod
-            .flatMapLatest { period ->
-                observeWorkoutStats(period = period).map { stats -> period to stats }
+        userPreferencesRepository.activeRoutineId
+            .onEach { id ->
+                activeRoutineId.value = id
+                _uiState.update { state -> state.copy(activeRoutineId = id).withValidFocusSelection() }
             }
-            .onEach { (period, stats) ->
+            .launchIn(viewModelScope)
+
+        combine(selectedPeriod, activeRoutineId) { period, routineId -> period to routineId }
+            .flatMapLatest { (period, routineId) ->
+                observeWorkoutStats(period = period).map { stats -> Triple(period, routineId, stats) }
+            }
+            .onEach { (period, routineId, stats) ->
                 _uiState.update { currentState ->
                     currentState.withStatsPeriod(
                         period = period,
-                        stats = stats.toUiState().copy(isLoading = false)
+                        stats = stats.toUiState().copy(
+                            isLoading = false,
+                            activeRoutineId = routineId
+                        )
                     )
                 }
             }
@@ -172,17 +183,6 @@ class StatsViewModel @Inject constructor(
         }
     }
 
-    fun onHeatmapDayClick(day: HeatmapDay) {
-        if (day.totalVolumeKg <= 0.0) return
-        val dateStr = epochDayToDisplayString(day.epochDay)
-        val volumeStr = if (day.totalVolumeKg % 1.0 == 0.0) {
-            day.totalVolumeKg.toInt().toString()
-        } else {
-            String.format(java.util.Locale.getDefault(), "%.1f", day.totalVolumeKg)
-        }
-        _uiState.update { state -> state.copy(message = "$dateStr · $volumeStr kg") }
-    }
-
     fun clearMessage() {
         _uiState.update { state -> state.copy(message = null) }
     }
@@ -208,7 +208,8 @@ data class StatsUiState(
     val sessionVolumes: List<SessionVolumeUiState> = emptyList(),
     val exerciseProgress: List<ExerciseProgressUiState> = emptyList(),
     val exerciseRecords: List<ExerciseRecordsUiState> = emptyList(),
-    val selectedPeriod: WorkoutStatsPeriod = WorkoutStatsPeriod.All,
+    val selectedPeriod: WorkoutStatsPeriod = WorkoutStatsPeriod.LastFourWeeks,
+    val activeRoutineId: Long? = null,
     val selectedRoutineName: String? = null,
     val selectedDayName: String? = null,
     val selectedExerciseScopeKey: String? = null,
@@ -223,6 +224,8 @@ data class StatsUiState(
     val isEmpty: Boolean = sessionVolumes.isEmpty() &&
         exerciseProgress.isEmpty() &&
         exerciseRecords.isEmpty()
+    val sessionCount: Int = sessionVolumes.size
+    val bestSessionVolumeKg: Double = sessionVolumes.maxOfOrNull { session -> session.totalVolumeKg } ?: 0.0
     val availableRoutineNames: List<String> = sessionVolumes
         .map { session -> session.routineName.trim() }
         .filter { name -> name.isNotBlank() }
@@ -230,10 +233,16 @@ data class StatsUiState(
         .sortedWith(spanishCollator())
     val availableDayNames: List<String> = sessionVolumes
         .filter { session -> selectedRoutineName == null || session.routineName == selectedRoutineName }
-        .map { session -> session.dayName.trim() }
-        .filter { name -> name.isNotBlank() }
-        .distinct()
-        .sortedWith(spanishCollator())
+        .map { session -> session.dayName.trim() to session.dayId }
+        .filter { (name, _) -> name.isNotBlank() }
+        .groupBy(keySelector = { (name, _) -> name }, valueTransform = { (_, dayId) -> dayId })
+        .entries
+        .sortedWith(
+            compareBy<Map.Entry<String, List<Long?>>> { (_, dayIds) ->
+                dayIds.filterNotNull().minOrNull() ?: Long.MAX_VALUE
+            }.thenBy(spanishCollator()) { (name, _) -> name }
+        )
+        .map { (name, _) -> name }
     val focusedSessionVolumes: List<SessionVolumeUiState> = sessionVolumes
         .filter { session -> selectedRoutineName == null || session.routineName == selectedRoutineName }
         .filter { session -> selectedDayName == null || session.dayName == selectedDayName }
@@ -249,7 +258,9 @@ data class StatsUiState(
 
 data class SessionVolumeUiState(
     val sessionId: Long,
+    val routineId: Long? = null,
     val routineName: String,
+    val dayId: Long? = null,
     val dayName: String,
     val finishedAt: Long,
     val totalVolumeKg: Double
@@ -305,11 +316,6 @@ data class ExerciseSetRecordUiState(
     val estimatedOneRepMaxKg: Double
 )
 
-private fun epochDayToDisplayString(epochDay: Long): String {
-    val ms = epochDay * 86_400_000L
-    return java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(ms))
-}
-
 private fun WorkoutStats.toUiState(): StatsUiState {
     return StatsUiState(
         sessionVolumes = sessionVolumes.map { it.toUiState() },
@@ -321,7 +327,9 @@ private fun WorkoutStats.toUiState(): StatsUiState {
 private fun WorkoutSessionVolume.toUiState(): SessionVolumeUiState {
     return SessionVolumeUiState(
         sessionId = sessionId,
+        routineId = routineId,
         routineName = routineName,
+        dayId = dayId,
         dayName = dayName,
         finishedAt = finishedAt,
         totalVolumeKg = totalVolumeKg
@@ -416,6 +424,9 @@ fun StatsUiState.withSelectedExerciseScope(scopeKey: String): StatsUiState {
 
 fun StatsUiState.withValidFocusSelection(): StatsUiState {
     val routine = selectedRoutineName?.takeIf { routineName -> routineName in availableRoutineNames }
+        ?: activeRoutineId?.let { activeId ->
+            sessionVolumes.firstOrNull { session -> session.routineId == activeId }?.routineName
+        }
         ?: availableRoutineNames.firstOrNull()
     val stateWithRoutine = copy(selectedRoutineName = routine)
     val day = stateWithRoutine.selectedDayName?.takeIf { dayName -> dayName in stateWithRoutine.availableDayNames }

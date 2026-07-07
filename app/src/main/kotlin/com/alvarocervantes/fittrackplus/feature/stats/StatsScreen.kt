@@ -48,7 +48,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
-import com.alvarocervantes.fittrackplus.core.design.components.HeatmapCalendar
 import com.alvarocervantes.fittrackplus.core.design.components.LineChart
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
@@ -69,6 +68,7 @@ import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Date
 import java.util.Locale
@@ -98,7 +98,6 @@ fun StatsScreen(
             onSelectExercise = viewModel::selectExerciseScope,
             onSelectProgressPoint = viewModel::selectProgressPoint,
             onClearSelectedProgressPoint = viewModel::clearSelectedProgressPoint,
-            onHeatmapDayClick = viewModel::onHeatmapDayClick,
             onPreviousStepsWeek = viewModel::previousWeek,
             onNextStepsWeek = viewModel::nextWeek
         )
@@ -115,7 +114,6 @@ private fun StatsContent(
     onSelectExercise: (String) -> Unit,
     onSelectProgressPoint: (Long) -> Unit,
     onClearSelectedProgressPoint: () -> Unit,
-    onHeatmapDayClick: (HeatmapDay) -> Unit = {},
     onPreviousStepsWeek: () -> Unit = {},
     onNextStepsWeek: () -> Unit = {}
 ) {
@@ -213,12 +211,10 @@ private fun StatsContent(
                 if (state.heatmapDays.isNotEmpty()) {
                     item { FitTrackSectionLabel(label = "Constancia") }
                     item {
-                        FitTrackCard(modifier = Modifier.fillMaxWidth()) {
-                            HeatmapCalendar(
-                                days = state.heatmapDays,
-                                onDayClick = onHeatmapDayClick
-                            )
-                        }
+                        ConsistencyCalendarCard(
+                            days = state.heatmapDays,
+                            period = state.selectedPeriod
+                        )
                     }
                 }
 
@@ -278,7 +274,7 @@ private fun StatsPeriodControls(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
         ) {
-            WorkoutStatsPeriod.entries.forEach { period ->
+            statsPeriodDisplayOrder.forEach { period ->
                 FilterChip(
                     selected = selectedPeriod == period,
                     onClick = { onPeriodFilterChange(period) },
@@ -380,7 +376,7 @@ private fun SummaryGrid(state: StatsUiState) {
     ) {
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
-                value = state.sessionVolumes.size.toString(),
+                value = state.sessionCount.toString(),
                 label = "sesiones",
                 accent = FitTrackMetricAccent.Primary,
                 compact = true
@@ -388,17 +384,158 @@ private fun SummaryGrid(state: StatsUiState) {
         }
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
-                value = state.exerciseProgress.size.toString(),
-                label = "ejercicios",
+                value = state.bestSessionVolumeKg.toDisplayText(),
+                unit = "kg",
+                label = "mejor sesion",
                 compact = true
             )
         }
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
-                value = state.exerciseRecords.size.toString(),
-                label = "records",
+                value = state.focusedExerciseRecords.size.toString(),
+                label = "marcas",
                 accent = FitTrackMetricAccent.Warm,
                 compact = true
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConsistencyCalendarCard(
+    days: List<HeatmapDay>,
+    period: WorkoutStatsPeriod
+) {
+    val today = LocalDate.now()
+    val monthCount = when (period) {
+        WorkoutStatsPeriod.LastFourWeeks -> 1
+        WorkoutStatsPeriod.LastTwelveWeeks -> 3
+        WorkoutStatsPeriod.All -> 6
+    }
+    val months = remember(period, today) {
+        (monthCount - 1 downTo 0).map { offset ->
+            YearMonth.from(today.minusMonths(offset.toLong()))
+        }
+    }
+    val activeDays = remember(days) {
+        days
+            .filter { day -> day.totalVolumeKg > 0.0 }
+            .associateBy { day -> LocalDate.ofEpochDay(day.epochDay) }
+    }
+
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Calendario de entrenos",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = "Verde marca los dias con sesiones finalizadas.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.lg)
+        ) {
+            months.forEach { month ->
+                MonthConsistencyGrid(
+                    month = month,
+                    activeDays = activeDays
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthConsistencyGrid(
+    month: YearMonth,
+    activeDays: Map<LocalDate, HeatmapDay>
+) {
+    val locale = Locale("es", "ES")
+    val firstDay = month.atDay(1)
+    val leadingBlankDays = firstDay.dayOfWeek.value - 1
+    val totalSlots = ((leadingBlankDays + month.lengthOfMonth() + 6) / 7) * 7
+    val dayLabels = listOf("L", "M", "X", "J", "V", "S", "D")
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+    ) {
+        Text(
+            text = month.month.getDisplayName(TextStyle.FULL, locale)
+                .replaceFirstChar { it.uppercase() } + " ${month.year}",
+            style = MaterialTheme.typography.labelLarge
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+            dayLabels.forEach { label ->
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+        repeat(totalSlots / 7) { week ->
+            Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                repeat(7) { dayOfWeek ->
+                    val slot = week * 7 + dayOfWeek
+                    val dayNumber = slot - leadingBlankDays + 1
+                    val date = if (dayNumber in 1..month.lengthOfMonth()) {
+                        month.atDay(dayNumber)
+                    } else {
+                        null
+                    }
+                    ConsistencyDayCell(
+                        modifier = Modifier.weight(1f),
+                        date = date,
+                        heatmapDay = date?.let { activeDays[it] }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConsistencyDayCell(
+    modifier: Modifier = Modifier,
+    date: LocalDate?,
+    heatmapDay: HeatmapDay?
+) {
+    val hasWorkout = heatmapDay != null
+    val isToday = date == LocalDate.now()
+    val backgroundColor = when {
+        hasWorkout -> MaterialTheme.colorScheme.primary
+        isToday -> MaterialTheme.colorScheme.primarySoft
+        date != null -> MaterialTheme.colorScheme.surfaceAlt
+        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+    }
+    val textColor = when {
+        hasWorkout -> MaterialTheme.colorScheme.onPrimary
+        isToday -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Box(
+        modifier = modifier
+            .height(34.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .background(backgroundColor),
+        contentAlignment = Alignment.Center
+    ) {
+        if (date != null) {
+            Text(
+                text = date.dayOfMonth.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                color = textColor
             )
         }
     }
@@ -1053,3 +1190,9 @@ private fun Double.toDisplayText(): String {
         String.format(Locale.getDefault(), "%.1f", this)
     }
 }
+
+private val statsPeriodDisplayOrder = listOf(
+    WorkoutStatsPeriod.LastFourWeeks,
+    WorkoutStatsPeriod.LastTwelveWeeks,
+    WorkoutStatsPeriod.All
+)

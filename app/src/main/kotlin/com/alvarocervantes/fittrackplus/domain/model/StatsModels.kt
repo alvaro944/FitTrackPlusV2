@@ -14,7 +14,9 @@ enum class WorkoutStatsPeriod {
 
 data class WorkoutSessionVolume(
     val sessionId: Long,
+    val routineId: Long?,
     val routineName: String,
+    val dayId: Long?,
     val dayName: String,
     val startedAt: Long,
     val finishedAt: Long,
