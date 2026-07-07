@@ -161,17 +161,17 @@ class StatsUiStateTest {
     }
 
     @Test
-    fun summaryUsesBestSessionInsteadOfGlobalExerciseCount() {
+    fun summaryUsesExerciseAppearancesInsteadOfBestSessionVolume() {
         val state = sampleStatsUiState(
             sessionVolumes = listOf(
                 sessionVolume(1, totalVolumeKg = 500.0),
                 sessionVolume(2, totalVolumeKg = 750.0),
                 sessionVolume(3, totalVolumeKg = 650.0)
             )
-        )
+        ).copy(selectedPeriod = WorkoutStatsPeriod.All)
 
         assertEquals(3, state.sessionCount)
-        assertEquals(750.0, state.bestSessionVolumeKg, 0.0)
+        assertEquals(2, state.exerciseCount)
     }
 
     private fun sampleState(

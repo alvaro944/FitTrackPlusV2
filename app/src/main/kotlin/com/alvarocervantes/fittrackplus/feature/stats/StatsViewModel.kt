@@ -59,7 +59,7 @@ class StatsViewModel @Inject constructor(
 
         combine(selectedPeriod, activeRoutineId) { period, routineId -> period to routineId }
             .flatMapLatest { (period, routineId) ->
-                observeWorkoutStats(period = period).map { stats -> Triple(period, routineId, stats) }
+                observeWorkoutStats(period = WorkoutStatsPeriod.All).map { stats -> Triple(period, routineId, stats) }
             }
             .onEach { (period, routineId, stats) ->
                 _uiState.update { currentState ->
@@ -224,8 +224,11 @@ data class StatsUiState(
     val isEmpty: Boolean = sessionVolumes.isEmpty() &&
         exerciseProgress.isEmpty() &&
         exerciseRecords.isEmpty()
-    val sessionCount: Int = sessionVolumes.size
-    val bestSessionVolumeKg: Double = sessionVolumes.maxOfOrNull { session -> session.totalVolumeKg } ?: 0.0
+    val summarySessionVolumes: List<SessionVolumeUiState> = sessionVolumes.filterByPeriod(selectedPeriod)
+    val sessionCount: Int = summarySessionVolumes.size
+    val exerciseCount: Int = exerciseProgress.sumOf { progress ->
+        progress.entries.count { entry -> entry.finishedAt.isInsideStatsPeriod(selectedPeriod) }
+    }
     val availableRoutineNames: List<String> = sessionVolumes
         .map { session -> session.routineName.trim() }
         .filter { name -> name.isNotBlank() }
@@ -483,3 +486,17 @@ fun StatsUiState.withProgressPointsForSelection(): StatsUiState {
 }
 
 private fun spanishCollator(): Collator = Collator.getInstance(Locale("es", "ES"))
+
+private fun List<SessionVolumeUiState>.filterByPeriod(period: WorkoutStatsPeriod): List<SessionVolumeUiState> {
+    return filter { session -> session.finishedAt.isInsideStatsPeriod(period) }
+}
+
+private fun Long.isInsideStatsPeriod(period: WorkoutStatsPeriod): Boolean {
+    val nowMillis = System.currentTimeMillis()
+    val cutoff = when (period) {
+        WorkoutStatsPeriod.All -> return true
+        WorkoutStatsPeriod.LastFourWeeks -> nowMillis - 4 * 7 * 86_400_000L
+        WorkoutStatsPeriod.LastTwelveWeeks -> nowMillis - 12 * 7 * 86_400_000L
+    }
+    return this >= cutoff
+}

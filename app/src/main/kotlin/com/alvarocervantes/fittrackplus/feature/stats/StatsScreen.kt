@@ -384,16 +384,15 @@ private fun SummaryGrid(state: StatsUiState) {
         }
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
-                value = state.bestSessionVolumeKg.toDisplayText(),
-                unit = "kg",
-                label = "mejor sesion",
+                value = state.exerciseCount.toString(),
+                label = "ejercicios",
                 compact = true
             )
         }
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
                 value = state.focusedExerciseRecords.size.toString(),
-                label = "marcas",
+                label = "PRs",
                 accent = FitTrackMetricAccent.Warm,
                 compact = true
             )
@@ -406,17 +405,8 @@ private fun ConsistencyCalendarCard(
     days: List<HeatmapDay>,
     period: WorkoutStatsPeriod
 ) {
-    val today = LocalDate.now()
-    val monthCount = when (period) {
-        WorkoutStatsPeriod.LastFourWeeks -> 1
-        WorkoutStatsPeriod.LastTwelveWeeks -> 3
-        WorkoutStatsPeriod.All -> 6
-    }
-    val months = remember(period, today) {
-        (monthCount - 1 downTo 0).map { offset ->
-            YearMonth.from(today.minusMonths(offset.toLong()))
-        }
-    }
+    val currentMonth = YearMonth.now()
+    var visibleMonth by remember { mutableStateOf(currentMonth) }
     val activeDays = remember(days) {
         days
             .filter { day -> day.totalVolumeKg > 0.0 }
@@ -424,28 +414,42 @@ private fun ConsistencyCalendarCard(
     }
 
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Calendario de entrenos",
-            style = MaterialTheme.typography.titleMedium
-        )
-        Text(
-            text = "Verde marca los dias con sesiones finalizadas.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(FitSpacing.lg)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            months.forEach { month ->
-                MonthConsistencyGrid(
-                    month = month,
-                    activeDays = activeDays
+            IconButton(onClick = { visibleMonth = visibleMonth.minusMonths(1) }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Mes anterior"
+                )
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Calendario de entrenos",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "Verde marca los dias entrenados",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(
+                onClick = { visibleMonth = visibleMonth.plusMonths(1) },
+                enabled = visibleMonth < currentMonth
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Mes siguiente"
                 )
             }
         }
+        MonthConsistencyGrid(
+            month = visibleMonth,
+            activeDays = activeDays
+        )
     }
 }
 
@@ -784,6 +788,8 @@ private fun ProgressChartCard(
                 LineChart(
                     points = chartPoints,
                     selectedPointIndex = selectedIndex,
+                    pointLabels = progressPoints.map { point -> "${point.maxWeightKg.toDisplayText()} kg" },
+                    xAxisLabels = progressPoints.map { point -> formatChartDate(point.finishedAt) },
                     onPointSelected = { index ->
                         progressPoints.getOrNull(index)?.let { point ->
                             onSelectProgressPoint(point.sessionId)
@@ -1181,6 +1187,10 @@ private fun StatsLoadingSkeleton() {
 
 private fun formatDate(timestamp: Long): String {
     return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(timestamp))
+}
+
+private fun formatChartDate(timestamp: Long): String {
+    return SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(timestamp))
 }
 
 private fun Double.toDisplayText(): String {
