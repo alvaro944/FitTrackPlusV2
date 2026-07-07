@@ -171,6 +171,12 @@ class StatsViewModel @Inject constructor(
         }
     }
 
+    fun selectProgressMetric(metric: ProgressMetric) {
+        _uiState.update { state ->
+            state.withProgressMetric(metric)
+        }
+    }
+
     fun selectProgressPoint(sessionId: Long) {
         _uiState.update { state ->
             state.withSelectedProgressPoint(sessionId)
@@ -214,6 +220,7 @@ data class StatsUiState(
     val selectedDayName: String? = null,
     val selectedExerciseScopeKey: String? = null,
     val selectedExerciseName: String? = null,
+    val selectedProgressMetric: ProgressMetric = ProgressMetric.MaxWeight,
     val progressPoints: List<ProgressChartPointUiState> = emptyList(),
     val selectedProgressPoint: ProgressChartPointUiState? = null,
     val heatmapDays: List<HeatmapDay> = emptyList(),
@@ -263,6 +270,21 @@ data class StatsUiState(
         ?.let { scopeKey -> focusedExerciseProgress.firstOrNull { progress -> progress.scopeKey == scopeKey } }
     val selectedExerciseRecords: ExerciseRecordsUiState? = selectedExerciseScopeKey
         ?.let { scopeKey -> focusedExerciseRecords.firstOrNull { records -> records.scopeKey == scopeKey } }
+    val progressChartValues: List<Pair<Long, Float>> = progressPoints.map { point ->
+        point.finishedAt to when (selectedProgressMetric) {
+            ProgressMetric.MaxWeight -> point.maxWeightKg.toFloat()
+            ProgressMetric.Volume -> point.volumeKg.toFloat()
+            ProgressMetric.Reps -> point.totalReps.toFloat()
+            ProgressMetric.EstimatedOneRepMax -> point.estimatedOneRepMaxKg.toFloat()
+        }
+    }
+}
+
+enum class ProgressMetric(val label: String, val unit: String) {
+    MaxWeight("Peso", "kg"),
+    Reps("Reps", ""),
+    Volume("Volumen", "kg"),
+    EstimatedOneRepMax("1RM", "kg")
 }
 
 data class SessionVolumeUiState(
@@ -457,6 +479,13 @@ fun StatsUiState.withValidFocusSelection(): StatsUiState {
 fun StatsUiState.withSelectedProgressPoint(sessionId: Long): StatsUiState {
     return copy(
         selectedProgressPoint = progressPoints.firstOrNull { point -> point.sessionId == sessionId }
+    )
+}
+
+fun StatsUiState.withProgressMetric(metric: ProgressMetric): StatsUiState {
+    return copy(
+        selectedProgressMetric = metric,
+        selectedProgressPoint = null
     )
 }
 

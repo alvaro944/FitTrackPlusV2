@@ -96,6 +96,7 @@ fun StatsScreen(
             onSelectRoutine = viewModel::selectRoutine,
             onSelectDay = viewModel::selectDay,
             onSelectExercise = viewModel::selectExerciseScope,
+            onSelectProgressMetric = viewModel::selectProgressMetric,
             onSelectProgressPoint = viewModel::selectProgressPoint,
             onClearSelectedProgressPoint = viewModel::clearSelectedProgressPoint,
             onPreviousStepsWeek = viewModel::previousWeek,
@@ -112,6 +113,7 @@ private fun StatsContent(
     onSelectRoutine: (String) -> Unit,
     onSelectDay: (String) -> Unit,
     onSelectExercise: (String) -> Unit,
+    onSelectProgressMetric: (ProgressMetric) -> Unit,
     onSelectProgressPoint: (Long) -> Unit,
     onClearSelectedProgressPoint: () -> Unit,
     onPreviousStepsWeek: () -> Unit = {},
@@ -225,8 +227,11 @@ private fun StatsContent(
                             selectedExerciseScopeKey = state.selectedExerciseScopeKey,
                             selectedExerciseName = state.selectedExerciseName,
                             progressPoints = state.progressPoints,
+                            chartValues = state.progressChartValues,
+                            selectedMetric = state.selectedProgressMetric,
                             selectedProgressPoint = state.selectedProgressPoint,
                             onSelectExercise = onSelectExercise,
+                            onSelectProgressMetric = onSelectProgressMetric,
                             onSelectProgressPoint = onSelectProgressPoint,
                             onClearSelectedProgressPoint = onClearSelectedProgressPoint
                         )
@@ -583,7 +588,7 @@ private fun SessionVolumeTrendCard(sessions: List<SessionVolumeUiState>) {
         if (selectedSessions.size >= 2) {
             LineChart(
                 points = selectedSessions.map { session -> session.finishedAt to session.totalVolumeKg.toFloat() },
-                pointLabels = selectedSessions.map { session -> session.totalVolumeKg.toDisplayText() },
+                pointLabels = selectedSessions.map { session -> "${session.totalVolumeKg.toDisplayText()} kg" },
                 xAxisLabels = selectedSessions.map { session -> formatChartDate(session.finishedAt) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -750,8 +755,11 @@ private fun ProgressChartCard(
     selectedExerciseScopeKey: String?,
     selectedExerciseName: String?,
     progressPoints: List<ProgressChartPointUiState>,
+    chartValues: List<Pair<Long, Float>>,
+    selectedMetric: ProgressMetric,
     selectedProgressPoint: ProgressChartPointUiState?,
     onSelectExercise: (String) -> Unit,
+    onSelectProgressMetric: (ProgressMetric) -> Unit,
     onSelectProgressPoint: (Long) -> Unit,
     onClearSelectedProgressPoint: () -> Unit
 ) {
@@ -762,6 +770,21 @@ private fun ProgressChartCard(
             text = "Progreso visual",
             style = MaterialTheme.typography.titleMedium
         )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+        ) {
+            ProgressMetric.entries.forEach { metric ->
+                FilterChip(
+                    selected = selectedMetric == metric,
+                    onClick = { onSelectProgressMetric(metric) },
+                    label = { Text(metric.label) }
+                )
+            }
+        }
 
         ExposedDropdownMenuBox(
             expanded = expanded,
@@ -815,16 +838,13 @@ private fun ProgressChartCard(
                 )
             }
             else -> {
-                val chartPoints = progressPoints.map { point ->
-                    point.finishedAt to point.maxWeightKg.toFloat()
-                }
                 val selectedIndex = selectedProgressPoint?.let { selected ->
                     progressPoints.indexOfFirst { point -> point.sessionId == selected.sessionId }
                 }?.takeIf { index -> index >= 0 }
                 LineChart(
-                    points = chartPoints,
+                    points = chartValues,
                     selectedPointIndex = selectedIndex,
-                    pointLabels = progressPoints.map { point -> "${point.maxWeightKg.toDisplayText()} kg" },
+                    pointLabels = progressPoints.map { point -> point.toChartLabel(selectedMetric) },
                     xAxisLabels = progressPoints.map { point -> formatChartDate(point.finishedAt) },
                     onPointSelected = { index ->
                         progressPoints.getOrNull(index)?.let { point ->
@@ -1227,6 +1247,15 @@ private fun formatDate(timestamp: Long): String {
 
 private fun formatChartDate(timestamp: Long): String {
     return SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(timestamp))
+}
+
+private fun ProgressChartPointUiState.toChartLabel(metric: ProgressMetric): String {
+    return when (metric) {
+        ProgressMetric.MaxWeight -> "${maxWeightKg.toDisplayText()} kg"
+        ProgressMetric.Reps -> totalReps.toString()
+        ProgressMetric.Volume -> "${volumeKg.toDisplayText()} kg"
+        ProgressMetric.EstimatedOneRepMax -> "${estimatedOneRepMaxKg.toDisplayText()} kg"
+    }
 }
 
 private fun Double.toDisplayText(): String {

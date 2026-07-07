@@ -46,6 +46,17 @@ class StatsUiStateTest {
     }
 
     @Test
+    fun selectedProgressMetricChangesChartValues() {
+        val state = sampleState().withSelectedExercise("Bench Press")
+
+        val repsState = state.withProgressMetric(ProgressMetric.Reps)
+
+        assertEquals(ProgressMetric.Reps, repsState.selectedProgressMetric)
+        assertEquals(listOf(8f, 10f), repsState.progressChartValues.map { it.second })
+        assertNull(repsState.selectedProgressPoint)
+    }
+
+    @Test
     fun setStatsPeriod_preservesExistingExerciseWhenStillPresentAndClearsPoint() {
         val state = sampleState(
             selectedPeriod = WorkoutStatsPeriod.All,
