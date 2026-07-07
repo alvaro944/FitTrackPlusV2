@@ -2173,3 +2173,10 @@ Pendiente:
 - Confirmacion: el circulo numerado de la serie pasa a ser accion tactil cuando los dos campos son validos; al tocarlo se completa la serie, se actualiza el contador, se dispara haptic/PR y se respeta el auto-start del descanso.
 - Persistencia: `workout_sets` gana `isCompleted` con migracion Room 2→3 para que refrescar la sesion no reconstruya completado solo por tener peso/reps.
 - Pendiente: validacion manual en dispositivo durante un entrenamiento real.
+
+## 2026-07-07 - Pendiente: fondo blanco del handle de cursor en inputs Compose
+
+- Contexto: al editar texto en Android, la flecha/handle verde del cursor aparece con un fondo blanco rectangular visible sobre el teclado.
+- Intentos descartados: drawables nativos `android:textSelectHandle*` y `LocalTextSelectionColors.handleColor = Color.Transparent`; ninguno eliminó el fondo blanco en dispositivo.
+- Estado: se revierten ambos intentos para no dejar cambios sin efecto.
+- Deuda futura: investigar la capa real que pinta ese fondo blanco (posible popup/superficie del sistema, OEM o composición del handle de Compose) y resolverlo con validación manual en dispositivo real. No aplicar más cambios sin una reproducción/control visual claro.
