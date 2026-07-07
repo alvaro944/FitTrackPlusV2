@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alvarocervantes.fittrackplus.R
+import com.alvarocervantes.fittrackplus.core.design.AppDesignStyle
 import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
 import com.alvarocervantes.fittrackplus.core.navigation.FitTrackPlusNavHost
 import com.alvarocervantes.fittrackplus.feature.onboarding.OnboardingScreen
@@ -64,14 +65,15 @@ private val IntroCopper = Color(0xFFC47A49)
 fun FitTrackPlusAppRoot(
     hasSeenOnboarding: Boolean,
     onOnboardingComplete: () -> Unit,
-    initialTab: AppRoute? = null
+    initialTab: AppRoute? = null,
+    designStyle: AppDesignStyle = AppDesignStyle.Classic
 ) {
     var hasCompletedIntro by rememberSaveable { mutableStateOf(false) }
 
     when {
         !hasCompletedIntro -> LaunchIntroScreen(onFinished = { hasCompletedIntro = true })
         !hasSeenOnboarding -> OnboardingScreen(onComplete = onOnboardingComplete)
-        else -> FitTrackPlusNavHost(initialTab = initialTab)
+        else -> FitTrackPlusNavHost(initialTab = initialTab, designStyle = designStyle)
     }
 }
 

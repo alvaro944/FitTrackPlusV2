@@ -80,6 +80,7 @@ fun FitTrackAppShell(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val designStyle by viewModel.designStyle.collectAsStateWithLifecycle()
     val weightUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val bottomDestinations = remember { shellBottomDestinations() }
@@ -107,8 +108,10 @@ fun FitTrackAppShell(
                 drawerItems = drawerItems,
                 selectedRoute = currentRoute,
                 themeMode = themeMode,
+                designStyle = designStyle,
                 weightUnit = weightUnit,
                 onThemeModeChange = viewModel::setThemeMode,
+                onDesignStyleChange = viewModel::setDesignStyle,
                 onWeightUnitChange = viewModel::setWeightUnit,
                 onItemClick = { item ->
                     handleDrawerItemClick(
@@ -215,8 +218,10 @@ private fun DrawerContent(
     drawerItems: List<DrawerItem>,
     selectedRoute: AppRoute?,
     themeMode: AppThemeMode,
+    designStyle: AppDesignStyle,
     weightUnit: String,
     onThemeModeChange: (AppThemeMode) -> Unit,
+    onDesignStyleChange: (AppDesignStyle) -> Unit,
     onWeightUnitChange: (String) -> Unit,
     onItemClick: (DrawerItem) -> Unit
 ) {
@@ -269,6 +274,13 @@ private fun DrawerContent(
                     )
                 }
             }
+
+            FitTrackSectionLabel(label = "Diseño")
+            FitTrackSegmentedSelector(
+                options = AppDesignStyle.entries.map { style -> style.label },
+                selectedIndex = AppDesignStyle.entries.indexOf(designStyle),
+                onSelect = { index -> onDesignStyleChange(AppDesignStyle.entries[index]) }
+            )
 
             FitTrackSectionLabel(label = "Tema")
             FitTrackThemeModeSelector(

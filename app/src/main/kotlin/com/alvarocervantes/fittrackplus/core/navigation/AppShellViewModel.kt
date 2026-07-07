@@ -2,6 +2,7 @@ package com.alvarocervantes.fittrackplus.core.navigation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alvarocervantes.fittrackplus.core.design.AppDesignStyle
 import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,6 +37,9 @@ class AppShellViewModel @Inject constructor(
     val themeMode: StateFlow<AppThemeMode> = userPreferencesRepository.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppThemeMode.System)
 
+    val designStyle: StateFlow<AppDesignStyle> = userPreferencesRepository.designStyle
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppDesignStyle.Classic)
+
     fun setWeightUnit(unit: String) {
         if (unit == weightUnit.value) return
         viewModelScope.launch {
@@ -49,6 +53,14 @@ class AppShellViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.setThemeMode(mode)
             _message.value = "Tema cambiado a ${mode.label}."
+        }
+    }
+
+    fun setDesignStyle(style: AppDesignStyle) {
+        if (style == designStyle.value) return
+        viewModelScope.launch {
+            userPreferencesRepository.setDesignStyle(style)
+            _message.value = "Diseño cambiado a ${style.label}."
         }
     }
 

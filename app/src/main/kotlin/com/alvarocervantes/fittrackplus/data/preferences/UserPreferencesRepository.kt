@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.alvarocervantes.fittrackplus.core.design.AppDesignStyle
 import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -33,6 +34,10 @@ class UserPreferencesRepository @Inject constructor(
 
     val themeMode: Flow<AppThemeMode> = context.userPreferencesDataStore.data.map { preferences ->
         AppThemeMode.fromStorageValue(preferences[Keys.THEME_MODE])
+    }
+
+    val designStyle: Flow<AppDesignStyle> = context.userPreferencesDataStore.data.map { preferences ->
+        AppDesignStyle.fromStorageValue(preferences[Keys.DESIGN_STYLE])
     }
 
     val hasSeenSnapshotInfo: Flow<Boolean> = context.userPreferencesDataStore.data.map { preferences ->
@@ -73,6 +78,12 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    suspend fun setDesignStyle(style: AppDesignStyle) {
+        context.userPreferencesDataStore.edit { preferences ->
+            preferences[Keys.DESIGN_STYLE] = style.storageValue
+        }
+    }
+
     suspend fun dismissSnapshotInfo() {
         context.userPreferencesDataStore.edit { preferences ->
             preferences[Keys.HAS_SEEN_SNAPSHOT_INFO] = true
@@ -101,6 +112,7 @@ class UserPreferencesRepository @Inject constructor(
         val ACTIVE_ROUTINE_ID: Preferences.Key<Long> = longPreferencesKey("active_routine_id")
         val WEIGHT_UNIT: Preferences.Key<String> = stringPreferencesKey("weight_unit")
         val THEME_MODE: Preferences.Key<String> = stringPreferencesKey("theme_mode")
+        val DESIGN_STYLE: Preferences.Key<String> = stringPreferencesKey("design_style")
         val HAS_SEEN_SNAPSHOT_INFO: Preferences.Key<Boolean> = booleanPreferencesKey("has_seen_snapshot_info")
         val HAS_SEEN_ONBOARDING: Preferences.Key<Boolean> = booleanPreferencesKey("has_seen_onboarding")
         val DAILY_STEP_GOAL: Preferences.Key<Int> = intPreferencesKey("daily_step_goal")

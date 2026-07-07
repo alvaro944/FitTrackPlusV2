@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -16,13 +17,17 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.alvarocervantes.fittrackplus.core.design.AppDesignStyle
 import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPlusTheme
+import com.alvarocervantes.fittrackplus.core.design.SystemBarAppearance
 import com.alvarocervantes.fittrackplus.core.design.resolveDarkTheme
 import com.alvarocervantes.fittrackplus.core.design.systemBarAppearance
 import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.feature.launch.FitTrackPlusAppRoot
+import com.alvarocervantes.fittrackplus.grit.theme.GritColors
+import com.alvarocervantes.fittrackplus.grit.theme.ModernGritTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -46,11 +51,22 @@ class MainActivity : ComponentActivity() {
             val themeMode by userPreferencesRepository.themeMode.collectAsStateWithLifecycle(
                 initialValue = AppThemeMode.System
             )
+            val designStyle by userPreferencesRepository.designStyle.collectAsStateWithLifecycle(
+                initialValue = AppDesignStyle.Classic
+            )
             val systemDarkTheme = isSystemInDarkTheme()
             val darkTheme = resolveDarkTheme(themeMode, systemDarkTheme)
             val hasSeenOnboarding by userPreferencesRepository.hasSeenOnboarding
                 .collectAsStateWithLifecycle(initialValue = false)
-            val systemBars = systemBarAppearance(darkTheme)
+            val systemBars = when (designStyle) {
+                AppDesignStyle.Classic -> systemBarAppearance(darkTheme)
+                AppDesignStyle.ModernGrit -> SystemBarAppearance(
+                    statusBarBackground = GritColors.Background,
+                    navigationBarBackground = GritColors.Background,
+                    useDarkStatusBarIcons = false,
+                    useDarkNavigationBarIcons = false
+                )
+            }
 
             SideEffect {
                 window.statusBarColor = systemBars.statusBarBackground.toArgb()
@@ -71,7 +87,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            FitTrackPlusTheme(themeMode = themeMode) {
+            val appRoot: @Composable () -> Unit = {
                 FitTrackPlusAppRoot(
                     hasSeenOnboarding = hasSeenOnboarding,
                     onOnboardingComplete = {
@@ -79,8 +95,14 @@ class MainActivity : ComponentActivity() {
                             userPreferencesRepository.setHasSeenOnboarding(true)
                         }
                     },
-                    initialTab = initialTab
+                    initialTab = initialTab,
+                    designStyle = designStyle
                 )
+            }
+
+            when (designStyle) {
+                AppDesignStyle.Classic -> FitTrackPlusTheme(themeMode = themeMode) { appRoot() }
+                AppDesignStyle.ModernGrit -> ModernGritTheme { appRoot() }
             }
         }
     }

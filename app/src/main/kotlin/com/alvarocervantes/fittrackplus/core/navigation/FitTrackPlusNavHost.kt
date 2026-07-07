@@ -15,6 +15,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.alvarocervantes.fittrackplus.core.design.AppDesignStyle
 import com.alvarocervantes.fittrackplus.core.design.FitTrackAppShell
 import com.alvarocervantes.fittrackplus.feature.history.HistoryScreen
 import com.alvarocervantes.fittrackplus.feature.home.HomeScreen
@@ -22,10 +23,19 @@ import com.alvarocervantes.fittrackplus.feature.routines.RoutinesScreen
 import com.alvarocervantes.fittrackplus.feature.settings.SettingsScreen
 import com.alvarocervantes.fittrackplus.feature.stats.StatsScreen
 import com.alvarocervantes.fittrackplus.feature.workout.WorkoutScreen
+import com.alvarocervantes.fittrackplus.grit.GritAppShell
+import com.alvarocervantes.fittrackplus.grit.screens.GritHistoryScreen
+import com.alvarocervantes.fittrackplus.grit.screens.GritHomeScreen
+import com.alvarocervantes.fittrackplus.grit.screens.GritRoutinesScreen
+import com.alvarocervantes.fittrackplus.grit.screens.GritStatsScreen
+import com.alvarocervantes.fittrackplus.grit.screens.GritWorkoutScreen
 import androidx.compose.runtime.LaunchedEffect
 
 @Composable
-fun FitTrackPlusNavHost(initialTab: AppRoute? = null) {
+fun FitTrackPlusNavHost(
+    initialTab: AppRoute? = null,
+    designStyle: AppDesignStyle = AppDesignStyle.Classic
+) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
@@ -37,21 +47,41 @@ fun FitTrackPlusNavHost(initialTab: AppRoute? = null) {
         }
     }
 
-    FitTrackAppShell(
-        currentRoute = currentRoute,
-        onNavigateToTopLevel = { navController.navigateToTopLevel(it) },
-        onNavigateToSecondary = { navController.navigateToSecondary(it) },
-        content = { innerPadding ->
-            AppNavGraph(navController = navController, contentPadding = innerPadding)
-        }
-    )
+    when (designStyle) {
+        AppDesignStyle.Classic -> FitTrackAppShell(
+            currentRoute = currentRoute,
+            onNavigateToTopLevel = { navController.navigateToTopLevel(it) },
+            onNavigateToSecondary = { navController.navigateToSecondary(it) },
+            content = { innerPadding ->
+                AppNavGraph(
+                    navController = navController,
+                    contentPadding = innerPadding,
+                    designStyle = designStyle
+                )
+            }
+        )
+        AppDesignStyle.ModernGrit -> GritAppShell(
+            currentRoute = currentRoute,
+            onNavigateToTopLevel = { navController.navigateToTopLevel(it) },
+            onNavigateToSecondary = { navController.navigateToSecondary(it) },
+            content = { innerPadding ->
+                AppNavGraph(
+                    navController = navController,
+                    contentPadding = innerPadding,
+                    designStyle = designStyle
+                )
+            }
+        )
+    }
 }
 
 @Composable
 private fun AppNavGraph(
     navController: NavHostController,
-    contentPadding: PaddingValues
+    contentPadding: PaddingValues,
+    designStyle: AppDesignStyle
 ) {
+    val isGrit = designStyle == AppDesignStyle.ModernGrit
     NavHost(
         navController = navController,
         startDestination = AppRoute.Home.route,
@@ -62,21 +92,48 @@ private fun AppNavGraph(
         popExitTransition = { fadeOut(animationSpec = tween(200)) }
     ) {
         composable(AppRoute.Home.route) {
-            HomeScreen(
-                onGoToRoutines = { navController.navigateToTopLevel(AppRoute.Routines) },
-                onGoToWorkout = { navController.navigateToTopLevel(AppRoute.Workout) },
-                onGoToHistory = { navController.navigateToTopLevel(AppRoute.History) },
-                onGoToStats = { navController.navigateToTopLevel(AppRoute.Stats) }
-            )
+            if (isGrit) {
+                GritHomeScreen(
+                    onGoToRoutines = { navController.navigateToTopLevel(AppRoute.Routines) },
+                    onGoToWorkout = { navController.navigateToTopLevel(AppRoute.Workout) },
+                    onGoToHistory = { navController.navigateToTopLevel(AppRoute.History) },
+                    onGoToStats = { navController.navigateToTopLevel(AppRoute.Stats) }
+                )
+            } else {
+                HomeScreen(
+                    onGoToRoutines = { navController.navigateToTopLevel(AppRoute.Routines) },
+                    onGoToWorkout = { navController.navigateToTopLevel(AppRoute.Workout) },
+                    onGoToHistory = { navController.navigateToTopLevel(AppRoute.History) },
+                    onGoToStats = { navController.navigateToTopLevel(AppRoute.Stats) }
+                )
+            }
         }
-        composable(AppRoute.Routines.route) { RoutinesScreen() }
+        composable(AppRoute.Routines.route) {
+            if (isGrit) GritRoutinesScreen() else RoutinesScreen()
+        }
         composable(AppRoute.Workout.route) {
-            WorkoutScreen(
-                onGoToRoutines = { navController.navigateToTopLevel(AppRoute.Routines) }
-            )
+            if (isGrit) {
+                GritWorkoutScreen(
+                    onGoToRoutines = { navController.navigateToTopLevel(AppRoute.Routines) }
+                )
+            } else {
+                WorkoutScreen(
+                    onGoToRoutines = { navController.navigateToTopLevel(AppRoute.Routines) }
+                )
+            }
         }
-        composable(AppRoute.History.route) { HistoryScreen() }
-        composable(AppRoute.Stats.route) { StatsScreen() }
+        composable(AppRoute.History.route) {
+            if (isGrit) {
+                GritHistoryScreen(
+                    onGoToWorkout = { navController.navigateToTopLevel(AppRoute.Workout) }
+                )
+            } else {
+                HistoryScreen()
+            }
+        }
+        composable(AppRoute.Stats.route) {
+            if (isGrit) GritStatsScreen() else StatsScreen()
+        }
         composable(AppRoute.Settings.route) {
             SettingsScreen(onBack = { navController.popBackStack() })
         }
