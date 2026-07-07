@@ -87,7 +87,9 @@ private fun List<FinishedSession>.toSessionVolumes(): List<WorkoutSessionVolume>
         val session = finishedSession.session.session
         WorkoutSessionVolume(
             sessionId = session.id,
+            routineId = session.routineId,
             routineName = session.routineNameSnapshot,
+            dayId = session.routineDayId,
             dayName = session.dayNameSnapshot,
             startedAt = session.startedAt,
             finishedAt = finishedSession.finishedAt,
@@ -103,7 +105,7 @@ private fun List<FinishedSession>.toExerciseGroups(): Map<String, List<ExerciseS
         finishedSession.session.exercises.mapNotNull { exercise ->
             finishedSession.toExerciseSnapshot(exercise)
         }
-    }.groupBy { snapshot -> snapshot.key }
+    }.groupBy { snapshot -> snapshot.scopeKey }
 }
 
 private fun FinishedSession.toExerciseSnapshot(
@@ -117,7 +119,15 @@ private fun FinishedSession.toExerciseSnapshot(
     } else {
         ExerciseSnapshot(
             key = key,
+            scopeKey = scopedExerciseKey(
+                routineName = session.session.routineNameSnapshot,
+                dayName = session.session.dayNameSnapshot,
+                exerciseKey = key
+            ),
+            routineName = session.session.routineNameSnapshot,
+            dayName = session.session.dayNameSnapshot,
             name = exercise.exercise.exerciseNameSnapshot.trim(),
+            position = exercise.exercise.position,
             sessionId = session.session.id,
             finishedAt = finishedAt,
             exercise = exercise
@@ -126,10 +136,14 @@ private fun FinishedSession.toExerciseSnapshot(
 }
 
 private fun Map<String, List<ExerciseSnapshot>>.toExerciseProgress(): List<ExerciseProgress> {
-    return map { (key, snapshots) ->
+    return map { (_, snapshots) ->
         ExerciseProgress(
-            exerciseKey = key,
+            exerciseKey = snapshots.first().key,
+            scopeKey = snapshots.first().scopeKey,
+            routineName = snapshots.first().routineName,
+            dayName = snapshots.first().dayName,
             exerciseName = snapshots.first().name,
+            exercisePosition = snapshots.minOf { snapshot -> snapshot.position },
             entries = snapshots.map { snapshot ->
                 snapshot.toProgressEntry()
             }
@@ -151,11 +165,15 @@ private fun ExerciseSnapshot.toProgressEntry(): ExerciseProgressEntry {
 }
 
 private fun Map<String, List<ExerciseSnapshot>>.toExerciseRecords(): List<ExerciseRecords> {
-    return map { (key, snapshots) ->
+    return map { (_, snapshots) ->
         val records = snapshots.toSetRecords()
         ExerciseRecords(
-            exerciseKey = key,
+            exerciseKey = snapshots.first().key,
+            scopeKey = snapshots.first().scopeKey,
+            routineName = snapshots.first().routineName,
+            dayName = snapshots.first().dayName,
             exerciseName = snapshots.first().name,
+            exercisePosition = snapshots.minOf { snapshot -> snapshot.position },
             maxWeight = records
                 .filter { record -> record.weightKg > 0.0 && record.reps > 0 }
                 .maxByOrNull { record -> record.weightKg },
@@ -196,11 +214,24 @@ private fun FinishedSession.hasCompletedSets(): Boolean {
 
 private data class ExerciseSnapshot(
     val key: String,
+    val scopeKey: String,
+    val routineName: String,
+    val dayName: String,
     val name: String,
+    val position: Int,
     val sessionId: Long,
     val finishedAt: Long,
     val exercise: WorkoutExerciseWithSets
 )
+
+private fun scopedExerciseKey(
+    routineName: String,
+    dayName: String,
+    exerciseKey: String
+): String {
+    return listOf(routineName, dayName, exerciseKey)
+        .joinToString("|") { part -> part.trim().lowercase() }
+}
 
 private fun WorkoutSetEntity.volumeKg(): Double {
     return weightKg * reps

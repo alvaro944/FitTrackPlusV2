@@ -48,7 +48,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
-import com.alvarocervantes.fittrackplus.core.design.components.HeatmapCalendar
 import com.alvarocervantes.fittrackplus.core.design.components.LineChart
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
@@ -69,6 +68,7 @@ import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Date
 import java.util.Locale
@@ -93,10 +93,11 @@ fun StatsScreen(
             state = state,
             contentPadding = padding,
             onPeriodFilterChange = viewModel::setPeriodFilter,
-            onSelectExercise = viewModel::selectExercise,
+            onSelectRoutine = viewModel::selectRoutine,
+            onSelectDay = viewModel::selectDay,
+            onSelectExercise = viewModel::selectExerciseScope,
             onSelectProgressPoint = viewModel::selectProgressPoint,
             onClearSelectedProgressPoint = viewModel::clearSelectedProgressPoint,
-            onHeatmapDayClick = viewModel::onHeatmapDayClick,
             onPreviousStepsWeek = viewModel::previousWeek,
             onNextStepsWeek = viewModel::nextWeek
         )
@@ -108,10 +109,11 @@ private fun StatsContent(
     state: StatsUiState,
     contentPadding: PaddingValues,
     onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
+    onSelectRoutine: (String) -> Unit,
+    onSelectDay: (String) -> Unit,
     onSelectExercise: (String) -> Unit,
     onSelectProgressPoint: (Long) -> Unit,
     onClearSelectedProgressPoint: () -> Unit,
-    onHeatmapDayClick: (HeatmapDay) -> Unit = {},
     onPreviousStepsWeek: () -> Unit = {},
     onNextStepsWeek: () -> Unit = {}
 ) {
@@ -181,6 +183,19 @@ private fun StatsContent(
                     SummaryGrid(state = state)
                 }
 
+                if (state.availableRoutineNames.isNotEmpty()) {
+                    item {
+                        StatsFocusControls(
+                            routineNames = state.availableRoutineNames,
+                            selectedRoutineName = state.selectedRoutineName,
+                            dayNames = state.availableDayNames,
+                            selectedDayName = state.selectedDayName,
+                            onSelectRoutine = onSelectRoutine,
+                            onSelectDay = onSelectDay
+                        )
+                    }
+                }
+
                 if (state.weeklyStepsData != null) {
                     item { FitTrackSectionLabel(label = "Actividad") }
                     item {
@@ -196,19 +211,18 @@ private fun StatsContent(
                 if (state.heatmapDays.isNotEmpty()) {
                     item { FitTrackSectionLabel(label = "Constancia") }
                     item {
-                        FitTrackCard(modifier = Modifier.fillMaxWidth()) {
-                            HeatmapCalendar(
-                                days = state.heatmapDays,
-                                onDayClick = onHeatmapDayClick
-                            )
-                        }
+                        ConsistencyCalendarCard(
+                            days = state.heatmapDays,
+                            period = state.selectedPeriod
+                        )
                     }
                 }
 
-                if (state.exerciseProgress.isNotEmpty()) {
+                if (state.focusedExerciseProgress.isNotEmpty()) {
                     item {
                         ProgressChartCard(
-                            exerciseNames = state.exerciseProgress.map { it.exerciseName },
+                            exercises = state.focusedExerciseProgress,
+                            selectedExerciseScopeKey = state.selectedExerciseScopeKey,
                             selectedExerciseName = state.selectedExerciseName,
                             progressPoints = state.progressPoints,
                             selectedProgressPoint = state.selectedProgressPoint,
@@ -221,7 +235,7 @@ private fun StatsContent(
 
                 item { FitTrackSectionLabel(label = "Volumen por sesion") }
                 items(
-                    items = state.sessionVolumes,
+                    items = state.focusedSessionVolumes,
                     key = { session -> session.sessionId }
                 ) { session ->
                     SessionVolumeCard(session = session)
@@ -229,16 +243,16 @@ private fun StatsContent(
 
                 item { FitTrackSectionLabel(label = "Progreso por ejercicio") }
                 items(
-                    items = state.exerciseProgress,
-                    key = { progress -> progress.exerciseKey }
+                    items = state.focusedExerciseProgress,
+                    key = { progress -> progress.scopeKey }
                 ) { progress ->
                     ExerciseProgressCard(progress = progress)
                 }
 
                 item { FitTrackSectionLabel(label = "Mejores marcas") }
                 items(
-                    items = state.exerciseRecords,
-                    key = { records -> records.exerciseKey }
+                    items = state.focusedExerciseRecords,
+                    key = { records -> records.scopeKey }
                 ) { records ->
                     ExerciseRecordsCard(records = records)
                 }
@@ -260,11 +274,94 @@ private fun StatsPeriodControls(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
         ) {
-            WorkoutStatsPeriod.entries.forEach { period ->
+            statsPeriodDisplayOrder.forEach { period ->
                 FilterChip(
                     selected = selectedPeriod == period,
                     onClick = { onPeriodFilterChange(period) },
                     label = { Text(period.label) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatsFocusControls(
+    routineNames: List<String>,
+    selectedRoutineName: String?,
+    dayNames: List<String>,
+    selectedDayName: String?,
+    onSelectRoutine: (String) -> Unit,
+    onSelectDay: (String) -> Unit
+) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Vista enfocada",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = "Elige rutina y dia para ver solo sus sesiones, ejercicios y marcas.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        StatsDropdown(
+            label = "Rutina",
+            value = selectedRoutineName ?: "Selecciona rutina",
+            options = routineNames,
+            onSelect = onSelectRoutine
+        )
+        StatsDropdown(
+            label = "Dia",
+            value = selectedDayName ?: "Selecciona dia",
+            options = dayNames,
+            onSelect = onSelectDay
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StatsDropdown(
+    label: String,
+    value: String,
+    options: List<String>,
+    onSelect: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it && options.isNotEmpty() }
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = option,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    onClick = {
+                        onSelect(option)
+                        expanded = false
+                    }
                 )
             }
         }
@@ -279,7 +376,7 @@ private fun SummaryGrid(state: StatsUiState) {
     ) {
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
-                value = state.sessionVolumes.size.toString(),
+                value = state.sessionCount.toString(),
                 label = "sesiones",
                 accent = FitTrackMetricAccent.Primary,
                 compact = true
@@ -287,17 +384,162 @@ private fun SummaryGrid(state: StatsUiState) {
         }
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
-                value = state.exerciseProgress.size.toString(),
+                value = state.exerciseCount.toString(),
                 label = "ejercicios",
                 compact = true
             )
         }
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
-                value = state.exerciseRecords.size.toString(),
-                label = "records",
+                value = state.focusedExerciseRecords.size.toString(),
+                label = "PRs",
                 accent = FitTrackMetricAccent.Warm,
                 compact = true
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConsistencyCalendarCard(
+    days: List<HeatmapDay>,
+    period: WorkoutStatsPeriod
+) {
+    val currentMonth = YearMonth.now()
+    var visibleMonth by remember { mutableStateOf(currentMonth) }
+    val activeDays = remember(days) {
+        days
+            .filter { day -> day.totalVolumeKg > 0.0 }
+            .associateBy { day -> LocalDate.ofEpochDay(day.epochDay) }
+    }
+
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { visibleMonth = visibleMonth.minusMonths(1) }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Mes anterior"
+                )
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Calendario de entrenos",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "Verde marca los dias entrenados",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(
+                onClick = { visibleMonth = visibleMonth.plusMonths(1) },
+                enabled = visibleMonth < currentMonth
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Mes siguiente"
+                )
+            }
+        }
+        MonthConsistencyGrid(
+            month = visibleMonth,
+            activeDays = activeDays
+        )
+    }
+}
+
+@Composable
+private fun MonthConsistencyGrid(
+    month: YearMonth,
+    activeDays: Map<LocalDate, HeatmapDay>
+) {
+    val locale = Locale("es", "ES")
+    val firstDay = month.atDay(1)
+    val leadingBlankDays = firstDay.dayOfWeek.value - 1
+    val totalSlots = ((leadingBlankDays + month.lengthOfMonth() + 6) / 7) * 7
+    val dayLabels = listOf("L", "M", "X", "J", "V", "S", "D")
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+    ) {
+        Text(
+            text = month.month.getDisplayName(TextStyle.FULL, locale)
+                .replaceFirstChar { it.uppercase() } + " ${month.year}",
+            style = MaterialTheme.typography.labelLarge
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+            dayLabels.forEach { label ->
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+        repeat(totalSlots / 7) { week ->
+            Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                repeat(7) { dayOfWeek ->
+                    val slot = week * 7 + dayOfWeek
+                    val dayNumber = slot - leadingBlankDays + 1
+                    val date = if (dayNumber in 1..month.lengthOfMonth()) {
+                        month.atDay(dayNumber)
+                    } else {
+                        null
+                    }
+                    ConsistencyDayCell(
+                        modifier = Modifier.weight(1f),
+                        date = date,
+                        heatmapDay = date?.let { activeDays[it] }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConsistencyDayCell(
+    modifier: Modifier = Modifier,
+    date: LocalDate?,
+    heatmapDay: HeatmapDay?
+) {
+    val hasWorkout = heatmapDay != null
+    val isToday = date == LocalDate.now()
+    val backgroundColor = when {
+        hasWorkout -> MaterialTheme.colorScheme.primary
+        isToday -> MaterialTheme.colorScheme.primarySoft
+        date != null -> MaterialTheme.colorScheme.surfaceAlt
+        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+    }
+    val textColor = when {
+        hasWorkout -> MaterialTheme.colorScheme.onPrimary
+        isToday -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Box(
+        modifier = modifier
+            .height(34.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .background(backgroundColor),
+        contentAlignment = Alignment.Center
+    ) {
+        if (date != null) {
+            Text(
+                text = date.dayOfMonth.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                color = textColor
             )
         }
     }
@@ -468,7 +710,8 @@ private fun RecordRow(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProgressChartCard(
-    exerciseNames: List<String>,
+    exercises: List<ExerciseProgressUiState>,
+    selectedExerciseScopeKey: String?,
     selectedExerciseName: String?,
     progressPoints: List<ProgressChartPointUiState>,
     selectedProgressPoint: ProgressChartPointUiState?,
@@ -502,11 +745,17 @@ private fun ProgressChartCard(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                exerciseNames.forEach { name ->
+                exercises.forEach { exercise ->
                     DropdownMenuItem(
-                        text = { Text(name) },
+                        text = {
+                            Text(
+                                text = exercise.exerciseName,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
                         onClick = {
-                            onSelectExercise(name)
+                            onSelectExercise(exercise.scopeKey)
                             expanded = false
                         }
                     )
@@ -517,14 +766,14 @@ private fun ProgressChartCard(
         when {
             selectedExerciseName == null -> {
                 Text(
-                    text = "Selecciona un ejercicio para ver la evolucion de su peso maximo.",
+                    text = "Selecciona un ejercicio de este dia para ver la evolucion de su peso maximo.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             progressPoints.size < 2 -> {
                 Text(
-                    text = "Se necesitan al menos 2 sesiones de '${selectedExerciseName}' para mostrar el grafico.",
+                    text = "Se necesitan al menos 2 sesiones de '$selectedExerciseName' en esta seleccion para mostrar el grafico.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -539,6 +788,8 @@ private fun ProgressChartCard(
                 LineChart(
                     points = chartPoints,
                     selectedPointIndex = selectedIndex,
+                    pointLabels = progressPoints.map { point -> "${point.maxWeightKg.toDisplayText()} kg" },
+                    xAxisLabels = progressPoints.map { point -> formatChartDate(point.finishedAt) },
                     onPointSelected = { index ->
                         progressPoints.getOrNull(index)?.let { point ->
                             onSelectProgressPoint(point.sessionId)
@@ -938,6 +1189,10 @@ private fun formatDate(timestamp: Long): String {
     return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(timestamp))
 }
 
+private fun formatChartDate(timestamp: Long): String {
+    return SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(timestamp))
+}
+
 private fun Double.toDisplayText(): String {
     return if (this % 1.0 == 0.0) {
         toInt().toString()
@@ -945,3 +1200,9 @@ private fun Double.toDisplayText(): String {
         String.format(Locale.getDefault(), "%.1f", this)
     }
 }
+
+private val statsPeriodDisplayOrder = listOf(
+    WorkoutStatsPeriod.LastFourWeeks,
+    WorkoutStatsPeriod.LastTwelveWeeks,
+    WorkoutStatsPeriod.All
+)
