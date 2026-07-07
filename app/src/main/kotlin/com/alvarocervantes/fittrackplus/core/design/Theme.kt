@@ -1,6 +1,8 @@
 package com.alvarocervantes.fittrackplus.core.design
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -10,6 +12,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -200,9 +203,16 @@ fun FitTrackPlusTheme(
     val darkTheme = resolveDarkTheme(themeMode, isSystemInDarkTheme())
     val colorScheme = if (darkTheme) DarkColors else LightColors
     val extraColors = if (darkTheme) DarkExtraColors else LightExtraColors
+    val textSelectionColors = remember(colorScheme.primary) {
+        TextSelectionColors(
+            handleColor = Color.Transparent,
+            backgroundColor = colorScheme.primary.copy(alpha = 0.32f)
+        )
+    }
 
     CompositionLocalProvider(
-        LocalFitTrackPlusExtraColors provides extraColors
+        LocalFitTrackPlusExtraColors provides extraColors,
+        LocalTextSelectionColors provides textSelectionColors
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
