@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -52,6 +53,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alvarocervantes.fittrackplus.core.app.AppVersion
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSegmentedSelector
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackThemeModeSelector
 import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
@@ -281,7 +283,26 @@ private fun DrawerContent(
                 selectedIndex = if (weightUnit == "lb") 1 else 0,
                 onSelect = { index -> onWeightUnitChange(if (index == 0) "kg" else "lb") }
             )
+
+            Spacer(modifier = Modifier.weight(1f))
+            AppVersionFooter()
         }
+    }
+}
+
+@Composable
+private fun AppVersionFooter() {
+    Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+        Text(
+            text = "Versión instalada",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.textTertiary
+        )
+        Text(
+            text = AppVersion.displayName,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
