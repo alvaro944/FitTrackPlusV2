@@ -65,6 +65,38 @@ class HistoryFiltersTest {
         )
     }
 
+    @Test
+    fun routineFilterKeepsOnlySessionsForSelectedRoutine() {
+        val sessions = listOf(
+            session(id = 1, finishedAt = NOW, volume = 1_000.0, routineName = "Rutina Álvaro"),
+            session(id = 2, finishedAt = NOW - TWO_WEEKS, volume = 1_500.0, routineName = "Rutina prueba"),
+            session(id = 3, finishedAt = NOW - EIGHT_WEEKS, volume = 500.0, routineName = "Rutina Álvaro")
+        )
+
+        val result = sessions.applyHistoryFilters(
+            period = HistoryPeriodFilter.All,
+            sort = HistorySortOrder.Recent,
+            selectedRoutineName = "Rutina Álvaro",
+            nowMillis = NOW
+        )
+
+        assertEquals(listOf(1L, 3L), result.map { it.sessionId })
+    }
+
+    @Test
+    fun availableRoutineNamesAreUniqueAndAlphabetical() {
+        val sessions = listOf(
+            session(id = 1, finishedAt = NOW, volume = 1_000.0, routineName = "Rutina prueba"),
+            session(id = 2, finishedAt = NOW - TWO_WEEKS, volume = 1_500.0, routineName = "Rutina Álvaro"),
+            session(id = 3, finishedAt = NOW - EIGHT_WEEKS, volume = 500.0, routineName = "Rutina prueba")
+        )
+
+        assertEquals(
+            listOf("Rutina Álvaro", "Rutina prueba"),
+            sessions.availableRoutineNames()
+        )
+    }
+
     private fun sampleSessions(): List<HistorySessionUiState> {
         return listOf(
             session(id = 1, finishedAt = NOW, volume = 1_000.0),
@@ -73,10 +105,15 @@ class HistoryFiltersTest {
         )
     }
 
-    private fun session(id: Long, finishedAt: Long, volume: Double): HistorySessionUiState {
+    private fun session(
+        id: Long,
+        finishedAt: Long,
+        volume: Double,
+        routineName: String = "Routine $id"
+    ): HistorySessionUiState {
         return HistorySessionUiState(
             sessionId = id,
-            routineName = "Routine $id",
+            routineName = routineName,
             dayName = "Day $id",
             startedAt = finishedAt - 60_000,
             finishedAt = finishedAt,
