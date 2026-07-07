@@ -15,8 +15,9 @@ android {
         applicationId = "com.alvarocervantes.fittrackplus"
         minSdk = 23
         targetSdk = 35
-        versionCode = 1
-        versionName = "2.0.0-dev"
+        versionCode = 7
+        versionName = "0.7.0-dev"
+        buildConfigField("String", "APP_CHANNEL", "\"develop\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
