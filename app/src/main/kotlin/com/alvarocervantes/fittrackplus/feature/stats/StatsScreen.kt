@@ -1,3 +1,7 @@
+// Large Compose screen composed of many small private composables; the function-count threshold
+// is not meaningful for this kind of screen file.
+@file:Suppress("TooManyFunctions")
+
 package com.alvarocervantes.fittrackplus.feature.stats
 
 import androidx.compose.foundation.background
@@ -214,8 +218,7 @@ private fun StatsContent(
                     item { FitTrackSectionLabel(label = "Constancia") }
                     item {
                         ConsistencyCalendarCard(
-                            days = state.heatmapDays,
-                            period = state.selectedPeriod
+                            days = state.heatmapDays
                         )
                     }
                 }
@@ -224,7 +227,6 @@ private fun StatsContent(
                     item {
                         ProgressChartCard(
                             exercises = state.focusedExerciseProgress,
-                            selectedExerciseScopeKey = state.selectedExerciseScopeKey,
                             selectedExerciseName = state.selectedExerciseName,
                             progressPoints = state.progressPoints,
                             chartValues = state.progressChartValues,
@@ -404,8 +406,7 @@ private fun SummaryGrid(state: StatsUiState) {
 
 @Composable
 private fun ConsistencyCalendarCard(
-    days: List<HeatmapDay>,
-    period: WorkoutStatsPeriod
+    days: List<HeatmapDay>
 ) {
     val currentMonth = YearMonth.now()
     var visibleMonth by remember { mutableStateOf(currentMonth) }
@@ -752,7 +753,6 @@ private fun RecordRow(
 @Composable
 private fun ProgressChartCard(
     exercises: List<ExerciseProgressUiState>,
-    selectedExerciseScopeKey: String?,
     selectedExerciseName: String?,
     progressPoints: List<ProgressChartPointUiState>,
     chartValues: List<Pair<Long, Float>>,
