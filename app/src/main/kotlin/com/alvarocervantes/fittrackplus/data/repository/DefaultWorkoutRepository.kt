@@ -170,6 +170,10 @@ class DefaultWorkoutRepository @Inject constructor(
         workoutDao.deleteSession(sessionId)
     }
 
+    override suspend fun reopenSession(sessionId: Long) {
+        workoutDao.reopenSession(sessionId)
+    }
+
     override suspend fun getLastWeightKgForExerciseSet(variantKey: String, setNumber: Int): Double? {
         return workoutDao.getLastWeightKgForExerciseSet(variantKey, setNumber)
     }

@@ -26,14 +26,16 @@ class HistoryDetailUiStateTest {
                             setNumber = 1,
                             weightKg = 80.0,
                             reps = 8,
-                            notes = "Controlled"
+                            notes = "Controlled",
+                            isCompleted = true
                         ),
                         HistorySetUiState(
                             setId = 102,
                             setNumber = 2,
                             weightKg = 85.0,
                             reps = 6,
-                            notes = null
+                            notes = null,
+                            isCompleted = true
                         )
                     )
                 ),
@@ -47,7 +49,8 @@ class HistoryDetailUiStateTest {
                             setNumber = 1,
                             weightKg = 20.0,
                             reps = 12,
-                            notes = null
+                            notes = null,
+                            isCompleted = true
                         )
                     )
                 )

@@ -29,6 +29,7 @@ private fun WorkoutSessionWithExercises.toHistorySummary(): WorkoutHistorySummar
         weekNumber = session.weekNumber,
         totalVolumeKg = sets.sumOf { set -> set.weightKg * set.reps },
         durationMillis = (finishedAt - session.startedAt).coerceAtLeast(0),
-        setCount = sets.size
+        setCount = sets.size,
+        isComplete = sets.all { set -> set.isCompleted }
     )
 }

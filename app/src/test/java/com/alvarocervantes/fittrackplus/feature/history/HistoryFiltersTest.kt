@@ -120,7 +120,8 @@ class HistoryFiltersTest {
             weekNumber = id.toInt(),
             totalVolumeKg = volume,
             durationMillis = 60_000,
-            setCount = id.toInt()
+            setCount = id.toInt(),
+            isComplete = true
         )
     }
 

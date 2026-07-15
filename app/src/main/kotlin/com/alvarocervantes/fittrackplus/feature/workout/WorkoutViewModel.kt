@@ -102,6 +102,17 @@ class WorkoutViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Reloads only when no session is currently in progress, so a session reopened from History is
+     * picked up on resume without disturbing an active workout.
+     */
+    fun refreshIfIdle() {
+        if (_uiState.value.activeSession != null) return
+        viewModelScope.launch {
+            loadWorkoutState(_uiState.value.activeRoutineId)
+        }
+    }
+
     fun openExerciseAlternatives(workoutExerciseId: Long) {
         viewModelScope.launch {
             val picker = buildAlternativePicker(workoutExerciseId)

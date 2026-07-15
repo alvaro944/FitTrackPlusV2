@@ -53,7 +53,8 @@ private fun WorkoutSessionWithExercises.toHistoryDetail(): WorkoutHistoryDetail?
                                 setNumber = set.setNumber,
                                 weightKg = set.weightKg,
                                 reps = set.reps,
-                                notes = set.notes
+                                notes = set.notes,
+                                isCompleted = set.isCompleted
                             )
                         }
                 )
