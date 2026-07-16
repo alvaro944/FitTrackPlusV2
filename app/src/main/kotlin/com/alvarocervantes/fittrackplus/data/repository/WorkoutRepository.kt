@@ -33,6 +33,7 @@ interface WorkoutRepository {
     suspend fun updateSetCompletion(setId: Long, isCompleted: Boolean) = Unit
     suspend fun finishSession(sessionId: Long, notes: String? = null)
     suspend fun discardSession(sessionId: Long): Unit = error("Not implemented")
+    suspend fun reopenSession(sessionId: Long): Unit = error("Not implemented")
     suspend fun getLastWeightKgForExerciseSet(variantKey: String, setNumber: Int): Double?
     suspend fun getLastRepsForExerciseSet(variantKey: String, setNumber: Int): Int?
     suspend fun getMaxWeightForExercise(variantKey: String): Double?

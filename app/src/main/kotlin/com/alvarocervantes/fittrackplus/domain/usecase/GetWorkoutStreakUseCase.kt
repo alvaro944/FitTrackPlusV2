@@ -16,7 +16,7 @@ class GetWorkoutStreakUseCase @Inject constructor(
 
         val today = LocalDate.now()
         val uniqueDays = sessions
-            .mapNotNull { it.finishedAt }
+            .map { it.startedAt }
             .map { millis ->
                 Instant.ofEpochMilli(millis)
                     .atZone(ZoneId.systemDefault())

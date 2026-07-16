@@ -75,7 +75,11 @@ private fun AppNavGraph(
                 onGoToRoutines = { navController.navigateToTopLevel(AppRoute.Routines) }
             )
         }
-        composable(AppRoute.History.route) { HistoryScreen() }
+        composable(AppRoute.History.route) {
+            HistoryScreen(
+                onGoToWorkout = { navController.navigateToTopLevel(AppRoute.Workout) }
+            )
+        }
         composable(AppRoute.Stats.route) { StatsScreen() }
         composable(AppRoute.Settings.route) {
             SettingsScreen(onBack = { navController.popBackStack() })

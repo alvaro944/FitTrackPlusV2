@@ -76,6 +76,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.success
@@ -145,11 +147,21 @@ fun WorkoutScreen(
         }
     }
 
+    // Pick up a session reopened from History when returning to this tab (only when idle).
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.refreshIfIdle()
+    }
+
     if (showFinishConfirmation) {
-        val finishDialogText = if (state.activeSession?.completedSetCount == 0) {
-            "No hay series completadas. Si finalizas ahora, la sesion se descartara."
-        } else {
-            "Se guardara la sesion en el historial con las series registradas hasta ahora."
+        val completedSetCount = state.activeSession?.completedSetCount ?: 0
+        val totalSetCount = state.activeSession?.totalSetCount ?: 0
+        val finishDialogText = when {
+            completedSetCount == 0 ->
+                "No hay series completadas. Si finalizas ahora, la sesion se descartara."
+            completedSetCount < totalSetCount ->
+                "Quedan series sin completar. Se guardara como incompleto y podras recuperarlo desde el historial."
+            else ->
+                "Se guardara la sesion en el historial con las series registradas hasta ahora."
         }
         FitTrackConfirmDialog(
             title = "Finalizar entrenamiento",

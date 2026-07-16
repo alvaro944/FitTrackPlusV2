@@ -53,6 +53,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -65,6 +67,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
@@ -79,6 +82,7 @@ import java.util.Locale
 
 @Composable
 fun HistoryScreen(
+    onGoToWorkout: () -> Unit = {},
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -89,6 +93,10 @@ fun HistoryScreen(
             snackbarHostState.showSnackbar(message)
             viewModel.clearMessage()
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.recoveredSessionEvent.collect { onGoToWorkout() }
     }
 
     Scaffold(
@@ -107,7 +115,8 @@ fun HistoryScreen(
             onSetRepsChange = viewModel::updateSetReps,
             onConfirmSaveChanges = viewModel::confirmSaveChanges,
             onConfirmDiscardChanges = viewModel::confirmDiscardChanges,
-            onCancelPendingEditExit = viewModel::cancelPendingEditExit
+            onCancelPendingEditExit = viewModel::cancelPendingEditExit,
+            onRecoverSession = viewModel::recoverSession
         )
     }
 }
@@ -126,7 +135,8 @@ private fun HistoryContent(
     onSetRepsChange: (Long, String) -> Unit,
     onConfirmSaveChanges: () -> Unit,
     onConfirmDiscardChanges: () -> Unit,
-    onCancelPendingEditExit: () -> Unit
+    onCancelPendingEditExit: () -> Unit,
+    onRecoverSession: () -> Unit
 ) {
     val showingDetail = state.selectedSessionId != null || state.isDetailLoading
 
@@ -151,7 +161,8 @@ private fun HistoryContent(
                 onSetRepsChange = onSetRepsChange,
                 onConfirmSaveChanges = onConfirmSaveChanges,
                 onConfirmDiscardChanges = onConfirmDiscardChanges,
-                onCancelPendingEditExit = onCancelPendingEditExit
+                onCancelPendingEditExit = onCancelPendingEditExit,
+                onRecoverSession = onRecoverSession
             )
         } else {
             HistoryListContent(
@@ -371,7 +382,8 @@ private fun HistoryDetailContent(
     onSetRepsChange: (Long, String) -> Unit,
     onConfirmSaveChanges: () -> Unit,
     onConfirmDiscardChanges: () -> Unit,
-    onCancelPendingEditExit: () -> Unit
+    onCancelPendingEditExit: () -> Unit,
+    onRecoverSession: () -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -440,6 +452,11 @@ private fun HistoryDetailContent(
                 item {
                     HistoryDetailSummary(detail = state.selectedDetail)
                 }
+                if (!state.selectedDetail.isComplete) {
+                    item {
+                        HistoryIncompleteCard(onRecoverSession = onRecoverSession)
+                    }
+                }
                 item {
                     HistoryComparisonCard(comparison = state.selectedDetail.comparison)
                 }
@@ -490,19 +507,32 @@ private fun HistorySessionCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
             ) {
-                Text(
-                    text = session.routineName,
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+                ) {
+                    if (!session.isComplete) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(MaterialTheme.colorScheme.error, CircleShape)
+                                .semantics { contentDescription = "Entrenamiento incompleto" }
+                        )
+                    }
+                    Text(
+                        text = session.routineName,
+                        style = MaterialTheme.typography.titleLarge,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Text(
                     text = session.dayName,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = formatDate(session.finishedAt),
+                    text = formatDate(session.startedAt),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -518,6 +548,36 @@ private fun HistorySessionCard(
                 label = "Semana ${session.weekNumber}",
                 tone = FitTrackBadgeTone.Neutral
             )
+        }
+    }
+}
+
+@Composable
+private fun HistoryIncompleteCard(onRecoverSession: () -> Unit) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(MaterialTheme.colorScheme.error, CircleShape)
+                )
+                Text(
+                    text = "Entrenamiento incompleto",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+            Text(
+                text = "Quedaron series sin completar. Puedes recuperarlo y seguir donde lo dejaste.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            TextButton(onClick = onRecoverSession) {
+                Text("Recuperar entrenamiento")
+            }
         }
     }
 }
@@ -741,19 +801,17 @@ private fun HistorySetRow(
                 )
             }
             if (isEditMode) {
-                OutlinedTextField(
+                FitTrackSelectAllTextField(
                     value = set.weightText,
                     onValueChange = { onWeightChange(set.setId, it) },
                     label = { Text("kg") },
-                    singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f)
                 )
-                OutlinedTextField(
+                FitTrackSelectAllTextField(
                     value = set.repsText,
                     onValueChange = { onRepsChange(set.setId, it) },
                     label = { Text("reps") },
-                    singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
                 )
