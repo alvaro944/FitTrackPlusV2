@@ -6,7 +6,13 @@ import org.junit.Test
 
 class AppVersionTest {
     @Test
-    fun displayNameIncludesVersionAndChannel() {
-        assertEquals("v${BuildConfig.VERSION_NAME} · ${BuildConfig.APP_CHANNEL}", AppVersion.displayName)
+    fun displayNameIncludesVersionBranchAndCommit() {
+        val expected = buildString {
+            append("v${BuildConfig.VERSION_NAME} · ${BuildConfig.GIT_BRANCH}")
+            if (BuildConfig.GIT_SHA.isNotBlank()) {
+                append(" · ${BuildConfig.GIT_SHA}")
+            }
+        }
+        assertEquals(expected, AppVersion.displayName)
     }
 }

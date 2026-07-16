@@ -7,6 +7,19 @@ plugins {
     alias(libs.plugins.detekt)
 }
 
+// Reads git state at build time so the installed app reports the branch/commit it was built from,
+// instead of a hardcoded channel. Falls back gracefully when git is unavailable (e.g. CI tarball).
+fun gitCommand(vararg args: String): String =
+    runCatching {
+        providers.exec {
+            commandLine("git", *args)
+            isIgnoreExitValue = true
+        }.standardOutput.asText.get().trim()
+    }.getOrDefault("")
+
+val gitBranch: String = gitCommand("rev-parse", "--abbrev-ref", "HEAD").ifEmpty { "unknown" }
+val gitSha: String = gitCommand("rev-parse", "--short", "HEAD")
+
 android {
     namespace = "com.alvarocervantes.fittrackplus"
     compileSdk = 35
@@ -17,7 +30,8 @@ android {
         targetSdk = 35
         versionCode = 7
         versionName = "0.7.0-dev"
-        buildConfigField("String", "APP_CHANNEL", "\"develop\"")
+        buildConfigField("String", "GIT_BRANCH", "\"$gitBranch\"")
+        buildConfigField("String", "GIT_SHA", "\"$gitSha\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
