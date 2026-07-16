@@ -69,9 +69,6 @@ interface WorkoutDao {
     @Update
     suspend fun updateSession(session: WorkoutSessionEntity)
 
-    @Query("UPDATE workout_sessions SET finishedAt = NULL WHERE id = :sessionId")
-    suspend fun reopenSession(sessionId: Long)
-
     @Query("SELECT * FROM workout_sessions WHERE id = :sessionId")
     suspend fun getSession(sessionId: Long): WorkoutSessionEntity?
 

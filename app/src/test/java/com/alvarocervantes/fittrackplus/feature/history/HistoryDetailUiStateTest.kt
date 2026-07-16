@@ -15,6 +15,7 @@ class HistoryDetailUiStateTest {
             finishedAt = 181_000,
             weekNumber = 2,
             notes = "Good session",
+            pausedMillis = 0,
             exercises = listOf(
                 HistoryExerciseUiState(
                     exerciseId = 11,
@@ -63,5 +64,22 @@ class HistoryDetailUiStateTest {
         assertEquals(80.0, detail.bestSet?.weightKg ?: -1.0, 0.0)
         assertEquals(8, detail.bestSet?.reps)
         assertEquals(640.0, detail.bestSet?.volumeKg ?: -1.0, 0.0)
+    }
+
+    @Test
+    fun durationExcludesPausedTimeFromRecoveredSession() {
+        val detail = HistoryDetailUiState(
+            sessionId = 2,
+            routineName = "Pull",
+            dayName = "Day 2",
+            startedAt = 0,
+            finishedAt = 3_600_000, // 60 min of wall-clock between start and final finish
+            weekNumber = 1,
+            notes = null,
+            pausedMillis = 1_800_000, // 30 min spent paused between finish-incomplete and recovery
+            exercises = emptyList()
+        )
+
+        assertEquals(1_800_000, detail.durationMillis) // only the 30 min actually trained
     }
 }

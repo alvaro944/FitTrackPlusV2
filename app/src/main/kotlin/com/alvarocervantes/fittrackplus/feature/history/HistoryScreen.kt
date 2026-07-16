@@ -532,7 +532,7 @@ private fun HistorySessionCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = formatDate(session.finishedAt),
+                    text = formatDate(session.startedAt),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

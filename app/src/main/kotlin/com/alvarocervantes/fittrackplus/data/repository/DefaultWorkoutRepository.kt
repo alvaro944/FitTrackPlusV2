@@ -171,7 +171,15 @@ class DefaultWorkoutRepository @Inject constructor(
     }
 
     override suspend fun reopenSession(sessionId: Long) {
-        workoutDao.reopenSession(sessionId)
+        val session = workoutDao.getSession(sessionId) ?: return
+        val finishedAt = session.finishedAt ?: return
+        val pausedGap = (System.currentTimeMillis() - finishedAt).coerceAtLeast(0)
+        workoutDao.updateSession(
+            session.copy(
+                finishedAt = null,
+                pausedMillis = session.pausedMillis + pausedGap
+            )
+        )
     }
 
     override suspend fun getLastWeightKgForExerciseSet(variantKey: String, setNumber: Int): Double? {

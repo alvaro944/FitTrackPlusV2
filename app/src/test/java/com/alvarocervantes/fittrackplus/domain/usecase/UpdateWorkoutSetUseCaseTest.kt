@@ -66,12 +66,38 @@ class UpdateWorkoutSetUseCaseTest {
         assertEquals(82.5, repository.lastWeightKg ?: -1.0, 0.0)
         assertEquals(6, repository.lastReps)
     }
+
+    @Test
+    fun leavesCompletionUntouchedByDefault() = runBlocking {
+        val repository = SetUpdateWorkoutRepository()
+        val useCase = UpdateWorkoutSetUseCase(repository)
+
+        useCase(setId = 7, weightText = "80", repsText = "8")
+
+        assertEquals(null, repository.lastCompletion)
+    }
+
+    @Test
+    fun marksCompletionFromDataWhenRequested() = runBlocking {
+        val repository = SetUpdateWorkoutRepository()
+        val useCase = UpdateWorkoutSetUseCase(repository)
+
+        useCase(setId = 7, weightText = "80", repsText = "8", markCompletionFromData = true)
+        assertEquals(true, repository.lastCompletion)
+
+        useCase(setId = 8, weightText = "0", repsText = "8", markCompletionFromData = true)
+        assertEquals(false, repository.lastCompletion)
+
+        useCase(setId = 9, weightText = "80", repsText = "0", markCompletionFromData = true)
+        assertEquals(false, repository.lastCompletion)
+    }
 }
 
 private class SetUpdateWorkoutRepository : WorkoutRepository {
     var lastSetId: Long? = null
     var lastWeightKg: Double? = null
     var lastReps: Int? = null
+    var lastCompletion: Boolean? = null
 
     override fun observeSessions(): Flow<List<WorkoutSessionEntity>> = flowOf(emptyList())
     override fun observeFinishedSessions(): Flow<List<WorkoutSessionEntity>> = flowOf(emptyList())
@@ -92,6 +118,10 @@ private class SetUpdateWorkoutRepository : WorkoutRepository {
         lastSetId = setId
         lastWeightKg = weightKg
         lastReps = reps
+    }
+
+    override suspend fun updateSetCompletion(setId: Long, isCompleted: Boolean) {
+        lastCompletion = isCompleted
     }
 
     override suspend fun finishSession(sessionId: Long, notes: String?) = Unit

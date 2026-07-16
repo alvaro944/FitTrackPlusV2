@@ -272,10 +272,12 @@ class HistoryViewModel @Inject constructor(
     fun updateSetWeight(setId: Long, weightText: String) {
         val set = findSelectedSet(setId) ?: return
         val sanitizedWeightText = sanitizeWorkoutWeightInput(weightText)
+        val completed = isEditedSetCompleted(sanitizedWeightText, set.repsText)
         updateSelectedSet(setId) { current ->
             current.copy(
                 weightText = sanitizedWeightText,
-                weightKg = parseWorkoutWeightInput(sanitizedWeightText) ?: current.weightKg
+                weightKg = parseWorkoutWeightInput(sanitizedWeightText) ?: current.weightKg,
+                isCompleted = completed
             )
         }
         persistSetEdit(setId = setId, weightText = sanitizedWeightText, repsText = set.repsText)
@@ -284,13 +286,22 @@ class HistoryViewModel @Inject constructor(
     fun updateSetReps(setId: Long, repsText: String) {
         val set = findSelectedSet(setId) ?: return
         val sanitizedRepsText = repsText.filter { it.isDigit() }
+        val completed = isEditedSetCompleted(set.weightText, sanitizedRepsText)
         updateSelectedSet(setId) { current ->
             current.copy(
                 repsText = sanitizedRepsText,
-                reps = sanitizedRepsText.toIntOrNull() ?: current.reps
+                reps = sanitizedRepsText.toIntOrNull() ?: current.reps,
+                isCompleted = completed
             )
         }
         persistSetEdit(setId = setId, weightText = set.weightText, repsText = sanitizedRepsText)
+    }
+
+    /** History mirror of the workout's completion rule: a set counts as done once it has real data. */
+    private fun isEditedSetCompleted(weightText: String, repsText: String): Boolean {
+        val weightKg = parseWorkoutWeightInput(weightText) ?: 0.0
+        val reps = repsText.toIntOrNull() ?: 0
+        return weightKg > 0.0 && reps > 0
     }
 
     private fun findSelectedSet(setId: Long): HistorySetUiState? {
@@ -323,7 +334,12 @@ class HistoryViewModel @Inject constructor(
     private fun persistSetEdit(setId: Long, weightText: String, repsText: String) {
         viewModelScope.launch {
             runCatching {
-                updateWorkoutSet(setId = setId, weightText = weightText, repsText = repsText)
+                updateWorkoutSet(
+                    setId = setId,
+                    weightText = weightText,
+                    repsText = repsText,
+                    markCompletionFromData = true
+                )
             }.onFailure { throwable ->
                 _uiState.update { state ->
                     state.copy(message = throwable.message ?: "No se pudo guardar el cambio.")
@@ -431,12 +447,13 @@ data class HistoryDetailUiState(
     val finishedAt: Long,
     val weekNumber: Int,
     val notes: String?,
+    val pausedMillis: Long,
     val exercises: List<HistoryExerciseUiState>,
     val comparison: HistoryComparisonUiState? = null
 ) {
     val totalSetCount: Int = exercises.sumOf { it.sets.size }
     val isComplete: Boolean = exercises.all { exercise -> exercise.sets.all { it.isCompleted } }
-    val durationMillis: Long = (finishedAt - startedAt).coerceAtLeast(0)
+    val durationMillis: Long = (finishedAt - startedAt - pausedMillis).coerceAtLeast(0)
     val totalVolumeKg: Double = exercises.sumOf { exercise ->
         exercise.sets.sumOf { set -> set.weightKg * set.reps }
     }
@@ -544,7 +561,7 @@ private fun List<HistorySessionUiState>.filterByPeriod(
         HistoryPeriodFilter.LastFourWeeks -> nowMillis - 4 * 7 * DAY_MILLIS
         HistoryPeriodFilter.LastTwelveWeeks -> nowMillis - 12 * 7 * DAY_MILLIS
     }
-    return filter { session -> session.finishedAt >= cutoff }
+    return filter { session -> session.startedAt >= cutoff }
 }
 
 private fun List<HistorySessionUiState>.filterByRoutine(
@@ -556,8 +573,8 @@ private fun List<HistorySessionUiState>.filterByRoutine(
 
 private fun List<HistorySessionUiState>.sortByOrder(sort: HistorySortOrder): List<HistorySessionUiState> {
     return when (sort) {
-        HistorySortOrder.Recent -> sortedByDescending { session -> session.finishedAt }
-        HistorySortOrder.Oldest -> sortedBy { session -> session.finishedAt }
+        HistorySortOrder.Recent -> sortedByDescending { session -> session.startedAt }
+        HistorySortOrder.Oldest -> sortedBy { session -> session.startedAt }
         HistorySortOrder.HighestVolume -> sortedByDescending { session -> session.totalVolumeKg }
     }
 }
@@ -571,6 +588,7 @@ private fun WorkoutHistoryDetail.toUiState(): HistoryDetailUiState {
         finishedAt = finishedAt,
         weekNumber = weekNumber,
         notes = notes,
+        pausedMillis = pausedMillis,
         exercises = exercises.map { it.toUiState() },
         comparison = comparison?.let { domainComparison ->
             HistoryComparisonUiState(

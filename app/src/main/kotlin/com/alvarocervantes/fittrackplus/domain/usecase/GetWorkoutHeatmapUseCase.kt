@@ -23,9 +23,10 @@ class GetWorkoutHeatmapUseCase @Inject constructor(
             // Sumar volumen por dia a partir de sesiones finalizadas en el ultimo año
             val volumeByDay = mutableMapOf<Long, Double>()
             sessions.forEach { session ->
-                val finishedAt = session.session.finishedAt ?: return@forEach
-                if (finishedAt < sinceMs) return@forEach
-                val epochDay = finishedAt / DAY_MS
+                if (session.session.finishedAt == null) return@forEach
+                val startedAt = session.session.startedAt
+                if (startedAt < sinceMs) return@forEach
+                val epochDay = startedAt / DAY_MS
                 val sessionVolume = session.exercises.sumOf { exercise ->
                     exercise.sets.sumOf { set -> set.volumeKg() }
                 }
