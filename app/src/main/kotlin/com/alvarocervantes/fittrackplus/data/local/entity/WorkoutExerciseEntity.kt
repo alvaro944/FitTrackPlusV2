@@ -28,5 +28,7 @@ data class WorkoutExerciseEntity(
     val performedVariantKey: String = "",
     val exerciseNameSnapshot: String,
     val targetRepsSnapshot: String,
-    val position: Int
+    val position: Int,
+    val targetRepsMinSnapshot: Int? = null,
+    val targetRepsMaxSnapshot: Int? = null
 )

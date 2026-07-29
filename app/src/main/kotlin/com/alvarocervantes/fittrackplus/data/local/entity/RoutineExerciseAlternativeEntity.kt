@@ -29,5 +29,7 @@ data class RoutineExerciseAlternativeEntity(
     val targetSets: Int,
     val targetRepsText: String,
     val position: Int,
-    val notes: String? = null
+    val notes: String? = null,
+    val targetRepsMin: Int? = null,
+    val targetRepsMax: Int? = null
 )

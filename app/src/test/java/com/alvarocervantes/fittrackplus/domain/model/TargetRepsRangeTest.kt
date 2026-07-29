@@ -50,4 +50,19 @@ class TargetRepsRangeTest {
     fun rejectsNullText() {
         assertNull(TargetRepsRange.parse(null))
     }
+
+    @Test
+    fun parsesExplicitPositiveSignLikeLegacyParser() {
+        assertEquals(TargetRepsRange(min = 10, max = 10), TargetRepsRange.parse("+10"))
+    }
+
+    @Test
+    fun rejectsTextInsideRangeBoundary() {
+        assertNull(TargetRepsRange.parse("8x-12"))
+    }
+
+    @Test
+    fun rejectsAdditionalRangeBoundary() {
+        assertNull(TargetRepsRange.parse("8-12-15"))
+    }
 }
