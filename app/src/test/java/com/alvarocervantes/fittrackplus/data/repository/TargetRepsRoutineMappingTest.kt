@@ -8,15 +8,17 @@ import org.junit.Test
 class TargetRepsRoutineMappingTest {
 
     @Test
-    fun parsesStructuredRangeWithoutNormalizingSourceText() {
-        val entity = exerciseDraft(targetRepsText = " 8-12 ")
+    fun trimsSourceTextWithoutRewritingItsFormat() {
+        val entity = exerciseDraft(targetRepsText = " 8 - 12 ")
             .toRoutineExerciseEntity(
                 routineDayId = 3,
                 position = 1,
                 variantKey = "bench"
             )
 
-        assertEquals(" 8-12 ", entity.targetRepsText)
+        // Surrounding whitespace is dropped, but the inner format is kept verbatim:
+        // the source text is never rewritten into a canonical "8-12" form.
+        assertEquals("8 - 12", entity.targetRepsText)
         assertEquals(8, entity.targetRepsMin)
         assertEquals(12, entity.targetRepsMax)
     }
