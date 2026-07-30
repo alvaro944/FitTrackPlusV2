@@ -323,6 +323,101 @@ Las mejoras de abajo son las que propuse antes de ver la Fase 6. Mantenidas por 
 
 - Revisar keys estables en `LazyColumn`, `remember` de calculos de stats, paginacion si el historial crece. No hay problema hoy; documentar y medir si se degrada.
 
+### 18. Dataset externo de ejercicios (hasaneyldrm/exercises-dataset)
+
+- Fuente: https://github.com/hasaneyldrm/exercises-dataset
+- Contenido: 1.324 ejercicios en `data/exercises.json` + `exercises.schema.json`. Campos: id, nombre, categoria, parte del cuerpo, equipamiento, musculo objetivo, musculos primarios/secundarios, instrucciones en 10 idiomas (español incluido), y rutas a thumbnail y GIF de animacion (180x180).
+- Encaje: alimentaria la entrada 14 (ExerciseCatalog global) como seed de Room. El schema formal permite validar en build.
+- **Bloqueo legal a resolver antes de usar los medios**: la licencia MIT cubre el codigo y la estructura del dataset. Los thumbnails y GIFs son propiedad de GymVisual, redistribuidos con permiso concedido *a ese repo*. Ese permiso no se hereda. Usarlos en FitTrackPlus — sobre todo si se publica — es redistribuir material con copyright ajeno sin acuerdo propio.
+- Opciones a evaluar cuando toque:
+  1. Contactar/pagar licencia a GymVisual para los medios.
+  2. Usar solo la parte textual (nombres, categorias, musculos, equipamiento, instrucciones), que si cae bajo MIT con atribucion, y sustituir los medios por otros propios o de fuente libre.
+  3. Descartar el dataset entero.
+- Decision del usuario (2026-07-16): anotarlo aqui para no depender de memoria personal. Sin fecha de ejecucion.
+
+### 19. Periodizacion: mesociclos, microciclos y progresiones
+
+- Idea: ir mas alla de la heuristica actual ("si superas X repeticiones, sube peso") hacia programacion real. Que la app dirija el bloque: p.ej. dos semanas en rango de 15, luego cambio de ejercicios, luego bloque de fuerza, etc.
+- Motivacion del usuario: tiene material de su antiguo entrenador y quiere apoyarse en metodos con base cientifica, no en invenciones.
+- Trabajo previo obligatorio (CONCEPTOS ANTES QUE CODIGO): definir el modelo de dominio de periodizacion antes de tocar entidades. Sin eso, cualquier esquema de Room nace mal.
+- Preguntas abiertas a cerrar en fase de diseño:
+  - Que modelos se soportan (lineal, ondulante diario/semanal, por bloques) y cual es el minimo viable.
+  - Como convive un plan con la invariante de snapshot: el plan es editable, pero el historial debe seguir leyendo snapshots.
+  - Que pasa cuando el usuario se salta sesiones o cambia de rutina a mitad de mesociclo.
+  - Donde vive la logica: `domain/usecase` puro y testeable, nunca en Compose.
+- **Cautela de fuentes**: no se puede volcar contenido de libros al codigo ni a la UI. Lo que se modela son los principios (que son hechos, no expresion protegida), reescritos con lenguaje propio y citando la fuente en docs. Lo mismo aplica al material del antiguo entrenador: sirve como referencia para entender el metodo, no como texto a copiar.
+- Tamaño estimado: no es una mejora, es una feature grande. Merece su propio ciclo de diseño (spec + plan) cuando se promueva.
+
+#### Modelo de capas (refinado 2026-07-16 con el usuario)
+
+La periodizacion se separa en TRES capas independientes. Mezclarlas es el error a evitar:
+
+1. **Estructura** — que ejercicios y en que orden. Es la rutina actual. Ya existe.
+2. **Prescripcion** — rangos, series, intensidad, RIR. Vive en el BLOQUE, no en la rutina. Aqui caben las semanas de descarga ("mismo peso, mitad de series" = misma estructura, otra prescripcion) y los cambios de rango sin duplicar rutinas.
+3. **Objetivo** — motor de proyeccion. Dado el estado actual y una meta (ej: "100 kg en banca, hoy 80x5"), GENERA las prescripciones de los proximos bloques y adapta la rutina. Es la capa que mas ilusiona al usuario.
+
+Mesociclo = lista ordenada de bloques. Bloque = terna (rutina, prescripcion, duracion). Cambiar un ejercicio entre bloques = apuntar a otra rutina (ahi si cambia la estructura). El snapshot se mantiene intacto: al empezar sesion se resuelve estructura+prescripcion y se snapshotea el RESULTADO; el historial no sabe que existe un mesociclo.
+
+**Dependencia dura**: la capa 3 (objetivos) NO puede existir sin 1RM estimado (e1RM). El motor necesita e1RM para calcular % y proyectar.
+
+#### Estado actual verificado (2026-07-27)
+
+**CORRECCION** — lo anotado el 2026-07-16 en este apartado era falso. Se afirmo que la app no calculaba 1RM; se afirmo a partir de una busqueda mal construida (`rg -r`, que es "replace", no "recursive") que devolvio resultados corruptos. Verificado de nuevo leyendo el codigo:
+
+- **El e1RM YA EXISTE.** `ObserveWorkoutStatsUseCase.kt:240-246` aplica Epley (`weightKg * (1 + reps / 30)`) por set. Se expone en `ExerciseProgressEntry.estimatedOneRepMaxKg` y `ExerciseRecords.bestEstimatedOneRepMax` (`domain/model/StatsModels.kt`), y se muestra como chip `ProgressMetric.EstimatedOneRepMax("1RM","kg")` (`feature/stats/StatsViewModel.kt:283-288`) pintado en `LineChart`. El cimiento de la capa 3 ya esta puesto.
+- La progresion actual es un enum de 3 estados `ProgressionHint { UP, DOWN, NONE }` (`domain/model/ProgressionHint.kt`) mas `GetProgressionHintUseCase`: media de reps de las ultimas 3 sesiones, si 2 o mas superan el techo del rango → UP. Es una heuristica minima, no un motor.
+- **No hay cursor de dia persistido.** `GetNextRoutineDayUseCase.kt:6-23` lo deriva: `nextDayIndex = sesionesFinalizadas % numDias`, `weekNumber = sesionesFinalizadas / numDias + 1`. El mesociclo debe seguir esta misma filosofia (derivar el bloque activo) en vez de crear una tabla de progreso que se desincronice.
+- **Bloqueante real identificado**: `targetRepsText: String` es texto libre (`RoutineExerciseEntity.kt:30` y `RoutineExerciseAlternativeEntity`), parseado en caliente con regex en `GetProgressionHintUseCase.kt:41-65`. Ningun motor de prescripcion puede construirse sobre un String. Cruza con la entrada 9 de este mismo backlog.
+- **El snapshot se materializa en un unico punto**: `DefaultWorkoutRepository.createSessionFromRoutineDay` (`DefaultWorkoutRepository.kt:59-104`). Ese es el unico gancho que necesitara la capa de prescripcion.
+- **Dos identidades de ejercicio conviven**: stats agrupa por `scopeKey` (rutina|dia|variante normalizados, `ObserveWorkoutStatsUseCase.kt:227-234`); `GetProgressionHintUseCase` agrupa solo por `performedVariantKey`. A resolver al definir contra que se mide un objetivo.
+
+#### Secuencia acordada (2026-07-27) — no empezar por el mesociclo
+
+1. **Fase 0 — investigacion sin codigo**: recopilar metodos con base cientifica — formulas de e1RM (Epley vs Brzycki, y su limite de fiabilidad por encima de ~10-12 reps), zonas %1RM, esquemas de progresion (lineal, doble progresion, RIR/RPE), periodizacion (lineal, ondulante, por bloques), protocolos de descarga, proyeccion a objetivo con margen de seguridad. Modelar como principios con lenguaje propio + cita de fuente. NO copiar texto de libros ni del material del antiguo entrenador.
+2. **Fase 1 — reps estructuradas**: migrar `targetRepsText` a `targetRepsMin/Max` de forma aditiva (DB v5). Es el cimiento que desbloquea las fases 2, 3 y 4.
+3. **Fase 2 — objetivos por ejercicio**: encima del e1RM que ya existe.
+4. **Fase 3 — bloques y mesociclos**, y **Fase 4 — motor de objetivos** (no diseñar hasta tener semanas de datos reales).
+
+Plan detallado de las fases 0 y 1 en `docs/superpowers/plans/2026-07-27-structured-target-reps.md`.
+
+#### REENFOQUE (2026-07-27): retos por ejercicio, no periodizar la rutina entera
+
+El dueño trajo una propuesta trabajada con ChatGPT. Revisada contra el codigo real, **aporta una idea mejor que el diseño de bloques** y contiene dos diagnosticos falsos.
+
+**Se adopta**: periodizar **1-3 ejercicios clave** mediante un "reto" asociado a un ejercicio concreto ("llegar a 50 kg en press de maquina"), en vez de montar mesociclos y bloques sobre toda la rutina. El resto de ejercicios funcionan exactamente como hoy. Da la mayor parte del valor con una fraccion del trabajo, y es abandonable a medias sin romper nada.
+
+Puntos concretos adoptados:
+- `goalId` **opcional** en el ejercicio de sesion: terminar o cancelar un reto no destruye ningun registro.
+- El reto no reinterpreta el historial; solo genera indicaciones para sesiones futuras.
+- Fases dentro del reto (base → carga → fuerza → aproximacion → prueba) como secuencia ligera.
+- Motor de progresion determinista y simple (subir / mantener / repetir-bajar), con explicacion textual. Nada de IA.
+- Gamificacion que premia constancia y cumplimiento semanal, **nunca el fallo** (coincide con la evidencia [A] de la investigacion).
+- Cada maquina como ejercicio independiente: **ya se cumple** via `performedVariantKey`.
+
+**Se descartan dos diagnosticos falsos de esa propuesta:**
+1. *"Cambiar el rango de la rutina reinterpreta los registros antiguos"* — **falso en esta app**. `DefaultWorkoutRepository.kt:69-99` ya congela `routineNameSnapshot`, `dayNameSnapshot`, `exerciseNameSnapshot`, `targetRepsSnapshot` y materializa las series como filas. La instantanea de prescripcion dentro de la sesion, que es justo la solucion propuesta, existe desde el dia uno. Su "primera etapa: arreglar la base historica" ya esta hecha.
+2. *"Crear un StrengthCalculator propio"* — ya existe (Epley, `ObserveWorkoutStatsUseCase.kt:240-246`). No hay que crearlo, hay que **extraerlo** a `domain/` y acotarlo por repeticiones.
+
+**Consecuencia**: los mesociclos y bloques sobre la rutina completa quedan **sustituidos** por los retos por ejercicio. El modelo de bloques diseñado sigue siendo valido si algun dia hace falta, pero no se implementa.
+
+#### Arco revisado
+
+| Fase | Contenido | Estado |
+|---|---|---|
+| 0 | Investigacion de metodos | **Hecha** (`docs/research/training-methods.md`) |
+| 1 | Reps estructuradas (DB v5) | Spec y plan listos, pendiente Codex |
+| 2 | e1RM acotado + RIR por ejercicio | Pendiente de spec |
+| 3 | Retos por ejercicio (objetivo + progreso) | Pendiente |
+| 4 | Motor de progresion determinista | Pendiente |
+| 5 | Fases del reto, misiones, prueba final | Pendiente |
+| 6 | Analisis por grupo muscular | Depende de la entrada 18 |
+
+**Nota**: `wger` (proyecto abierto con API de ejercicios, musculos y equipamiento) queda anotado como referencia alternativa a la entrada 18 para clasificacion de ejercicios. **Revisar su licencia antes de usar sus datos**, igual que con GymVisual.
+
+#### Decisiones de producto abiertas
+
+- Avance del bloque: ¿por fechas o por sesiones completadas? Hoy el usuario NO quiere poder saltar semanas ni entrenamientos. A futuro interesa un "saltar entrenamiento sin contarlo" y un "reiniciar rutina desde el dia 1 sin registrar". Ninguno existe aun a nivel de rutina normal, asi que no bloquea; se disena cuando toque.
+
 ---
 
 ## Siguiente paso sugerido
