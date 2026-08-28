@@ -66,6 +66,8 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCardBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
@@ -489,67 +491,41 @@ private fun HistorySessionCard(
     session: HistorySessionUiState,
     onClick: () -> Unit
 ) {
-    FitTrackCard(
+    FitTrackEntityListCard(
+        title = session.routineName,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(
                 role = Role.Button,
                 onClickLabel = "Ver detalle de la sesion",
                 onClick = onClick
+            ),
+        leadingDot = if (!session.isComplete) MaterialTheme.colorScheme.error else null,
+        leadingDotContentDescription = if (!session.isComplete) "Entrenamiento incompleto" else null,
+        badge = FitTrackEntityListCardBadge(
+            text = "Semana ${session.weekNumber}",
+            tone = FitTrackBadgeTone.Neutral
+        ),
+        metaContent = {
+            Text(
+                text = session.dayName,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-                ) {
-                    if (!session.isComplete) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(MaterialTheme.colorScheme.error, CircleShape)
-                                .semantics { contentDescription = "Entrenamiento incompleto" }
-                        )
-                    }
-                    Text(
-                        text = session.routineName,
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Text(
-                    text = session.dayName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = formatDate(session.startedAt),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "${session.totalVolumeKg.toDisplayText()} kg - " +
-                        "${session.setCount} series - " +
-                        formatDuration(session.durationMillis),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            FitTrackBadge(
-                label = "Semana ${session.weekNumber}",
-                tone = FitTrackBadgeTone.Neutral
+            Text(
+                text = formatDate(session.startedAt),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "${session.totalVolumeKg.toDisplayText()} kg - " +
+                    "${session.setCount} series - " +
+                    formatDuration(session.durationMillis),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-    }
+    )
 }
 
 @Composable

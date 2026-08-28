@@ -72,6 +72,8 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCardBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackInputDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackOutlinedButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
@@ -504,49 +506,41 @@ private fun RoutineListItem(
     onArchiveRoutine: (RoutineListItemUiState) -> Unit,
     onSetActiveRoutine: (Long) -> Unit
 ) {
-    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(FitSpacing.mdLg)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(
+    FitTrackEntityListCard(
+        title = routine.name,
+        modifier = Modifier.fillMaxWidth(),
+        badge = if (routine.isActive) {
+            FitTrackEntityListCardBadge("ACTIVA", FitTrackBadgeTone.Active)
+        } else {
+            null
+        },
+        meta = "${routine.dayCount} dias · lista para editar",
+        actions = if (routine.isActive) {
+            listOf({
+                FitTrackOutlinedButton(
+                    label = "Editar",
+                    onClick = { onEditRoutine(routine.id) },
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = routine.name,
-                            style = MaterialTheme.typography.titleLarge,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        if (routine.isActive) {
-                            FitTrackBadge(
-                                label = "ACTIVA",
-                                tone = FitTrackBadgeTone.Active
-                            )
-                        }
-                    }
-                    Text(
-                        text = "${routine.dayCount} dias · lista para editar",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    icon = Icons.Filled.Edit
+                )
+                FitTrackOutlinedButton(
+                    label = "Archivar",
+                    onClick = { onArchiveRoutine(routine) },
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Filled.Archive
+                )
+            })
+        } else {
+            listOf(
+                {
+                    FitTrackTonalButton(
+                        label = "Activar",
+                        onClick = { onSetActiveRoutine(routine.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.Filled.Check
                     )
-                }
-            }
-
-            if (routine.isActive) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-                ) {
+                },
+                {
                     FitTrackOutlinedButton(
                         label = "Editar",
                         onClick = { onEditRoutine(routine.id) },
@@ -560,38 +554,9 @@ private fun RoutineListItem(
                         icon = Icons.Filled.Archive
                     )
                 }
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-                ) {
-                    FitTrackTonalButton(
-                        label = "Activar",
-                        onClick = { onSetActiveRoutine(routine.id) },
-                        modifier = Modifier.fillMaxWidth(),
-                        icon = Icons.Filled.Check
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-                    ) {
-                        FitTrackOutlinedButton(
-                            label = "Editar",
-                            onClick = { onEditRoutine(routine.id) },
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Filled.Edit
-                        )
-                        FitTrackOutlinedButton(
-                            label = "Archivar",
-                            onClick = { onArchiveRoutine(routine) },
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Filled.Archive
-                        )
-                    }
-                }
-            }
+            )
         }
-    }
+    )
 }
 
 @Composable
@@ -599,44 +564,20 @@ private fun ArchivedRoutineListItem(
     routine: RoutineListItemUiState,
     onRestoreRoutine: (Long) -> Unit
 ) {
-    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(FitSpacing.mdLg)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
-                ) {
-                    Text(
-                        text = routine.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "${routine.dayCount} dias · archivada",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                FitTrackBadge(
-                    label = "ARCHIVADA",
-                    tone = FitTrackBadgeTone.Neutral
-                )
-            }
+    FitTrackEntityListCard(
+        title = routine.name,
+        modifier = Modifier.fillMaxWidth(),
+        badge = FitTrackEntityListCardBadge("ARCHIVADA", FitTrackBadgeTone.Neutral),
+        meta = "${routine.dayCount} dias · archivada",
+        actions = listOf({
             FitTrackTonalButton(
                 label = "Restaurar",
                 onClick = { onRestoreRoutine(routine.id) },
                 modifier = Modifier.fillMaxWidth(),
                 icon = Icons.Filled.Unarchive
             )
-        }
-    }
+        })
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
