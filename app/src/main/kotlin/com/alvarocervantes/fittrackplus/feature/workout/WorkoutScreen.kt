@@ -86,6 +86,9 @@ import com.alvarocervantes.fittrackplus.core.design.accentSoft
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroTag
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeTone
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeVariant
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import com.alvarocervantes.fittrackplus.core.design.components.ConfettiAnimation
 import com.alvarocervantes.fittrackplus.core.design.components.DisableNativeTextToolbar
@@ -1214,42 +1217,24 @@ private fun WorkoutSetCompletionButton(
     isReadyToComplete: Boolean,
     onClick: () -> Unit
 ) {
-    val backgroundColor = when {
-        isCompleted -> MaterialTheme.colorScheme.primary
-        isReadyToComplete -> MaterialTheme.colorScheme.primarySoft
-        else -> MaterialTheme.colorScheme.surface
-    }
-    val borderColor = if (isReadyToComplete) MaterialTheme.colorScheme.primary else Color.Transparent
     val contentDescription = when {
         isCompleted -> "Serie $setNumber completada"
         isReadyToComplete -> "Completar serie $setNumber"
         else -> "Serie $setNumber pendiente"
     }
 
-    Box(
+    FitTrackIconBadge(
+        variant = if (isCompleted) {
+            FitTrackIconBadgeVariant.Icon(Icons.Filled.Check)
+        } else {
+            FitTrackIconBadgeVariant.Number(setNumber.toString())
+        },
+        tone = if (isCompleted) FitTrackIconBadgeTone.Filled else FitTrackIconBadgeTone.Outlined,
         modifier = Modifier
             .padding(top = 6.dp)
-            .size(WORKOUT_SET_INDEX_SIZE)
-            .background(color = backgroundColor, shape = CircleShape)
-            .border(width = if (isReadyToComplete) 1.dp else 0.dp, color = borderColor, shape = CircleShape)
             .clickable(enabled = isReadyToComplete, onClick = onClick)
-            .semantics { this.contentDescription = contentDescription },
-        contentAlignment = Alignment.Center
-    ) {
-        if (isCompleted) {
-            Icon(
-                imageVector = Icons.Filled.Check,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(18.dp)
-            )
-        } else {
-            Text(
-                text = setNumber.toString(),
-                style = MaterialTheme.typography.labelLarge
-            )
-        }
-    }
+            .semantics { this.contentDescription = contentDescription }
+    )
 }
 
 internal fun formatPreviousWeightLabel(previousWeight: String): String = "ant. $previousWeight kg"
@@ -1316,7 +1301,6 @@ private fun workoutSetFieldColors(isCompleted: Boolean) = OutlinedTextFieldDefau
     unfocusedContainerColor = Color.Transparent
 )
 
-private val WORKOUT_SET_INDEX_SIZE = 40.dp
 // El peso puede llegar a 5 caracteres ("120,5") mientras que las reps nunca pasan de 2 cifras,
 // asi que la columna de peso recibe algo mas de ancho que la de reps (empujon suave, no extremo).
 private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.15f

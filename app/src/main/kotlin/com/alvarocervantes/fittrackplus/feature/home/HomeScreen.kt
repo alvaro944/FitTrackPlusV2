@@ -39,6 +39,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeTone
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeVariant
 import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroTag
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
@@ -82,32 +85,24 @@ fun HomeScreen(
             title = "Preparar rutinas",
             description = "Crea y ajusta tus bloques de entrenamiento antes de empezar la semana.",
             icon = Icons.AutoMirrored.Filled.List,
-            accentColor = MaterialTheme.colorScheme.primary,
-            accentBackground = MaterialTheme.colorScheme.primarySoft,
             onClick = onGoToRoutines
         ),
         HomeQuickAction(
             title = "Entrenar hoy",
             description = "Si ya tienes una rutina activa, entra al siguiente dia sin romper tu historial.",
             icon = Icons.Filled.PlayArrow,
-            accentColor = MaterialTheme.colorScheme.primary,
-            accentBackground = MaterialTheme.colorScheme.primarySoft,
             onClick = onGoToWorkout
         ),
         HomeQuickAction(
             title = "Revisar historial",
             description = "Consulta sesiones finalizadas y confirma que el historico sigue siendo fiable.",
             icon = Icons.Filled.History,
-            accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            accentBackground = MaterialTheme.colorScheme.surfaceAlt,
             onClick = onGoToHistory
         ),
         HomeQuickAction(
             title = "Consultar datos",
             description = "Mira volumen, progreso y marcas sin mezclar sesiones abiertas.",
             icon = Icons.Filled.BarChart,
-            accentColor = MaterialTheme.colorScheme.secondary,
-            accentBackground = MaterialTheme.colorScheme.surfaceAlt,
             onClick = onGoToStats
         )
     )
@@ -240,19 +235,10 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
                         verticalAlignment = Alignment.Top
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(MaterialTheme.shapes.medium)
-                                .background(MaterialTheme.colorScheme.primarySoft),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = (index + 1).toString(),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        FitTrackIconBadge(
+                            variant = FitTrackIconBadgeVariant.Number((index + 1).toString()),
+                            tone = FitTrackIconBadgeTone.Soft
+                        )
                         Column(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
@@ -477,19 +463,10 @@ private fun QuickActionCard(action: HomeQuickAction) {
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.mdLg),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(MaterialTheme.shapes.large)
-                    .background(action.accentBackground),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = action.icon,
-                    contentDescription = null,
-                    tint = action.accentColor
-                )
-            }
+            FitTrackIconBadge(
+                variant = FitTrackIconBadgeVariant.Icon(action.icon),
+                tone = FitTrackIconBadgeTone.Soft
+            )
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
@@ -512,8 +489,6 @@ private data class HomeQuickAction(
     val title: String,
     val description: String,
     val icon: ImageVector,
-    val accentColor: Color,
-    val accentBackground: Color,
     val onClick: () -> Unit
 )
 
