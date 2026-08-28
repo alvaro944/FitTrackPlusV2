@@ -39,7 +39,6 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
@@ -86,6 +85,7 @@ import com.alvarocervantes.fittrackplus.core.design.accentSoft
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroTag
+import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeVariant
@@ -112,7 +112,6 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
 import com.alvarocervantes.fittrackplus.core.design.FitTrackRadialTimer
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
-import com.alvarocervantes.fittrackplus.core.design.primaryDark
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import java.text.SimpleDateFormat
@@ -416,20 +415,9 @@ private fun WorkoutPreviewCard(
     isStarting: Boolean,
     onStartWorkout: () -> Unit
 ) {
-    androidx.compose.material3.Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryDark),
-        border = null
-    ) {
-        Column(
-            modifier = Modifier.padding(FitSpacing.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(FitSpacing.mdLg)
-        ) {
-            FitTrackBadge(
-                label = "PROXIMO ENTRENAMIENTO",
-                tone = FitTrackBadgeTone.Active
-            )
+    FitTrackHeroCard(
+        badge = "PROXIMO ENTRENAMIENTO",
+        title = {
             Text(
                 text = preview.routineName,
                 style = MaterialTheme.typography.headlineMedium,
@@ -437,6 +425,12 @@ private fun WorkoutPreviewCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+        },
+        cta = if (isStarting) "Iniciando entrenamiento" else "Iniciar entrenamiento",
+        onCtaClick = onStartWorkout,
+        ctaEnabled = !isStarting,
+        ctaIcon = Icons.Filled.PlayArrow,
+        content = {
             Text(
                 text = preview.dayName,
                 style = MaterialTheme.typography.titleLarge,
@@ -448,14 +442,8 @@ private fun WorkoutPreviewCard(
                 FitTrackHeroTag(text = "Semana ${preview.weekNumber}")
                 FitTrackHeroTag(text = "${preview.exerciseCount} ejercicios")
             }
-            FitTrackPrimaryButton(
-                label = if (isStarting) "Iniciando entrenamiento" else "Iniciar entrenamiento",
-                onClick = onStartWorkout,
-                enabled = !isStarting,
-                icon = Icons.Filled.PlayArrow
-            )
         }
-    }
+    )
 }
 
 @Composable

@@ -43,7 +43,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeVariant
 import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroTag
-import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
+import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
@@ -51,7 +51,6 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
-import com.alvarocervantes.fittrackplus.core.design.primaryDark
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import com.alvarocervantes.fittrackplus.core.design.surfaceCard
@@ -150,26 +149,19 @@ fun HomeScreen(
         }
 
         item {
-            Box(
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.extraLarge)
-                    .background(MaterialTheme.colorScheme.primaryDark)
-                    .fillMaxWidth()
-                    .padding(FitSpacing.cardPadding)
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(FitSpacing.mdLg)
-                ) {
-                    FitTrackBadge(
-                        label = "LOCAL-FIRST",
-                        tone = FitTrackBadgeTone.Active
-                    )
+            FitTrackHeroCard(
+                badge = "LOCAL-FIRST",
+                title = {
                     Text(
                         text = "FitTrackPlus",
                         style = MaterialTheme.typography.headlineLarge,
                         color = Color.White
                     )
-
+                },
+                cta = if (hasActiveRoutine) "Ir a entrenar" else "Preparar rutina",
+                onCtaClick = if (hasActiveRoutine) onGoToWorkout else onGoToRoutines,
+                ctaIcon = if (hasActiveRoutine) Icons.Filled.PlayArrow else Icons.AutoMirrored.Filled.List,
+                content = {
                     if (uiState.isLoading) {
                         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
                             SkeletonText(
@@ -199,12 +191,6 @@ fun HomeScreen(
                         )
                     }
 
-                    FitTrackPrimaryButton(
-                        label = if (hasActiveRoutine) "Ir a entrenar" else "Preparar rutina",
-                        onClick = if (hasActiveRoutine) onGoToWorkout else onGoToRoutines,
-                        icon = if (hasActiveRoutine) Icons.Filled.PlayArrow else Icons.AutoMirrored.Filled.List
-                    )
-
                     if (!hasActiveRoutine && !uiState.isLoading) {
                         Text(
                             text = "Crea tu primera rutina y activala para empezar a entrenar.",
@@ -213,7 +199,7 @@ fun HomeScreen(
                         )
                     }
                 }
-            }
+            )
         }
 
         item {
