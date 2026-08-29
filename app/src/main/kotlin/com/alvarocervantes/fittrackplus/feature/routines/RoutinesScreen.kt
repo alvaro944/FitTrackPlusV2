@@ -29,8 +29,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -79,6 +77,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeVariant
 import com.alvarocervantes.fittrackplus.core.design.FitTrackOutlinedButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
+import com.alvarocervantes.fittrackplus.core.design.FitTrackReorderActions
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
@@ -867,47 +866,19 @@ private fun RoutineDayEditor(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
-                    IconButton(
-                        onClick = { onMoveDay(dayIndex, MoveDirection.Up) },
-                        enabled = canMoveUp,
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.KeyboardArrowUp,
-                            contentDescription = "Subir dia ${dayIndex + 1}"
-                        )
-                    }
-                    IconButton(
-                        onClick = { onMoveDay(dayIndex, MoveDirection.Down) },
-                        enabled = canMoveDown,
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.KeyboardArrowDown,
-                            contentDescription = "Bajar dia ${dayIndex + 1}"
-                        )
-                    }
-                    IconButton(
-                        onClick = { onDuplicateDay(dayIndex) },
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ContentCopy,
-                            contentDescription = "Duplicar dia ${dayIndex + 1}"
-                        )
-                    }
-                    IconButton(
-                        onClick = { onRemoveDay(dayIndex) },
-                        enabled = canRemove,
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Delete,
-                            contentDescription = "Quitar dia ${dayIndex + 1} del borrador"
-                        )
-                    }
-                }
+                FitTrackReorderActions(
+                    canMoveUp = canMoveUp,
+                    canMoveDown = canMoveDown,
+                    canRemove = canRemove,
+                    onMoveUp = { onMoveDay(dayIndex, MoveDirection.Up) },
+                    onMoveDown = { onMoveDay(dayIndex, MoveDirection.Down) },
+                    onDuplicate = { onDuplicateDay(dayIndex) },
+                    onRemove = { onRemoveDay(dayIndex) },
+                    moveUpContentDescription = "Subir dia ${dayIndex + 1}",
+                    moveDownContentDescription = "Bajar dia ${dayIndex + 1}",
+                    duplicateContentDescription = "Duplicar dia ${dayIndex + 1}",
+                    removeContentDescription = "Quitar dia ${dayIndex + 1} del borrador"
+                )
             }
 
             FitTrackSelectAllTextField(
@@ -1101,56 +1072,30 @@ private fun RoutineExerciseEditor(
                 text = "Ejercicio ${exerciseIndex + 1}",
                 style = MaterialTheme.typography.labelLarge
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
-                IconButton(
-                    onClick = { onMoveExercise(dayIndex, exerciseIndex, MoveDirection.Up) },
-                    enabled = canMoveUp,
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardArrowUp,
-                        contentDescription = "Subir ejercicio ${exerciseIndex + 1}"
-                    )
+            FitTrackReorderActions(
+                canMoveUp = canMoveUp,
+                canMoveDown = canMoveDown,
+                canRemove = canRemove,
+                onMoveUp = { onMoveExercise(dayIndex, exerciseIndex, MoveDirection.Up) },
+                onMoveDown = { onMoveExercise(dayIndex, exerciseIndex, MoveDirection.Down) },
+                onDuplicate = { onDuplicateExercise(dayIndex, exerciseIndex) },
+                onRemove = { onRemoveExercise(dayIndex, exerciseIndex, exercise.name) },
+                moveUpContentDescription = "Subir ejercicio ${exerciseIndex + 1}",
+                moveDownContentDescription = "Bajar ejercicio ${exerciseIndex + 1}",
+                duplicateContentDescription = "Duplicar ejercicio ${exerciseIndex + 1}",
+                removeContentDescription = "Quitar ejercicio ${exerciseIndex + 1} del borrador",
+                extraAction = {
+                    IconButton(
+                        onClick = { showAlternativesDialog = true },
+                        modifier = Modifier.minimumInteractiveComponentSize()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = "Ver ejercicios alternativos para ${exercise.name.ifBlank { "este ejercicio" }}"
+                        )
+                    }
                 }
-                IconButton(
-                    onClick = { onMoveExercise(dayIndex, exerciseIndex, MoveDirection.Down) },
-                    enabled = canMoveDown,
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardArrowDown,
-                        contentDescription = "Bajar ejercicio ${exerciseIndex + 1}"
-                    )
-                }
-                IconButton(
-                    onClick = { onDuplicateExercise(dayIndex, exerciseIndex) },
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.ContentCopy,
-                        contentDescription = "Duplicar ejercicio ${exerciseIndex + 1}"
-                    )
-                }
-                IconButton(
-                    onClick = { showAlternativesDialog = true },
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Refresh,
-                        contentDescription = "Ver ejercicios alternativos para ${exercise.name.ifBlank { "este ejercicio" }}"
-                    )
-                }
-                IconButton(
-                    onClick = { onRemoveExercise(dayIndex, exerciseIndex, exercise.name) },
-                    enabled = canRemove,
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = "Quitar ejercicio ${exerciseIndex + 1} del borrador"
-                    )
-                }
-            }
+            )
         }
 
         FitTrackSelectAllTextField(
