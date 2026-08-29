@@ -1,5 +1,6 @@
 package com.alvarocervantes.fittrackplus.feature.onboarding
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,6 +65,13 @@ fun OnboardingScreen(onComplete: () -> Unit) {
     val pagerState = rememberPagerState(pageCount = { onboardingPages.size })
     val scope = rememberCoroutineScope()
     val isLastPage = pagerState.currentPage == onboardingPages.lastIndex
+    val isFirstPage = pagerState.currentPage == 0
+
+    BackHandler(enabled = !isFirstPage) {
+        scope.launch {
+            pagerState.animateScrollToPage(pagerState.currentPage - 1)
+        }
+    }
 
     Scaffold { innerPadding ->
         Column(
@@ -106,22 +114,40 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     currentPage = pagerState.currentPage
                 )
 
-                if (isLastPage) {
-                    FitTrackPrimaryButton(
-                        label = "Empezar",
-                        onClick = onComplete,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    FitTrackPrimaryButton(
-                        label = "Siguiente",
-                        onClick = {
-                            scope.launch {
-                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (!isFirstPage) {
+                        TextButton(
+                            onClick = {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                                }
                             }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        ) {
+                            Text("Atras")
+                        }
+                    }
+
+                    if (isLastPage) {
+                        FitTrackPrimaryButton(
+                            label = "Empezar",
+                            onClick = onComplete,
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        FitTrackPrimaryButton(
+                            label = "Siguiente",
+                            onClick = {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }

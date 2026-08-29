@@ -157,6 +157,27 @@ fun SettingsScreen(
             }
 
             item {
+                FitTrackSectionLabel(label = "Ayuda")
+            }
+
+            item {
+                FitTrackCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                        Text(
+                            text = "Repite la introduccion que viste al abrir la app por primera vez.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        FitTrackOutlinedButton(
+                            label = "Volver a ver la introduccion",
+                            onClick = viewModel::replayOnboarding,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+
+            item {
                 FitTrackSectionLabel(label = "Salud y actividad")
             }
 

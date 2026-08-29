@@ -97,6 +97,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun replayOnboarding() {
+        viewModelScope.launch {
+            userPreferencesRepository.setHasSeenOnboarding(false)
+        }
+    }
+
     fun disconnectHealthConnect() {
         viewModelScope.launch {
             userPreferencesRepository.setHealthConnectConnected(false)
