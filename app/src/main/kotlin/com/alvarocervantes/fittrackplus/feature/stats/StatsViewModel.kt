@@ -1,5 +1,6 @@
 package com.alvarocervantes.fittrackplus.feature.stats
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
@@ -18,6 +19,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.text.Collator
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 import javax.inject.Inject
@@ -40,13 +42,21 @@ class StatsViewModel @Inject constructor(
     observeWorkoutStats: ObserveWorkoutStatsUseCase,
     getWorkoutHeatmap: GetWorkoutHeatmapUseCase,
     private val readDailyStepsUseCase: ReadDailyStepsUseCase,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val selectedPeriod = MutableStateFlow(WorkoutStatsPeriod.LastFourWeeks)
     private val activeRoutineId = MutableStateFlow<Long?>(null)
     private val _selectedWeekStart = MutableStateFlow(currentWeekMonday())
-    private val _uiState = MutableStateFlow(StatsUiState())
+    private val _uiState = MutableStateFlow(
+        StatsUiState(
+            visibleCalendarMonth = savedStateHandle.get<String>(VISIBLE_CALENDAR_MONTH_KEY)
+                ?.let { runCatching { YearMonth.parse(it) }.getOrNull() }
+                ?: YearMonth.now(),
+            selectedStepsDayIndex = savedStateHandle.get<Int>(SELECTED_STEPS_DAY_KEY)
+        )
+    )
     val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
 
     init {
@@ -123,12 +133,39 @@ class StatsViewModel @Inject constructor(
 
     fun previousWeek() {
         _selectedWeekStart.update { it.minusWeeks(1) }
+        selectStepsDay(null)
     }
 
     fun nextWeek() {
         val nextWeek = _selectedWeekStart.value.plusWeeks(1)
         if (!nextWeek.isAfter(currentWeekMonday())) {
             _selectedWeekStart.value = nextWeek
+            selectStepsDay(null)
+        }
+    }
+
+    fun selectStepsDay(dayIndex: Int?) {
+        savedStateHandle[SELECTED_STEPS_DAY_KEY] = dayIndex
+        _uiState.update { state -> state.copy(selectedStepsDayIndex = dayIndex) }
+    }
+
+    fun previousCalendarMonth() {
+        _uiState.update { state ->
+            val month = state.visibleCalendarMonth.minusMonths(1)
+            savedStateHandle[VISIBLE_CALENDAR_MONTH_KEY] = month.toString()
+            state.copy(visibleCalendarMonth = month)
+        }
+    }
+
+    fun nextCalendarMonth() {
+        _uiState.update { state ->
+            val month = state.visibleCalendarMonth.plusMonths(1)
+            if (month <= YearMonth.now()) {
+                savedStateHandle[VISIBLE_CALENDAR_MONTH_KEY] = month.toString()
+                state.copy(visibleCalendarMonth = month)
+            } else {
+                state
+            }
         }
     }
 
@@ -195,6 +232,11 @@ class StatsViewModel @Inject constructor(
 
     private fun currentWeekMonday(): LocalDate = LocalDate.now()
         .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+
+    private companion object {
+        const val VISIBLE_CALENDAR_MONTH_KEY = "visible_calendar_month"
+        const val SELECTED_STEPS_DAY_KEY = "selected_steps_day_index"
+    }
 }
 
 data class WeeklyStepsData(
@@ -226,6 +268,8 @@ data class StatsUiState(
     val heatmapDays: List<HeatmapDay> = emptyList(),
     val weeklyStepsData: WeeklyStepsData? = null,
     val canGoToNextWeek: Boolean = false,
+    val visibleCalendarMonth: YearMonth = YearMonth.now(),
+    val selectedStepsDayIndex: Int? = null,
     val message: String? = null
 ) {
     val isEmpty: Boolean = sessionVolumes.isEmpty() &&

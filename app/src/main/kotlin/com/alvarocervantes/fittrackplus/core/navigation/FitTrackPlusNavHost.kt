@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -31,8 +34,11 @@ fun FitTrackPlusNavHost(initialTab: AppRoute? = null) {
     val currentDestination = backStackEntry?.destination
     val currentRoute = currentDestination.asAppRoute()
 
+    var hasConsumedInitialTab by rememberSaveable { mutableStateOf(false) }
+
     LaunchedEffect(initialTab) {
-        if (initialTab != null) {
+        if (initialTab != null && !hasConsumedInitialTab) {
+            hasConsumedInitialTab = true
             navController.navigateToTopLevel(initialTab)
         }
     }

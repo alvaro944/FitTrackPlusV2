@@ -36,9 +36,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
@@ -102,7 +100,10 @@ fun StatsScreen(
             onSelectProgressPoint = viewModel::selectProgressPoint,
             onClearSelectedProgressPoint = viewModel::clearSelectedProgressPoint,
             onPreviousStepsWeek = viewModel::previousWeek,
-            onNextStepsWeek = viewModel::nextWeek
+            onNextStepsWeek = viewModel::nextWeek,
+            onSelectStepsDay = viewModel::selectStepsDay,
+            onPreviousCalendarMonth = viewModel::previousCalendarMonth,
+            onNextCalendarMonth = viewModel::nextCalendarMonth
         )
     }
 }
@@ -119,7 +120,10 @@ private fun StatsContent(
     onSelectProgressPoint: (Long) -> Unit,
     onClearSelectedProgressPoint: () -> Unit,
     onPreviousStepsWeek: () -> Unit = {},
-    onNextStepsWeek: () -> Unit = {}
+    onNextStepsWeek: () -> Unit = {},
+    onSelectStepsDay: (Int?) -> Unit = {},
+    onPreviousCalendarMonth: () -> Unit = {},
+    onNextCalendarMonth: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier
@@ -207,7 +211,9 @@ private fun StatsContent(
                             data = state.weeklyStepsData,
                             canGoNext = state.canGoToNextWeek,
                             onPrevious = onPreviousStepsWeek,
-                            onNext = onNextStepsWeek
+                            onNext = onNextStepsWeek,
+                            selectedDayIndex = state.selectedStepsDayIndex,
+                            onDaySelect = onSelectStepsDay
                         )
                     }
                 }
@@ -216,7 +222,10 @@ private fun StatsContent(
                     item { FitTrackSectionLabel(label = "Constancia") }
                     item {
                         ConsistencyCalendarCard(
-                            days = state.heatmapDays
+                            days = state.heatmapDays,
+                            visibleMonth = state.visibleCalendarMonth,
+                            onPreviousMonth = onPreviousCalendarMonth,
+                            onNextMonth = onNextCalendarMonth
                         )
                     }
                 }
@@ -355,10 +364,12 @@ private fun SummaryGrid(state: StatsUiState) {
 
 @Composable
 private fun ConsistencyCalendarCard(
-    days: List<HeatmapDay>
+    days: List<HeatmapDay>,
+    visibleMonth: YearMonth,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit
 ) {
     val currentMonth = YearMonth.now()
-    var visibleMonth by remember { mutableStateOf(currentMonth) }
     val activeDays = remember(days) {
         days
             .filter { day -> day.totalVolumeKg > 0.0 }
@@ -371,7 +382,7 @@ private fun ConsistencyCalendarCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { visibleMonth = visibleMonth.minusMonths(1) }) {
+            IconButton(onClick = onPreviousMonth) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Mes anterior"
@@ -389,7 +400,7 @@ private fun ConsistencyCalendarCard(
                 )
             }
             IconButton(
-                onClick = { visibleMonth = visibleMonth.plusMonths(1) },
+                onClick = onNextMonth,
                 enabled = visibleMonth < currentMonth
             ) {
                 Icon(
@@ -823,13 +834,12 @@ private fun WeeklyStepsCard(
     data: WeeklyStepsData,
     canGoNext: Boolean,
     onPrevious: () -> Unit,
-    onNext: () -> Unit
+    onNext: () -> Unit,
+    selectedDayIndex: Int?,
+    onDaySelect: (Int?) -> Unit
 ) {
-    var selectedDayIndex by remember(data.weekStart) {
-        mutableStateOf<Int?>(
-            if (data.isCurrentWeek) LocalDate.now().dayOfWeek.value - 1 else null
-        )
-    }
+    val effectiveSelectedDayIndex = selectedDayIndex
+        ?: if (data.isCurrentWeek) LocalDate.now().dayOfWeek.value - 1 else null
 
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         // Week navigation row
@@ -871,12 +881,12 @@ private fun WeeklyStepsCard(
         // Day-by-day bars
         DayBarsRow(
             data = data,
-            selectedDayIndex = selectedDayIndex,
-            onDaySelect = { selectedDayIndex = it }
+            selectedDayIndex = effectiveSelectedDayIndex,
+            onDaySelect = { onDaySelect(it) }
         )
 
         // Selected day detail
-        selectedDayIndex?.let { idx ->
+        effectiveSelectedDayIndex?.let { idx ->
             SelectedDayDetail(
                 dayIndex = idx,
                 weekStart = data.weekStart,

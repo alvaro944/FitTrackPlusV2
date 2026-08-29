@@ -1,5 +1,6 @@
 package com.alvarocervantes.fittrackplus.feature.history
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDetail
@@ -40,6 +41,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val DAY_MILLIS: Long = 86_400_000
+private const val SELECTED_SESSION_ID_KEY = "selected_session_id"
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
@@ -49,7 +51,8 @@ class HistoryViewModel @Inject constructor(
     private val reopenWorkoutSession: ReopenWorkoutSessionUseCase,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val routineRepository: RoutineRepository,
-    private val workoutRepository: WorkoutRepository
+    private val workoutRepository: WorkoutRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -124,9 +127,14 @@ class HistoryViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+
+        savedStateHandle.get<Long>(SELECTED_SESSION_ID_KEY)?.let { restoredSessionId ->
+            selectSession(restoredSessionId)
+        }
     }
 
     fun selectSession(sessionId: Long) {
+        savedStateHandle[SELECTED_SESSION_ID_KEY] = sessionId
         viewModelScope.launch {
             editSnapshot = emptyMap()
             _uiState.update { state ->
@@ -165,6 +173,7 @@ class HistoryViewModel @Inject constructor(
     }
 
     fun clearSelection() {
+        savedStateHandle[SELECTED_SESSION_ID_KEY] = null
         editSnapshot = emptyMap()
         _uiState.update { state ->
             state.copy(
