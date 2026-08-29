@@ -10,6 +10,8 @@ import com.alvarocervantes.fittrackplus.domain.usecase.ReadDailyStepsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.Calendar
 import javax.inject.Inject
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +19,11 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.stateIn
+
+private const val HOME_SOURCE_RETRY_DELAY_MS = 1_000L
 
 data class HomeUiState(
     val activeRoutineId: Long? = null,
@@ -44,17 +50,36 @@ class HomeViewModel @Inject constructor(
     init {
         userPreferencesRepository.healthConnectConnected
             .onEach { connected ->
-                stepsData.value = if (connected) readDailyStepsUseCase() else null
+                stepsData.value = if (connected) {
+                    runCatching { readDailyStepsUseCase() }
+                        .onFailure(::reportHomeError)
+                        .getOrNull()
+                } else {
+                    null
+                }
             }
-            .catch { stepsData.value = null }
+            .retryWhen { throwable, _ ->
+                reportHomeError(throwable)
+                delay(HOME_SOURCE_RETRY_DELAY_MS)
+                true
+            }
             .launchIn(viewModelScope)
     }
 
     val uiState: StateFlow<HomeUiState> = combine(
-        userPreferencesRepository.activeRoutineId,
-        workoutRepository.observeFinishedSessions(),
+        userPreferencesRepository.activeRoutineId.keepHomeSourceAlive(
+            fallback = null,
+            onError = ::reportHomeError
+        ),
+        workoutRepository.observeFinishedSessions().keepHomeSourceAlive(
+            fallback = emptyList(),
+            onError = ::reportHomeError
+        ),
         stepsData,
-        userPreferencesRepository.dailyStepGoal
+        userPreferencesRepository.dailyStepGoal.keepHomeSourceAlive(
+            fallback = 10_000,
+            onError = ::reportHomeError
+        )
     ) { activeId, sessions, steps, stepGoal ->
         val nowMillis = System.currentTimeMillis()
         val trainedDays = trainedDaysThisWeek(sessions, nowMillis = nowMillis)
@@ -68,9 +93,6 @@ class HomeViewModel @Inject constructor(
             stepsDaysCompleted = computeStepsDaysCompleted(steps, stepGoal),
             isLoading = false
         )
-    }.catch { throwable ->
-        message.value = throwable.message ?: "No se pudo cargar el inicio."
-        emit(HomeUiState(isLoading = false))
     }.combine(message) { state, currentMessage ->
         state.copy(message = currentMessage)
     }.stateIn(
@@ -82,6 +104,23 @@ class HomeViewModel @Inject constructor(
     fun clearMessage() {
         message.value = null
     }
+
+    private fun reportHomeError(throwable: Throwable) {
+        message.value = throwable.message ?: "No se pudo cargar el inicio."
+    }
+}
+
+internal fun <T> Flow<T>.keepHomeSourceAlive(
+    fallback: T,
+    retryDelayMillis: Long = HOME_SOURCE_RETRY_DELAY_MS,
+    onError: (Throwable) -> Unit
+): Flow<T> {
+    return retryWhen { throwable, _ ->
+            onError(throwable)
+            delay(retryDelayMillis)
+            true
+        }
+        .onStart { emit(fallback) }
 }
 
 private fun computeStepsDaysCompleted(steps: StepsData?, goal: Int): Set<Int> {
