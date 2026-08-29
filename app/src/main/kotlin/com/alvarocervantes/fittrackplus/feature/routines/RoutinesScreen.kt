@@ -995,6 +995,23 @@ private fun RoutineExerciseEditor(
     var notesDraft by remember { mutableStateOf("") }
     var showAlternativesDialog by remember { mutableStateOf(false) }
     var editingAlternativeIndex by remember { mutableStateOf<Int?>(null) }
+    var alternativePendingRemoval by remember { mutableStateOf<Int?>(null) }
+
+    alternativePendingRemoval?.let { alternativeIndex ->
+        FitTrackConfirmDialog(
+            title = "Eliminar alternativa",
+            text = "Se eliminara esta alternativa del ejercicio. Esta accion no se puede deshacer.",
+            confirmLabel = "Eliminar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onRemoveExerciseAlternative(dayIndex, exerciseIndex, alternativeIndex)
+                if (editingAlternativeIndex == alternativeIndex) editingAlternativeIndex = null
+                alternativePendingRemoval = null
+            },
+            onDismiss = { alternativePendingRemoval = null },
+            destructive = true
+        )
+    }
 
     if (showNotesDialog) {
         FitTrackInputDialog(
@@ -1056,8 +1073,7 @@ private fun RoutineExerciseEditor(
                 editingAlternativeIndex = alternativeIndex
             },
             onRemoveAlternative = { alternativeIndex ->
-                onRemoveExerciseAlternative(dayIndex, exerciseIndex, alternativeIndex)
-                if (editingAlternativeIndex == alternativeIndex) editingAlternativeIndex = null
+                alternativePendingRemoval = alternativeIndex
             },
             onAlternativeNameChange = { alternativeIndex, value ->
                 onExerciseAlternativeNameChange(dayIndex, exerciseIndex, alternativeIndex, value)
