@@ -998,6 +998,14 @@ private fun ExerciseAlternativesDialog(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (picker.draft == null) {
+                if (!picker.canSwapVariant) {
+                    Text(
+                        text = "Ya has registrado series en este ejercicio, asi que no se puede " +
+                            "cambiar la variante en esta sesion. Puedes editarlas desde Rutinas.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
                 picker.options.forEach { option ->
                     val onOptionClick = {
                         if (option.variantKey == picker.currentVariantKey) {
@@ -1006,10 +1014,14 @@ private fun ExerciseAlternativesDialog(
                             onApplyVariant(option.variantKey)
                         }
                     }
+                    val optionEnabled = picker.canSwapVariant && !picker.isSaving
                     FitTrackCard(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable(onClick = onOptionClick)
+                            .clickable(
+                                enabled = optionEnabled || option.isCurrent,
+                                onClick = onOptionClick
+                            )
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
                             Row(
@@ -1034,15 +1046,17 @@ private fun ExerciseAlternativesDialog(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                Text(
-                                    text = if (option.isCurrent) "Usando ahora" else "Usar ahora",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                            if (option.isCurrent || optionEnabled) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Text(
+                                        text = if (option.isCurrent) "Usando ahora" else "Usar ahora",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
@@ -1050,6 +1064,7 @@ private fun ExerciseAlternativesDialog(
                 FitTrackTonalButton(
                     label = "Crear alternativa",
                     onClick = onStartCreating,
+                    enabled = picker.canSwapVariant && !picker.isSaving,
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {

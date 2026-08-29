@@ -22,6 +22,13 @@ interface WorkoutRepository {
         day: RoutineDaySnapshot,
         weekNumber: Int
     ): Long
+    /**
+     * Whether [replaceWorkoutExerciseVariant] would succeed for this exercise. Swapping a variant
+     * rebuilds the exercise's sets, so it is rejected once any set holds recorded data. Callers
+     * should check this before creating anything, so a rejected swap leaves no orphan behind.
+     */
+    suspend fun canReplaceWorkoutExerciseVariant(workoutExerciseId: Long): Boolean =
+        error("Not implemented")
     suspend fun replaceWorkoutExerciseVariant(
         workoutExerciseId: Long,
         variantKey: String,

@@ -100,6 +100,16 @@ class DefaultWorkoutRepository @Inject constructor(
         }
     }
 
+    override suspend fun canReplaceWorkoutExerciseVariant(workoutExerciseId: Long): Boolean {
+        workoutDao.getExercise(workoutExerciseId) ?: return false
+        return !hasRecordedData(workoutExerciseId)
+    }
+
+    private suspend fun hasRecordedData(workoutExerciseId: Long): Boolean {
+        return workoutDao.getSetsForExercise(workoutExerciseId)
+            .any { it.weightKg > 0.0 || it.reps > 0 || it.isCompleted }
+    }
+
     override suspend fun replaceWorkoutExerciseVariant(
         workoutExerciseId: Long,
         variantKey: String,
@@ -110,9 +120,7 @@ class DefaultWorkoutRepository @Inject constructor(
     ): Boolean {
         return database.withTransaction {
             val workoutExercise = workoutDao.getExercise(workoutExerciseId) ?: return@withTransaction false
-            val currentSets = workoutDao.getSetsForExercise(workoutExerciseId)
-            val hasRecordedData = currentSets.any { it.weightKg > 0.0 || it.reps > 0 || it.isCompleted }
-            if (hasRecordedData) {
+            if (hasRecordedData(workoutExerciseId)) {
                 return@withTransaction false
             }
 

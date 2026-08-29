@@ -223,7 +223,28 @@ class WorkoutViewModel @Inject constructor(
     fun saveExerciseAlternative() {
         val picker = _uiState.value.alternativePicker ?: return
         val draft = picker.draft ?: return
-        if (!draft.canSave) return
+        if (!draft.canSave || picker.isSaving) return
+
+        // The swap rebuilds this exercise's sets, so it is rejected once any set holds data.
+        // Check that before writing anything: otherwise the alternative is persisted in the
+        // routine, the swap fails, and every retry leaves another orphan copy behind.
+        if (!picker.canSwapVariant) {
+            _uiState.update { state ->
+                state.copy(
+                    alternativePicker = state.alternativePicker?.copy(draft = null),
+                    message = "Ya has registrado series en este ejercicio. " +
+                        "Crea la alternativa desde Rutinas."
+                )
+            }
+            return
+        }
+
+        if (picker.hasVariantNamed(draft.name)) {
+            _uiState.update { state ->
+                state.copy(message = "Ya existe una variante con ese nombre.")
+            }
+            return
+        }
 
         viewModelScope.launch {
             _uiState.update { state ->
@@ -258,10 +279,14 @@ class WorkoutViewModel @Inject constructor(
                         )
                     }
                 } else {
+                    // The pre-check passed but the swap still lost a race against a set write.
+                    // The alternative is already saved in the routine, so close the dialog rather
+                    // than inviting a retry that would create a duplicate.
                     _uiState.update { state ->
                         state.copy(
-                            alternativePicker = state.alternativePicker?.copy(isSaving = false),
-                            message = "Cambia la variante antes de registrar series en este ejercicio."
+                            alternativePicker = null,
+                            message = "Alternativa guardada en la rutina, pero no se aplico: " +
+                                "ya has registrado series en este ejercicio."
                         )
                     }
                 }
@@ -278,9 +303,13 @@ class WorkoutViewModel @Inject constructor(
 
     fun applyExerciseVariant(variantKey: String) {
         val picker = _uiState.value.alternativePicker ?: return
+        if (picker.isSaving || !picker.canSwapVariant) return
         val option = picker.options.firstOrNull { it.variantKey == variantKey } ?: return
 
         viewModelScope.launch {
+            _uiState.update { state ->
+                state.copy(alternativePicker = state.alternativePicker?.copy(isSaving = true))
+            }
             val applied = workoutRepository.replaceWorkoutExerciseVariant(
                 workoutExerciseId = picker.workoutExerciseId,
                 variantKey = option.variantKey,
@@ -291,10 +320,18 @@ class WorkoutViewModel @Inject constructor(
             )
             if (applied) {
                 refreshActiveSessionFromRepository()
-                _uiState.update { state -> state.copy(alternativePicker = null) }
+                _uiState.update { state ->
+                    state.copy(
+                        alternativePicker = null,
+                        message = "Variante cambiada a ${option.name}."
+                    )
+                }
             } else {
                 _uiState.update { state ->
-                    state.copy(message = "Cambia la variante antes de registrar series en este ejercicio.")
+                    state.copy(
+                        alternativePicker = null,
+                        message = "Ya has registrado series en este ejercicio."
+                    )
                 }
             }
         }
@@ -801,7 +838,8 @@ class WorkoutViewModel @Inject constructor(
             title = workoutExercise.name,
             currentVariantKey = workoutExercise.variantKey,
             defaultVariantKey = routineExercise.defaultVariantKey,
-            options = routineExercise.toVariantOptions(currentVariantKey = workoutExercise.variantKey)
+            options = routineExercise.toVariantOptions(currentVariantKey = workoutExercise.variantKey),
+            canSwapVariant = workoutRepository.canReplaceWorkoutExerciseVariant(workoutExerciseId)
         )
     }
 }
@@ -881,11 +919,18 @@ data class ExerciseAlternativesUiState(
     val currentVariantKey: String,
     val defaultVariantKey: String,
     val options: List<ExerciseVariantOptionUiState>,
+    val canSwapVariant: Boolean = true,
     val draft: ExerciseAlternativeDraftUiState? = null,
     val isSaving: Boolean = false
 ) {
     val currentOption: ExerciseVariantOptionUiState
         get() = options.firstOrNull { it.variantKey == currentVariantKey } ?: options.first()
+
+    /** True when [name] already belongs to the base exercise or one of its alternatives. */
+    fun hasVariantNamed(name: String): Boolean {
+        val candidate = name.trim()
+        return options.any { it.name.trim().equals(candidate, ignoreCase = true) }
+    }
 }
 
 data class ExerciseVariantOptionUiState(
