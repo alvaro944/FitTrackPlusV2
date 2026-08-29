@@ -86,7 +86,7 @@ class UpdateWorkoutSetUseCaseTest {
         assertEquals(true, repository.lastCompletion)
 
         useCase(setId = 8, weightText = "0", repsText = "8", markCompletionFromData = true)
-        assertEquals(false, repository.lastCompletion)
+        assertEquals(true, repository.lastCompletion)
 
         useCase(setId = 9, weightText = "80", repsText = "0", markCompletionFromData = true)
         assertEquals(false, repository.lastCompletion)

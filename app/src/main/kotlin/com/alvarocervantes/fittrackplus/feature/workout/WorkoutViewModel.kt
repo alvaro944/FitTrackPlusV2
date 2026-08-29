@@ -3,6 +3,7 @@ package com.alvarocervantes.fittrackplus.feature.workout
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alvarocervantes.fittrackplus.domain.model.isWorkoutSetCompleted
 import com.alvarocervantes.fittrackplus.data.local.relation.WorkoutSessionWithExercises
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.data.repository.RoutineRepository
@@ -981,7 +982,7 @@ internal fun adjustWorkoutWeightInput(currentValue: String, deltaKg: Double): St
 
 internal fun isWorkoutSetCompleted(repsText: String): Boolean {
     val reps = repsText.toIntOrNull() ?: 0
-    return reps > 0
+    return isWorkoutSetCompleted(reps)
 }
 
 internal fun isWorkoutSetReadyToComplete(

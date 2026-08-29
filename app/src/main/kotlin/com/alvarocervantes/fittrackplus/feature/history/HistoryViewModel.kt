@@ -8,6 +8,7 @@ import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryExercise
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryMetricDelta
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySet
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySummary
+import com.alvarocervantes.fittrackplus.domain.model.isWorkoutSetCompleted
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.data.repository.RoutineRepository
 import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHistoryDetailUseCase
@@ -272,7 +273,7 @@ class HistoryViewModel @Inject constructor(
     fun updateSetWeight(setId: Long, weightText: String) {
         val set = findSelectedSet(setId) ?: return
         val sanitizedWeightText = sanitizeWorkoutWeightInput(weightText)
-        val completed = isEditedSetCompleted(sanitizedWeightText, set.repsText)
+        val completed = isWorkoutSetCompleted(set.repsText.toIntOrNull() ?: 0)
         updateSelectedSet(setId) { current ->
             current.copy(
                 weightText = sanitizedWeightText,
@@ -286,7 +287,7 @@ class HistoryViewModel @Inject constructor(
     fun updateSetReps(setId: Long, repsText: String) {
         val set = findSelectedSet(setId) ?: return
         val sanitizedRepsText = repsText.filter { it.isDigit() }
-        val completed = isEditedSetCompleted(set.weightText, sanitizedRepsText)
+        val completed = isWorkoutSetCompleted(sanitizedRepsText.toIntOrNull() ?: 0)
         updateSelectedSet(setId) { current ->
             current.copy(
                 repsText = sanitizedRepsText,
@@ -295,13 +296,6 @@ class HistoryViewModel @Inject constructor(
             )
         }
         persistSetEdit(setId = setId, weightText = set.weightText, repsText = sanitizedRepsText)
-    }
-
-    /** History mirror of the workout's completion rule: a set counts as done once it has real data. */
-    private fun isEditedSetCompleted(weightText: String, repsText: String): Boolean {
-        val weightKg = parseWorkoutWeightInput(weightText) ?: 0.0
-        val reps = repsText.toIntOrNull() ?: 0
-        return weightKg > 0.0 && reps > 0
     }
 
     private fun findSelectedSet(setId: Long): HistorySetUiState? {
