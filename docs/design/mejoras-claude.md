@@ -420,6 +420,20 @@ Puntos concretos adoptados:
 
 ---
 
+## Nuevo - Design system unification (2026-08-29)
+
+Ideas anotadas durante la revision de la rama `refactor/design-system-unification` (spec: `docs/superpowers/specs/2026-08-28-design-system-unification.md`). El dueño acepto el comportamiento actual de ambas para esta rama; quedan aqui como mejora futura, no como bloqueantes.
+
+### 36. `FitTrackIconBadge` sin color personalizable por seccion
+
+Al migrar las `QuickActionCard` de Home, las 4 acciones (rutinas, entrenar, historial, datos) pasaron de tener un color de acento distinto cada una a compartir el mismo `tone = Soft`. Se acepta por ahora. Si en el futuro se quiere recuperar la diferenciacion por color, valorar añadir un `tone` adicional (o un parametro de color explicito) a `FitTrackIconBadge` en vez de volver a resolverlo a mano por feature.
+
+### 37. `FitTrackIconBadge` sin estado intermedio para "listo para completar"
+
+`WorkoutSetCompletionButton` tenia 3 estados visuales (pendiente sin borde, listo-para-completar con fondo suave + borde, completado relleno). Tras migrar a `FitTrackIconBadge` (solo `Soft`/`Outlined`/`Filled`) los dos primeros se fusionan en `Outlined`, perdiendo la distincion. Se acepta por ahora. Idea para el futuro: permitir un estilo personalizado por contexto de uso (p.ej. distinguir "listo"/"completado" en Entrenar de los usos en Historial/registros), en vez de forzar todos los consumidores al mismo set de tonos genericos.
+
+---
+
 ## Siguiente paso sugerido
 
 El usuario revisa entrada por entrada y marca cuales entran en el backlog real. Las descartadas se dejan aqui como registro. Las aceptadas se repriorizan en `docs/planning/roadmap-2.1.md` cuando pasan a ser direccion vigente.
