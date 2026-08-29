@@ -146,7 +146,9 @@ fun RoutinesScreen(
             when {
                 state.editor?.hasUnsavedChanges == true -> {
                     ExtendedFloatingActionButton(
-                        onClick = viewModel::saveEditor
+                        onClick = {
+                            if (!state.isSaving) viewModel.saveEditor()
+                        }
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Check,

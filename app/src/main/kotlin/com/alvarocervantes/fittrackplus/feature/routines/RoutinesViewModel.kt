@@ -357,6 +357,7 @@ class RoutinesViewModel @Inject constructor(
     }
 
     fun saveEditor() {
+        if (_uiState.value.isSaving) return
         val editor = _uiState.value.editor ?: return
         if (!editor.canSave) return
 
