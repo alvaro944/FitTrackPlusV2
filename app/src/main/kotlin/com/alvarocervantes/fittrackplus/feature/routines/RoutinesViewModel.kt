@@ -137,7 +137,7 @@ class RoutinesViewModel @Inject constructor(
     }
 
     fun updateRoutineName(name: String) {
-        updateEditor { editor -> editor.copy(name = name) }
+        updateEditor { editor -> editor.copy(name = name, hasInteractedWithName = true) }
     }
 
     fun addDay() {
@@ -478,6 +478,7 @@ data class RoutineListItemUiState(
 data class RoutineEditorUiState(
     val routineId: Long? = null,
     val name: String = "",
+    val hasInteractedWithName: Boolean = false,
     val days: List<RoutineDayEditorUiState> = listOf(RoutineDayEditorUiState()),
     val isDirty: Boolean = false,
     val showCloseConfirmation: Boolean = false,
@@ -486,8 +487,12 @@ data class RoutineEditorUiState(
     val title: String = if (routineId == null) "Nueva rutina" else "Editar rutina"
     val hasUnsavedChanges: Boolean
         get() = isDirty
+    private val nameBlank: Boolean
+        get() = name.isBlank()
+    // Only surfaced once the user has actually touched the field - otherwise a brand new
+    // routine shows a validation error before anyone has typed anything.
     val routineNameError: String?
-        get() = if (name.isBlank()) "Pon un nombre para la rutina." else null
+        get() = if (hasInteractedWithName && nameBlank) "Pon un nombre para la rutina." else null
     val validationMessage: String?
         get() = when {
             routineNameError != null -> routineNameError
@@ -508,7 +513,11 @@ data class RoutineEditorUiState(
             else -> null
         }
     val canSave: Boolean
-        get() = routineNameError == null &&
+        // Uses the raw check, not routineNameError: a blank name must block saving even if the
+        // user never touched the field (routineNameError is gated on hasInteractedWithName so
+        // it doesn't show an error before any interaction, but that gating must not let an
+        // invalid, untouched routine be saved).
+        get() = !nameBlank &&
             days.isNotEmpty() &&
             days.all { day ->
                 day.nameError == null &&

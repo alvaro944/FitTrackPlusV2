@@ -100,6 +100,8 @@ import com.alvarocervantes.fittrackplus.core.design.borderLight
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 
+private const val MAX_NAME_LENGTH = 60
+private const val MAX_NOTES_LENGTH = 500
 
 @Composable
 fun RoutinesScreen(
@@ -708,6 +710,7 @@ private fun RoutineEditorContent(
                     singleLine = true,
                     selectAllOnFocus = false,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    maxLength = MAX_NAME_LENGTH,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -931,8 +934,19 @@ private fun RoutineDayEditor(
                 singleLine = true,
                 selectAllOnFocus = false,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                maxLength = MAX_NAME_LENGTH,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            var awaitingNewExerciseFocus by remember { mutableStateOf(false) }
+            var focusExerciseDraftId by remember { mutableStateOf<String?>(null) }
+
+            LaunchedEffect(day.exercises.size) {
+                if (awaitingNewExerciseFocus) {
+                    focusExerciseDraftId = day.exercises.lastOrNull()?.draftId
+                    awaitingNewExerciseFocus = false
+                }
+            }
 
             day.exercises.forEachIndexed { exerciseIndex, exercise ->
                 key(exercise.draftId) {
@@ -943,6 +957,8 @@ private fun RoutineDayEditor(
                     canRemove = day.exercises.size > 1,
                     canMoveUp = exerciseIndex > 0,
                     canMoveDown = exerciseIndex < day.exercises.lastIndex,
+                    requestNameFocus = exercise.draftId == focusExerciseDraftId,
+                    onNameFocusRequested = { focusExerciseDraftId = null },
                     onExerciseNameChange = onExerciseNameChange,
                     onExerciseSetsChange = onExerciseSetsChange,
                     onExerciseRepsChange = onExerciseRepsChange,
@@ -966,7 +982,10 @@ private fun RoutineDayEditor(
 
             FitTrackAddButton(
                 label = "Anadir ejercicio",
-                onClick = { onAddExercise(dayIndex) },
+                onClick = {
+                    awaitingNewExerciseFocus = true
+                    onAddExercise(dayIndex)
+                },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -981,6 +1000,8 @@ private fun RoutineExerciseEditor(
     canRemove: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
+    requestNameFocus: Boolean,
+    onNameFocusRequested: () -> Unit,
     onExerciseNameChange: (Int, Int, String) -> Unit,
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
@@ -1030,6 +1051,7 @@ private fun RoutineExerciseEditor(
             singleLine = false,
             minLines = 3,
             maxLines = 5,
+            maxLength = MAX_NOTES_LENGTH,
             confirmLabel = "Guardar",
             dismissLabel = "Cancelar",
             onConfirm = {
@@ -1158,6 +1180,13 @@ private fun RoutineExerciseEditor(
             )
         }
 
+        val nameFocusRequester = remember { FocusRequester() }
+        LaunchedEffect(requestNameFocus) {
+            if (requestNameFocus) {
+                nameFocusRequester.requestFocus()
+                onNameFocusRequested()
+            }
+        }
         FitTrackSelectAllTextField(
             value = exercise.name,
             onValueChange = { onExerciseNameChange(dayIndex, exerciseIndex, it) },
@@ -1169,7 +1198,10 @@ private fun RoutineExerciseEditor(
             singleLine = true,
             selectAllOnFocus = false,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-            modifier = Modifier.fillMaxWidth()
+            maxLength = MAX_NAME_LENGTH,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(nameFocusRequester)
         )
 
         FitTrackTargetPrescriptionFields(
@@ -1314,6 +1346,7 @@ private fun ExerciseAlternativesEditorDialog(
                                     keyboardActions = KeyboardActions(
                                         onNext = { notesFocusRequester.requestFocus() }
                                     ),
+                                    maxLength = MAX_NAME_LENGTH,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 FitTrackTargetPrescriptionFields(
@@ -1337,6 +1370,7 @@ private fun ExerciseAlternativesEditorDialog(
                                     minLines = 2,
                                     selectAllOnFocus = false,
                                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                    maxLength = MAX_NOTES_LENGTH,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .focusRequester(notesFocusRequester)

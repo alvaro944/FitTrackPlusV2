@@ -115,6 +115,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private const val MAX_NAME_LENGTH = 60
+private const val MAX_NOTES_LENGTH = 500
+
 @Composable
 fun WorkoutScreen(
     onGoToRoutines: () -> Unit,
@@ -964,6 +967,7 @@ private fun ExerciseAlternativesDialog(
                     keyboardActions = KeyboardActions(
                         onNext = { notesFocusRequester.requestFocus() }
                     ),
+                    maxLength = MAX_NAME_LENGTH,
                     modifier = Modifier.fillMaxWidth()
                 )
                 FitTrackTargetPrescriptionFields(
@@ -981,6 +985,7 @@ private fun ExerciseAlternativesDialog(
                     minLines = 2,
                     selectAllOnFocus = false,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    maxLength = MAX_NOTES_LENGTH,
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(notesFocusRequester)

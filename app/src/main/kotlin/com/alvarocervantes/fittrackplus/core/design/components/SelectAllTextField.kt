@@ -56,6 +56,7 @@ fun FitTrackSelectAllTextField(
     selectAllOnFocus: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    maxLength: Int? = null,
     colors: TextFieldColors = OutlinedTextFieldDefaults.colors()
 ) {
     var fieldValue by remember { mutableStateOf(TextFieldValue(value)) }
@@ -77,8 +78,13 @@ fun FitTrackSelectAllTextField(
         OutlinedTextField(
             value = fieldValue,
             onValueChange = { newValue ->
-                fieldValue = newValue
-                onValueChange(newValue.text)
+                val limited = if (maxLength != null && newValue.text.length > maxLength) {
+                    newValue.copy(text = newValue.text.take(maxLength))
+                } else {
+                    newValue
+                }
+                fieldValue = limited
+                onValueChange(limited.text)
             },
             modifier = modifier.onFocusChanged { focusState ->
                 if (focusState.isFocused) {

@@ -101,6 +101,7 @@ fun FitTrackInputDialog(
     maxLines: Int = Int.MAX_VALUE,
     confirmEnabled: Boolean = true,
     selectAllOnFocus: Boolean = false,
+    maxLength: Int? = null,
     extraContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     var fieldValue by remember { mutableStateOf(TextFieldValue(value)) }
@@ -127,8 +128,13 @@ fun FitTrackInputDialog(
                     OutlinedTextField(
                         value = fieldValue,
                         onValueChange = { newValue ->
-                            fieldValue = newValue
-                            onValueChange(newValue.text)
+                            val limited = if (maxLength != null && newValue.text.length > maxLength) {
+                                newValue.copy(text = newValue.text.take(maxLength))
+                            } else {
+                                newValue
+                            }
+                            fieldValue = limited
+                            onValueChange(limited.text)
                         },
                         label = label?.let { { Text(it) } },
                         placeholder = placeholder?.let { { Text(it) } },

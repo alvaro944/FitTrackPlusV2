@@ -35,6 +35,18 @@ class RoutineEditorUiStateTest {
     }
 
     @Test
+    fun routineNameErrorStaysHiddenUntilTheFieldIsTouchedButStillBlocksSaving() {
+        val untouchedBlank = validEditor(routineName = "")
+
+        assertEquals(null, untouchedBlank.routineNameError)
+        assertFalse("A blank name must not be saveable even if untouched", untouchedBlank.canSave)
+
+        val touchedBlank = untouchedBlank.copy(hasInteractedWithName = true)
+        assertEquals("Pon un nombre para la rutina.", touchedBlank.routineNameError)
+        assertFalse(touchedBlank.canSave)
+    }
+
+    @Test
     fun hasUnsavedChangesReflectsDirtyFlag() {
         assertFalse(validEditor().hasUnsavedChanges)
         assertTrue(validEditor().copy(isDirty = true).hasUnsavedChanges)
