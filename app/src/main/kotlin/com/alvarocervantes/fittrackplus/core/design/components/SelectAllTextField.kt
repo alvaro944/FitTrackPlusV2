@@ -9,6 +9,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +28,35 @@ fun selectAllOnFocusValue(current: TextFieldValue): TextFieldValue {
 fun maybeSelectAllOnFocusValue(current: TextFieldValue, selectAllOnFocus: Boolean): TextFieldValue {
     return if (selectAllOnFocus) selectAllOnFocusValue(current) else current
 }
+
+/**
+ * Tracks whether the next focus or tap should select the whole value.
+ *
+ * A field selects all of its text the first time it gains focus, so typing "12" over "10" replaces
+ * it. After that it stays out of the way: tapping again inside an already-focused field places the
+ * caret, which is what you need to fix a single decimal in "12,5" without retyping it. Losing focus
+ * re-arms the field for its next visit.
+ */
+@Stable
+class SelectAllArming internal constructor() {
+    private var armed by mutableStateOf(true)
+
+    /** Returns true once per focus visit, when the whole value should be selected. */
+    fun consume(): Boolean {
+        if (!armed) return false
+        armed = false
+        return true
+    }
+
+    /** Re-arms the field so the next time it gains focus it selects everything again. */
+    fun rearm() {
+        armed = true
+    }
+}
+
+/** Remembers a [SelectAllArming], resetting it whenever [key] changes (e.g. a recycled set row). */
+@Composable
+fun rememberSelectAllArming(key: Any? = Unit): SelectAllArming = remember(key) { SelectAllArming() }
 
 /** Mirrors an external string into a [TextFieldValue], keeping the cursor at the end when the text changes externally. */
 fun syncTextFieldValue(current: TextFieldValue, externalText: String): TextFieldValue {
@@ -61,6 +91,7 @@ fun FitTrackSelectAllTextField(
 ) {
     var fieldValue by remember { mutableStateOf(TextFieldValue(value)) }
     val interactionSource = remember { MutableInteractionSource() }
+    val arming = rememberSelectAllArming()
 
     LaunchedEffect(value) {
         fieldValue = syncTextFieldValue(fieldValue, value)
@@ -68,7 +99,7 @@ fun FitTrackSelectAllTextField(
 
     LaunchedEffect(interactionSource) {
         interactionSource.interactions.collect { interaction ->
-            if (interaction is PressInteraction.Release) {
+            if (interaction is PressInteraction.Release && arming.consume()) {
                 fieldValue = maybeSelectAllOnFocusValue(fieldValue, selectAllOnFocus)
             }
         }
@@ -88,7 +119,11 @@ fun FitTrackSelectAllTextField(
             },
             modifier = modifier.onFocusChanged { focusState ->
                 if (focusState.isFocused) {
-                    fieldValue = maybeSelectAllOnFocusValue(fieldValue, selectAllOnFocus)
+                    if (arming.consume()) {
+                        fieldValue = maybeSelectAllOnFocusValue(fieldValue, selectAllOnFocus)
+                    }
+                } else {
+                    arming.rearm()
                 }
             },
             label = label,

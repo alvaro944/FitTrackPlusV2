@@ -3,6 +3,7 @@ package com.alvarocervantes.fittrackplus.feature.workout
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import com.alvarocervantes.fittrackplus.core.design.components.maybeSelectAllOnFocusValue
+import com.alvarocervantes.fittrackplus.core.design.components.SelectAllArming
 import com.alvarocervantes.fittrackplus.core.design.components.selectAllOnFocusValue
 import com.alvarocervantes.fittrackplus.core.design.components.syncTextFieldValue
 import com.alvarocervantes.fittrackplus.domain.model.PrType
@@ -317,4 +318,36 @@ class WorkoutInputDefaultsTest {
         assertEquals("12", result.text)
         assertEquals(TextRange(2, 2), result.selection)
     }
+
+    @Test
+    fun repsInputStopsAtThreeDigits() {
+        assertEquals("123", sanitizeWorkoutRepsInput("1234"))
+        assertEquals("12", sanitizeWorkoutRepsInput("12"))
+    }
+
+    @Test
+    fun weightInputCapsDigitsOnEachSideOfTheSeparator() {
+        assertEquals("1234", sanitizeWorkoutWeightInput("12345"))
+        assertEquals("123,45", sanitizeWorkoutWeightInput("123,456"))
+        assertEquals("1234,5", sanitizeWorkoutWeightInput("1234,5"))
+        // Once the integer cap is reached the rest is dropped, separator included.
+        assertEquals("1234", sanitizeWorkoutWeightInput("123456,789"))
+    }
+
+    @Test
+    fun weightInputKeepsRejectingScientificNotation() {
+        assertEquals("1,0", sanitizeWorkoutWeightInput("1.0E7"))
+    }
+
+    @Test
+    fun selectAllArmingFiresOnceUntilItIsRearmed() {
+        val arming = SelectAllArming()
+
+        assertTrue(arming.consume())
+        assertFalse(arming.consume())
+
+        arming.rearm()
+        assertTrue(arming.consume())
+    }
+
 }

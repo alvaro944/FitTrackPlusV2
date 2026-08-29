@@ -1020,7 +1020,10 @@ private fun ExerciseAlternativesDialog(
                     singleLine = false,
                     minLines = 2,
                     selectAllOnFocus = false,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        imeAction = ImeAction.Done
+                    ),
                     maxLength = MAX_NOTES_LENGTH,
                     modifier = Modifier
                         .fillMaxWidth()

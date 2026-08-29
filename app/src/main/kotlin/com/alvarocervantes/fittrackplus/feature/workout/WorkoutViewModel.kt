@@ -954,9 +954,22 @@ internal fun adjustWorkoutRepsInput(currentValue: String, delta: Int): String {
 internal fun sanitizeWorkoutWeightInput(value: String): String {
     val sanitized = buildString {
         var hasDecimalSeparator = false
+        var integerDigits = 0
+        var decimalDigits = 0
         for (char in value) {
             when {
-                char.isDigit() -> append(char)
+                char.isDigit() -> {
+                    // Cap the digits on each side instead of the parsed value, so typing stays
+                    // fluid and an accidental extra keystroke cannot log 999999999 kg.
+                    if (hasDecimalSeparator) {
+                        if (decimalDigits == MAX_WEIGHT_DECIMAL_DIGITS) break
+                        decimalDigits++
+                    } else {
+                        if (integerDigits == MAX_WEIGHT_INTEGER_DIGITS) break
+                        integerDigits++
+                    }
+                    append(char)
+                }
                 (char == '.' || char == ',') && !hasDecimalSeparator -> {
                     append(',')
                     hasDecimalSeparator = true
@@ -973,10 +986,19 @@ internal fun sanitizeWorkoutWeightInput(value: String): String {
     return sanitized
 }
 
+/** Longest reps entry accepted: nobody logs four digits of repetitions. */
+internal const val MAX_REPS_DIGITS: Int = 3
+
+/** Digits accepted on each side of the decimal separator for a weight. */
+internal const val MAX_WEIGHT_INTEGER_DIGITS: Int = 4
+internal const val MAX_WEIGHT_DECIMAL_DIGITS: Int = 2
+
 internal fun sanitizeWorkoutRepsInput(value: String): String {
     val sanitized = buildString {
         for (char in value) {
-            if (char.isDigit()) append(char) else break
+            if (!char.isDigit()) break
+            if (length == MAX_REPS_DIGITS) break
+            append(char)
         }
     }
     return sanitized
