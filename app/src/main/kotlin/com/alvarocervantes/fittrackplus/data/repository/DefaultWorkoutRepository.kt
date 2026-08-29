@@ -11,6 +11,7 @@ import com.alvarocervantes.fittrackplus.domain.model.RoutineDaySnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseAlternativeSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
+import com.alvarocervantes.fittrackplus.domain.model.TargetRepsRange
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -77,13 +78,9 @@ class DefaultWorkoutRepository @Inject constructor(
             day.exercises.forEach { exercise ->
                 val activeVariant = exercise.activeVariant()
                 val workoutExerciseId = workoutDao.insertExercise(
-                    WorkoutExerciseEntity(
+                    exercise.toWorkoutExerciseEntity(
                         sessionId = sessionId,
-                        exerciseTemplateId = exercise.id,
-                        performedVariantKey = activeVariant.variantKey,
-                        exerciseNameSnapshot = activeVariant.name,
-                        targetRepsSnapshot = activeVariant.targetRepsText,
-                        position = exercise.position
+                        activeVariant = activeVariant
                     )
                 )
 
@@ -118,11 +115,14 @@ class DefaultWorkoutRepository @Inject constructor(
                 return@withTransaction false
             }
 
+            val targetRange = TargetRepsRange.parse(targetRepsText)
             workoutDao.updateExercise(
                 workoutExercise.copy(
                     performedVariantKey = variantKey,
                     exerciseNameSnapshot = exerciseName,
-                    targetRepsSnapshot = targetRepsText
+                    targetRepsSnapshot = targetRepsText,
+                    targetRepsMinSnapshot = targetRange?.min,
+                    targetRepsMaxSnapshot = targetRange?.max
                 )
             )
             workoutDao.deleteSetsForExercise(workoutExerciseId)
@@ -207,8 +207,33 @@ private data class ActiveRoutineVariant(
     val variantKey: String,
     val name: String,
     val targetSets: Int,
-    val targetRepsText: String
+    val targetRepsText: String,
+    val targetRepsMin: Int?,
+    val targetRepsMax: Int?
 )
+
+internal fun RoutineExerciseSnapshot.toWorkoutExerciseEntity(sessionId: Long): WorkoutExerciseEntity {
+    return toWorkoutExerciseEntity(
+        sessionId = sessionId,
+        activeVariant = activeVariant()
+    )
+}
+
+private fun RoutineExerciseSnapshot.toWorkoutExerciseEntity(
+    sessionId: Long,
+    activeVariant: ActiveRoutineVariant
+): WorkoutExerciseEntity {
+    return WorkoutExerciseEntity(
+        sessionId = sessionId,
+        exerciseTemplateId = id,
+        performedVariantKey = activeVariant.variantKey,
+        exerciseNameSnapshot = activeVariant.name,
+        targetRepsSnapshot = activeVariant.targetRepsText,
+        position = position,
+        targetRepsMinSnapshot = activeVariant.targetRepsMin,
+        targetRepsMaxSnapshot = activeVariant.targetRepsMax
+    )
+}
 
 private fun RoutineExerciseSnapshot.activeVariant(): ActiveRoutineVariant {
     val selectedAlternative = alternatives.firstOrNull { it.variantKey == defaultVariantKey }
@@ -219,7 +244,9 @@ private fun RoutineExerciseSnapshot.activeVariant(): ActiveRoutineVariant {
             variantKey = variantKey,
             name = name,
             targetSets = targetSets,
-            targetRepsText = targetRepsText
+            targetRepsText = targetRepsText,
+            targetRepsMin = targetRepsMin,
+            targetRepsMax = targetRepsMax
         )
     }
 }
@@ -229,6 +256,8 @@ private fun RoutineExerciseAlternativeSnapshot.toActiveVariant(): ActiveRoutineV
         variantKey = variantKey,
         name = name,
         targetSets = targetSets,
-        targetRepsText = targetRepsText
+        targetRepsText = targetRepsText,
+        targetRepsMin = targetRepsMin,
+        targetRepsMax = targetRepsMax
     )
 }
