@@ -25,6 +25,7 @@ import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesReposito
 import com.alvarocervantes.fittrackplus.feature.launch.FitTrackPlusAppRoot
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -32,17 +33,16 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var userPreferencesRepository: UserPreferencesRepository
 
+    private val requestedTab = MutableStateFlow<AppRoute?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val initialTab: AppRoute? = when (intent.getStringExtra("open_tab")) {
-            "workout" -> AppRoute.Workout
-            "stats" -> AppRoute.Stats
-            else -> null
-        }
+        requestedTab.value = routeFromOpenTab(intent.getStringExtra("open_tab"))
 
         setContent {
+            val initialTab by requestedTab.collectAsStateWithLifecycle()
             val themeMode by userPreferencesRepository.themeMode.collectAsStateWithLifecycle(
                 initialValue = AppThemeMode.System
             )
@@ -83,5 +83,19 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        requestedTab.value = routeFromOpenTab(intent.getStringExtra("open_tab"))
+    }
+}
+
+internal fun routeFromOpenTab(openTab: String?): AppRoute? {
+    return when (openTab) {
+        "workout" -> AppRoute.Workout
+        "stats" -> AppRoute.Stats
+        else -> null
     }
 }

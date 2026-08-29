@@ -2,6 +2,7 @@ package com.alvarocervantes.fittrackplus.feature.stats
 
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
+import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -14,30 +15,8 @@ class StatsUiStateTest {
     }
 
     @Test
-    fun selectExercise_keepsChronologicalProgressPointsAndClearsSelectedPoint() {
-        val state = sampleState(selectedProgressPoint = progressPoint(sessionId = 99))
-
-        val updated = state.withSelectedExercise("Bench Press")
-
-        assertEquals("Bench Press", updated.selectedExerciseName)
-        assertEquals(listOf(1L, 2L), updated.progressPoints.map { it.sessionId })
-        assertNull(updated.selectedProgressPoint)
-    }
-
-    @Test
-    fun selectExercise_clearsSelectionWhenExerciseDoesNotExist() {
-        val state = sampleState(selectedExerciseName = "Bench Press")
-
-        val updated = state.withSelectedExercise("Squat")
-
-        assertNull(updated.selectedExerciseName)
-        assertEquals(emptyList<ProgressChartPointUiState>(), updated.progressPoints)
-        assertNull(updated.selectedProgressPoint)
-    }
-
-    @Test
     fun selectProgressPoint_setsPointFromCurrentProgressPoints() {
-        val state = sampleState().withSelectedExercise("Bench Press")
+        val state = sampleState().withSelectedExerciseScope("ppl|push|bench press")
 
         val updated = state.withSelectedProgressPoint(sessionId = 2L)
 
@@ -47,13 +26,24 @@ class StatsUiStateTest {
 
     @Test
     fun selectedProgressMetricChangesChartValues() {
-        val state = sampleState().withSelectedExercise("Bench Press")
+        val state = sampleState().withSelectedExerciseScope("ppl|push|bench press")
 
         val repsState = state.withProgressMetric(ProgressMetric.Reps)
 
         assertEquals(ProgressMetric.Reps, repsState.selectedProgressMetric)
         assertEquals(listOf(8f, 10f), repsState.progressChartValues.map { it.second })
         assertNull(repsState.selectedProgressPoint)
+    }
+
+    @Test
+    fun poundsPreferenceConvertsWeightChartValuesWithoutChangingStoredValues() {
+        val state = sampleState()
+            .withSelectedExerciseScope("ppl|push|bench press")
+            .copy(weightUnit = WeightUnit.Pounds)
+
+        assertEquals(198.416f, state.progressChartValues[0].second, 0.001f)
+        assertEquals(209.439f, state.progressChartValues[1].second, 0.001f)
+        assertEquals(90.0, state.progressPoints.first().maxWeightKg, 0.0)
     }
 
     @Test
@@ -172,7 +162,7 @@ class StatsUiStateTest {
     }
 
     @Test
-    fun summaryUsesExerciseAppearancesInsteadOfBestSessionVolume() {
+    fun summaryCountsDistinctExercisesInsteadOfSessionAppearances() {
         val state = sampleStatsUiState(
             sessionVolumes = listOf(
                 sessionVolume(1, totalVolumeKg = 500.0),
@@ -182,7 +172,34 @@ class StatsUiStateTest {
         ).copy(selectedPeriod = WorkoutStatsPeriod.All)
 
         assertEquals(3, state.sessionCount)
-        assertEquals(2, state.exerciseCount)
+        assertEquals(1, state.exerciseCount)
+    }
+
+    @Test
+    fun summaryCountsEachAvailablePersonalRecord() {
+        val record = ExerciseSetRecordUiState(
+            sessionId = 1,
+            finishedAt = 100,
+            weightKg = 100.0,
+            reps = 8,
+            setVolumeKg = 800.0,
+            estimatedOneRepMaxKg = 126.6
+        )
+        val state = sampleStatsUiState(
+            exerciseRecords = listOf(
+                ExerciseRecordsUiState(
+                    exerciseKey = "bench",
+                    scopeKey = "ppl|push|bench",
+                    exerciseName = "Bench Press",
+                    maxWeight = record,
+                    maxReps = record,
+                    bestSetVolume = record,
+                    bestEstimatedOneRepMax = null
+                )
+            )
+        )
+
+        assertEquals(3, state.personalRecordCount)
     }
 
     @Test

@@ -7,6 +7,7 @@ data class ShellBottomDestination(
 
 enum class DrawerItemKind {
     Navigation,
+    Action,
     FutureAction
 }
 
@@ -41,8 +42,7 @@ fun shellDrawerItems(): List<DrawerItem> {
         ),
         DrawerItem(
             title = "Exportar datos",
-            kind = DrawerItemKind.FutureAction,
-            isFuture = true
+            kind = DrawerItemKind.Action
         )
     )
 }

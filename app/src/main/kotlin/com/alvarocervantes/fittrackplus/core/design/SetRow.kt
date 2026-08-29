@@ -62,14 +62,17 @@ fun FitTrackSetRow(
     mode: FitTrackSetRowMode,
     modifier: Modifier = Modifier,
     notes: String? = null,
+    showNotes: Boolean = true,
     isCompleted: Boolean = false,
     isReadyToComplete: Boolean = false,
     showCompletionControl: Boolean = false,
     editFieldStyle: FitTrackSetRowEditFieldStyle = FitTrackSetRowEditFieldStyle.Stepper,
+    weightUnitLabel: String = "kg",
     previousWeight: String? = null,
     previousReps: Int? = null,
     onWeightChange: (String) -> Unit = {},
     onRepsChange: (String) -> Unit = {},
+    onNotesChange: (String) -> Unit = {},
     onComplete: () -> Unit = {},
     onStepWeight: (Double) -> Unit = {},
     onStepReps: (Int) -> Unit = {},
@@ -103,6 +106,7 @@ fun FitTrackSetRow(
                 isReadyToComplete = isReadyToComplete,
                 showCompletionControl = true,
                 editFieldStyle = editFieldStyle,
+                weightUnitLabel = weightUnitLabel,
                 previousWeight = previousWeight,
                 previousReps = previousReps,
                 onWeightChange = onWeightChange,
@@ -116,6 +120,19 @@ fun FitTrackSetRow(
                     .border(1.dp, borderColor, MaterialTheme.shapes.large)
                     .padding(FitSpacing.smMd)
             )
+            if (showNotes) {
+                FitTrackSelectAllTextField(
+                    value = notes.orEmpty(),
+                    onValueChange = onNotesChange,
+                    label = { Text("Notas") },
+                    singleLine = false,
+                    minLines = 2,
+                    selectAllOnFocus = false,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = FitSpacing.xs)
+                )
+            }
             footer?.invoke(this)
         }
     } else {
@@ -136,6 +153,7 @@ fun FitTrackSetRow(
                 isReadyToComplete = isReadyToComplete,
                 showCompletionControl = false,
                 editFieldStyle = editFieldStyle,
+                weightUnitLabel = weightUnitLabel,
                 previousWeight = previousWeight,
                 previousReps = previousReps,
                 onWeightChange = onWeightChange,
@@ -145,7 +163,7 @@ fun FitTrackSetRow(
                 onStepReps = onStepReps,
                 modifier = Modifier.fillMaxWidth()
             )
-            notes?.takeIf { it.isNotBlank() }?.let {
+            notes?.takeIf { showNotes && it.isNotBlank() }?.let {
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall,
@@ -168,6 +186,7 @@ private fun SetRowContent(
     isReadyToComplete: Boolean,
     showCompletionControl: Boolean,
     editFieldStyle: FitTrackSetRowEditFieldStyle,
+    weightUnitLabel: String,
     previousWeight: String?,
     previousReps: Int?,
     onWeightChange: (String) -> Unit,
@@ -201,6 +220,7 @@ private fun SetRowContent(
                         weightText = weightText,
                         previousWeight = previousWeight,
                         isCompleted = isCompleted,
+                        weightUnitLabel = weightUnitLabel,
                         onWeightChange = onWeightChange,
                         onStepWeight = onStepWeight,
                         modifier = Modifier.weight(1.15f)
@@ -221,7 +241,7 @@ private fun SetRowContent(
                     FitTrackSelectAllTextField(
                         value = weightText,
                         onValueChange = onWeightChange,
-                        label = { Text("kg") },
+                        label = { Text(weightUnitLabel) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f)
                     )
@@ -274,7 +294,7 @@ private fun SetCompletionControl(
     onClick: () -> Unit
 ) {
     val contentDescription = when {
-        isCompleted -> "Serie $setNumber completada"
+        isCompleted -> "Desmarcar serie $setNumber como completada"
         isReadyToComplete -> "Completar serie $setNumber"
         else -> "Serie $setNumber pendiente"
     }
@@ -288,7 +308,7 @@ private fun SetCompletionControl(
         tone = if (isCompleted) FitTrackIconBadgeTone.Filled else FitTrackIconBadgeTone.Outlined,
         modifier = Modifier
             .padding(top = 6.dp)
-            .clickable(enabled = isReadyToComplete, onClick = onClick)
+            .clickable(enabled = isCompleted || isReadyToComplete, onClick = onClick)
             .semantics { this.contentDescription = contentDescription }
     )
 }
@@ -299,6 +319,7 @@ private fun SetRowWeightField(
     weightText: String,
     previousWeight: String?,
     isCompleted: Boolean,
+    weightUnitLabel: String,
     onWeightChange: (String) -> Unit,
     onStepWeight: (Double) -> Unit,
     modifier: Modifier
@@ -337,7 +358,7 @@ private fun SetRowWeightField(
                         fieldValue = it
                         onWeightChange(it.text)
                     },
-                    placeholder = { Text("Kg") },
+                    placeholder = { Text(weightUnitLabel) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     colors = setFieldColors(isCompleted),
@@ -353,7 +374,7 @@ private fun SetRowWeightField(
         }
         previousWeight?.let {
             Text(
-                text = "ant. $it kg",
+                text = "ant. $it $weightUnitLabel",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.padding(start = 4.dp, top = 2.dp)

@@ -1,6 +1,7 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.dagger.hilt)
     alias(libs.plugins.google.devtools.ksp)
@@ -22,12 +23,12 @@ val gitSha: String = gitCommand("rev-parse", "--short", "HEAD")
 
 android {
     namespace = "com.alvarocervantes.fittrackplus"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.alvarocervantes.fittrackplus"
-        minSdk = 23
-        targetSdk = 35
+        minSdk = 26
+        targetSdk = 36
         versionCode = 7
         versionName = "0.7.0-dev"
         buildConfigField("String", "GIT_BRANCH", "\"$gitBranch\"")
@@ -55,11 +56,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += listOf("-opt-in=androidx.compose.foundation.ExperimentalFoundationApi")
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -67,11 +63,18 @@ android {
 
     sourceSets {
         getByName("main") {
-            java.setSrcDirs(listOf("src/main/kotlin"))
+            kotlin.srcDir("src/main/kotlin")
         }
         getByName("androidTest") {
-            java.setSrcDirs(listOf("src/androidTest/kotlin"))
+            kotlin.srcDir("src/androidTest/kotlin")
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
+        freeCompilerArgs.add("-opt-in=androidx.compose.foundation.ExperimentalFoundationApi")
     }
 }
 

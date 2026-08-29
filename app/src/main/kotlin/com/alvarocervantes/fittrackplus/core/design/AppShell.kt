@@ -45,7 +45,9 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,9 +66,12 @@ import com.alvarocervantes.fittrackplus.core.navigation.NavigationRequestKind
 import com.alvarocervantes.fittrackplus.core.navigation.ShellBottomDestination
 import com.alvarocervantes.fittrackplus.core.navigation.shellBottomDestinations
 import com.alvarocervantes.fittrackplus.core.navigation.shellDrawerItems
+import com.alvarocervantes.fittrackplus.domain.usecase.UserDataExport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 
 @Composable
 fun FitTrackAppShell(
@@ -84,6 +89,11 @@ fun FitTrackAppShell(
     val message by viewModel.message.collectAsStateWithLifecycle()
     val bottomDestinations = remember { shellBottomDestinations() }
     val drawerItems = remember { shellDrawerItems() }
+    var pendingExport by remember { mutableStateOf<UserDataExport?>(null) }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        pendingExport?.let { export -> uri?.let { viewModel.saveDataExport(it, export) } }
+        pendingExport = null
+    }
 
     LaunchedEffect(message) {
         val currentMessage = message ?: return@LaunchedEffect
@@ -97,6 +107,13 @@ fun FitTrackAppShell(
                 NavigationRequestKind.TopLevel -> onNavigateToTopLevel(navigation.route)
                 NavigationRequestKind.Secondary -> onNavigateToSecondary(navigation.route)
             }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.exportRequests.collect { export ->
+            pendingExport = export
+            exportLauncher.launch(export.fileName)
         }
     }
 
@@ -122,6 +139,7 @@ fun FitTrackAppShell(
                             )
                         },
                         onFutureAction = viewModel::showFutureActionMessage,
+                        onAction = { title -> if (title == "Exportar datos") viewModel.requestDataExport() },
                         drawerScope = coroutineScope,
                         closeDrawer = { drawerState.close() }
                     )
@@ -259,7 +277,7 @@ private fun DrawerContent(
                         supporting = when {
                             item.route == AppRoute.Settings -> "Preferencias y datos de la aplicacion"
                             item.title == "Widget & atajos" -> "Visible ahora, implementacion futura"
-                            item.title == "Exportar datos" -> "Visible ahora, implementacion futura"
+                            item.title == "Exportar datos" -> "Guarda una copia JSON de tus rutinas e historial"
                             else -> null
                         },
                         icon = item.icon(),
@@ -405,6 +423,7 @@ private fun handleDrawerItemClick(
     onNavigateToSecondary: (AppRoute) -> Unit,
     onRequestNavigation: (AppRoute) -> Boolean,
     onFutureAction: (String) -> Unit,
+    onAction: (String) -> Unit,
     drawerScope: CoroutineScope,
     closeDrawer: suspend () -> Unit
 ) {
@@ -417,6 +436,7 @@ private fun handleDrawerItemClick(
                 }
             }
             DrawerItemKind.FutureAction -> onFutureAction(item.title)
+            DrawerItemKind.Action -> onAction(item.title)
         }
     }
 }

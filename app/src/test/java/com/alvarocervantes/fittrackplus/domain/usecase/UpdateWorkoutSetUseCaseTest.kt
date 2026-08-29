@@ -5,6 +5,7 @@ import com.alvarocervantes.fittrackplus.data.local.relation.WorkoutSessionWithEx
 import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDaySnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
+import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
@@ -65,6 +66,16 @@ class UpdateWorkoutSetUseCaseTest {
         assertEquals(11L, repository.lastSetId)
         assertEquals(82.5, repository.lastWeightKg ?: -1.0, 0.0)
         assertEquals(6, repository.lastReps)
+    }
+
+    @Test
+    fun convertsPoundsToKilogramsBeforePersisting() = runBlocking {
+        val repository = SetUpdateWorkoutRepository()
+        val useCase = UpdateWorkoutSetUseCase(repository)
+
+        useCase(setId = 12, weightText = "220,46226218", repsText = "5", weightUnit = WeightUnit.Pounds)
+
+        assertEquals(100.0, repository.lastWeightKg ?: -1.0, 0.000001)
     }
 
     @Test

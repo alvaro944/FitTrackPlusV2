@@ -11,6 +11,7 @@ import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutSessionVolume
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStats
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
+import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHeatmapUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutStatsUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ReadDailyStepsUseCase
@@ -57,9 +58,17 @@ class StatsViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        userPreferencesRepository.weightUnit
+            .onEach { preference ->
+                _uiState.update { state ->
+                    state.copy(weightUnit = WeightUnit.fromPreference(preference))
+                }
+            }
+            .launchIn(viewModelScope)
+
         combine(selectedPeriod, activeRoutineId) { period, routineId -> period to routineId }
             .flatMapLatest { (period, routineId) ->
-                observeWorkoutStats(period = WorkoutStatsPeriod.All).map { stats -> Triple(period, routineId, stats) }
+                observeWorkoutStats(period = period).map { stats -> Triple(period, routineId, stats) }
             }
             .onEach { (period, routineId, stats) ->
                 _uiState.update { currentState ->
@@ -134,12 +143,6 @@ class StatsViewModel @Inject constructor(
 
     fun setPeriodFilter(period: WorkoutStatsPeriod) {
         selectedPeriod.value = period
-    }
-
-    fun selectExercise(name: String) {
-        _uiState.update { state ->
-            state.withSelectedExercise(name)
-        }
     }
 
     fun selectRoutine(routineName: String) {
@@ -221,6 +224,7 @@ data class StatsUiState(
     val selectedExerciseScopeKey: String? = null,
     val selectedExerciseName: String? = null,
     val selectedProgressMetric: ProgressMetric = ProgressMetric.MaxWeight,
+    val weightUnit: WeightUnit = WeightUnit.Kilograms,
     val progressPoints: List<ProgressChartPointUiState> = emptyList(),
     val selectedProgressPoint: ProgressChartPointUiState? = null,
     val heatmapDays: List<HeatmapDay> = emptyList(),
@@ -233,8 +237,17 @@ data class StatsUiState(
         exerciseRecords.isEmpty()
     val summarySessionVolumes: List<SessionVolumeUiState> = sessionVolumes.filterByPeriod(selectedPeriod)
     val sessionCount: Int = summarySessionVolumes.size
-    val exerciseCount: Int = exerciseProgress.sumOf { progress ->
-        progress.entries.count { entry -> entry.finishedAt.isInsideStatsPeriod(selectedPeriod) }
+    val exerciseCount: Int = exerciseProgress
+        .map { progress -> progress.exerciseKey }
+        .distinct()
+        .size
+    val personalRecordCount: Int = exerciseRecords.sumOf { records ->
+        listOf(
+            records.maxWeight,
+            records.maxReps,
+            records.bestSetVolume,
+            records.bestEstimatedOneRepMax
+        ).count { it != null }
     }
     val availableRoutineNames: List<String> = sessionVolumes
         .map { session -> session.routineName.trim() }
@@ -272,10 +285,10 @@ data class StatsUiState(
         ?.let { scopeKey -> focusedExerciseRecords.firstOrNull { records -> records.scopeKey == scopeKey } }
     val progressChartValues: List<Pair<Long, Float>> = progressPoints.map { point ->
         point.finishedAt to when (selectedProgressMetric) {
-            ProgressMetric.MaxWeight -> point.maxWeightKg.toFloat()
-            ProgressMetric.Volume -> point.volumeKg.toFloat()
+            ProgressMetric.MaxWeight -> weightUnit.fromKilograms(point.maxWeightKg).toFloat()
+            ProgressMetric.Volume -> weightUnit.fromKilograms(point.volumeKg).toFloat()
             ProgressMetric.Reps -> point.totalReps.toFloat()
-            ProgressMetric.EstimatedOneRepMax -> point.estimatedOneRepMaxKg.toFloat()
+            ProgressMetric.EstimatedOneRepMax -> weightUnit.fromKilograms(point.estimatedOneRepMaxKg).toFloat()
         }
     }
 }
@@ -428,20 +441,10 @@ fun StatsUiState.withStatsPeriod(
         selectedExerciseName = selectedExerciseName,
         selectedProgressPoint = null,
         heatmapDays = heatmapDays,
+        weightUnit = weightUnit,
         weeklyStepsData = weeklyStepsData,
         canGoToNextWeek = canGoToNextWeek
     ).withValidFocusSelection()
-}
-
-fun StatsUiState.withSelectedExercise(name: String): StatsUiState {
-    val selectedName = exerciseProgress
-        .firstOrNull { progress -> progress.exerciseName == name }
-        ?.exerciseName
-    return copy(
-        selectedExerciseName = selectedName,
-        selectedExerciseScopeKey = exerciseProgress.firstOrNull { it.exerciseName == selectedName }?.scopeKey,
-        selectedProgressPoint = null
-    ).withProgressPointsForSelection()
 }
 
 fun StatsUiState.withSelectedExerciseScope(scopeKey: String): StatsUiState {

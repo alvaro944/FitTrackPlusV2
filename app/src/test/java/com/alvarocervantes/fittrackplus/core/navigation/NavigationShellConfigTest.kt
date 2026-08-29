@@ -1,11 +1,19 @@
 package com.alvarocervantes.fittrackplus.core.navigation
 
+import com.alvarocervantes.fittrackplus.routeFromOpenTab
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NavigationShellConfigTest {
+
+    @Test
+    fun routeFromOpenTabMapsSupportedShortcutTargets() {
+        assertEquals(AppRoute.Workout, routeFromOpenTab("workout"))
+        assertEquals(AppRoute.Stats, routeFromOpenTab("stats"))
+        assertEquals(null, routeFromOpenTab("unknown"))
+    }
 
     @Test
     fun `bottom navigation keeps five primary tabs and excludes settings`() {
@@ -42,7 +50,7 @@ class NavigationShellConfigTest {
         )
         assertTrue(
             items.any { item ->
-                item.title == "Exportar datos" && item.isFuture
+                item.title == "Exportar datos" && item.kind == DrawerItemKind.Action && !item.isFuture
             }
         )
     }
