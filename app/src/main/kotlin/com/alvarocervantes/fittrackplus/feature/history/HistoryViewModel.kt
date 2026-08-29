@@ -17,7 +17,9 @@ import com.alvarocervantes.fittrackplus.domain.usecase.ReopenWorkoutSessionResul
 import com.alvarocervantes.fittrackplus.domain.usecase.ReopenWorkoutSessionUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.UpdateWorkoutSetUseCase
 import com.alvarocervantes.fittrackplus.feature.workout.parseWorkoutWeightInput
+import com.alvarocervantes.fittrackplus.feature.workout.sanitizeWorkoutRepsInput
 import com.alvarocervantes.fittrackplus.feature.workout.sanitizeWorkoutWeightInput
+import com.alvarocervantes.fittrackplus.feature.workout.toInputText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.text.Collator
 import java.util.Locale
@@ -291,7 +293,7 @@ class HistoryViewModel @Inject constructor(
 
     fun updateSetReps(setId: Long, repsText: String) {
         val set = findSelectedSet(setId) ?: return
-        val sanitizedRepsText = repsText.filter { it.isDigit() }
+        val sanitizedRepsText = sanitizeWorkoutRepsInput(repsText)
         val completed = isWorkoutSetCompleted(sanitizedRepsText.toIntOrNull() ?: 0)
         updateSelectedSet(setId) { current ->
             current.copy(
@@ -544,7 +546,7 @@ data class HistorySetUiState(
     val reps: Int,
     val notes: String?,
     val isCompleted: Boolean,
-    val weightText: String = weightKg.toHistoryInputText(),
+    val weightText: String = weightKg.toInputText(),
     val repsText: String = reps.toString()
 )
 
@@ -677,8 +679,4 @@ private fun WorkoutHistorySet.toUiState(): HistorySetUiState {
         notes = notes,
         isCompleted = isCompleted
     )
-}
-
-private fun Double.toHistoryInputText(): String {
-    return if (this % 1.0 == 0.0) toInt().toString() else toString().replace('.', ',')
 }

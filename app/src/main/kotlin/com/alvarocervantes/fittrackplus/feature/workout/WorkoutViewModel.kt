@@ -332,13 +332,14 @@ class WorkoutViewModel @Inject constructor(
 
     fun updateSetReps(setId: Long, repsText: String) {
         val set = _uiState.value.activeSession?.findSet(setId) ?: return
+        val sanitizedRepsText = sanitizeWorkoutRepsInput(repsText)
         updateSetState(setId) {
-            updateWorkoutSetRepsInput(it, repsText)
+            updateWorkoutSetRepsInput(it, sanitizedRepsText)
         }
         persistSet(
             setId = setId,
             weightText = set.weightText,
-            repsText = repsText,
+            repsText = sanitizedRepsText,
             isCompleted = false
         )
     }
@@ -848,11 +849,16 @@ private fun WorkoutExerciseUiState.withSuggestedInputs(): WorkoutExerciseUiState
     return copy(sets = applyWorkoutSetInputSuggestions(sets = sets, targetRepsText = targetRepsText))
 }
 
-private fun Double.toInputText(): String {
+internal fun Double.toInputText(): String {
     return if (this % 1.0 == 0.0) {
         toInt().toString()
     } else {
-        toString().replace('.', ',')
+        // Double.toString() can emit scientific notation for extreme magnitudes (e.g. "1.0E7").
+        // "%.2f" never does, so format explicitly instead of relying on toString().
+        String.format(java.util.Locale.US, "%.2f", this)
+            .trimEnd('0')
+            .trimEnd('.')
+            .replace('.', ',')
     }
 }
 
@@ -948,14 +954,29 @@ internal fun adjustWorkoutRepsInput(currentValue: String, delta: Int): String {
 internal fun sanitizeWorkoutWeightInput(value: String): String {
     val sanitized = buildString {
         var hasDecimalSeparator = false
-        value.forEach { char ->
+        for (char in value) {
             when {
                 char.isDigit() -> append(char)
                 (char == '.' || char == ',') && !hasDecimalSeparator -> {
                     append(',')
                     hasDecimalSeparator = true
                 }
+                // 'e'/'E' signals scientific notation ("1.0E7"): everything from here on is an
+                // exponent, not more decimal digits, so stop instead of silently keeping the
+                // trailing digits and producing a wrong-but-plausible value like "1,07".
+                // Any other stray character (e.g. a mistyped letter) is just skipped, same as
+                // before, so typing keeps flowing.
+                char == 'e' || char == 'E' -> break
             }
+        }
+    }
+    return sanitized
+}
+
+internal fun sanitizeWorkoutRepsInput(value: String): String {
+    val sanitized = buildString {
+        for (char in value) {
+            if (char.isDigit()) append(char) else break
         }
     }
     return sanitized

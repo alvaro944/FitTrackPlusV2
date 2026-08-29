@@ -162,6 +162,31 @@ class WorkoutInputDefaultsTest {
     }
 
     @Test
+    fun sanitizeWeightInputStopsAtScientificNotationInsteadOfMangling() {
+        // Pasted scientific notation ("1.0E7") used to silently become a wrong-but-plausible
+        // "1,07" by dropping only the "E" and keeping the trailing exponent digits.
+        assertEquals("1,0", sanitizeWorkoutWeightInput("1.0E7"))
+        assertEquals("1,0", sanitizeWorkoutWeightInput("1.0e-7"))
+    }
+
+    @Test
+    fun sanitizeRepsInputKeepsOnlyLeadingDigits() {
+        assertEquals("12", sanitizeWorkoutRepsInput("12"))
+        assertEquals("", sanitizeWorkoutRepsInput("-5"))
+        assertEquals("12", sanitizeWorkoutRepsInput("12x"))
+        assertEquals("", sanitizeWorkoutRepsInput("abc"))
+    }
+
+    @Test
+    fun toInputTextNeverEmitsScientificNotation() {
+        // A whole number this large already goes through the toInt() branch, so the case that
+        // used to break was a large *fractional* value, where Double.toString() switches to
+        // exponential form (e.g. "1.23456785E7") instead of a plain decimal.
+        assertEquals("12345678,5", 12_345_678.5.toInputText())
+        assertEquals("12,5", 12.5.toInputText())
+    }
+
+    @Test
     fun parseWeightInputAcceptsCommaDecimalSeparator() {
         assertEquals(12.5, parseWorkoutWeightInput("12,5") ?: -1.0, 0.0)
         assertEquals(12.5, parseWorkoutWeightInput("12.5") ?: -1.0, 0.0)
