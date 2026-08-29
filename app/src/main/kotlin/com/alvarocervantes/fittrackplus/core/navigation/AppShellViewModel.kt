@@ -25,10 +25,15 @@ class AppShellViewModel @Inject constructor(
     private val _pendingNavigation = MutableStateFlow<NavigationRequest?>(null)
     private val _message = MutableStateFlow<String?>(null)
     private val _approvedNavigation = MutableSharedFlow<NavigationRequest>(extraBufferCapacity = 1)
+    // Fires when the user taps the bottom-nav item for the tab they're already on, so that
+    // tab's screen can pop its own internal state back to the top (e.g. History closing a
+    // detail view back to the list) instead of the tap doing nothing.
+    private val _activeTabReselected = MutableSharedFlow<AppRoute>(extraBufferCapacity = 1)
 
     val pendingNavigation: StateFlow<NavigationRequest?> = _pendingNavigation.asStateFlow()
     val message: StateFlow<String?> = _message.asStateFlow()
     val approvedNavigation: SharedFlow<NavigationRequest> = _approvedNavigation.asSharedFlow()
+    val activeTabReselected: SharedFlow<AppRoute> = _activeTabReselected.asSharedFlow()
 
     val weightUnit: StateFlow<String> = userPreferencesRepository.weightUnit
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "kg")
@@ -86,6 +91,10 @@ class AppShellViewModel @Inject constructor(
 
     fun dismissPendingNavigation() {
         _pendingNavigation.value = null
+    }
+
+    fun notifyActiveTabReselected(route: AppRoute) {
+        _activeTabReselected.tryEmit(route)
     }
 
     fun clearMessage() {

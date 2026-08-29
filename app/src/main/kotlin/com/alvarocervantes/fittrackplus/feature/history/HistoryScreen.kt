@@ -1,6 +1,10 @@
 package com.alvarocervantes.fittrackplus.feature.history
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
+import androidx.lifecycle.ViewModelStoreOwner
+import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
+import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -85,6 +89,9 @@ fun HistoryScreen(
     onGoToWorkout: () -> Unit = {},
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
+    val activity = LocalActivity.current
+    val appShellOwner = requireNotNull(activity) as ViewModelStoreOwner
+    val appShellViewModel: AppShellViewModel = hiltViewModel(appShellOwner)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -97,6 +104,15 @@ fun HistoryScreen(
 
     LaunchedEffect(Unit) {
         viewModel.recoveredSessionEvent.collect { onGoToWorkout() }
+    }
+
+    // Re-tapping the History tab while already on it should pop back to the list, not do nothing.
+    LaunchedEffect(Unit) {
+        appShellViewModel.activeTabReselected.collect { route ->
+            if (route == AppRoute.History) {
+                viewModel.requestBackToList()
+            }
+        }
     }
 
     Scaffold(

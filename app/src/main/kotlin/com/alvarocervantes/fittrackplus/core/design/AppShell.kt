@@ -140,13 +140,17 @@ fun FitTrackAppShell(
                             currentRoute = currentRoute,
                             destinations = bottomDestinations,
                             onNavigate = { targetRoute ->
-                                val intercepted = viewModel.requestNavigation(
-                                    currentRoute = currentRoute,
-                                    targetRoute = targetRoute,
-                                    kind = NavigationRequestKind.TopLevel
-                                )
-                                if (!intercepted) {
-                                    onNavigateToTopLevel(targetRoute)
+                                if (targetRoute == currentRoute) {
+                                    viewModel.notifyActiveTabReselected(targetRoute)
+                                } else {
+                                    val intercepted = viewModel.requestNavigation(
+                                        currentRoute = currentRoute,
+                                        targetRoute = targetRoute,
+                                        kind = NavigationRequestKind.TopLevel
+                                    )
+                                    if (!intercepted) {
+                                        onNavigateToTopLevel(targetRoute)
+                                    }
                                 }
                             }
                         )
