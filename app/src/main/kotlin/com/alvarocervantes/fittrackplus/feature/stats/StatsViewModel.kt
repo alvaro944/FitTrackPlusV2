@@ -68,7 +68,7 @@ class StatsViewModel @Inject constructor(
 
         combine(selectedPeriod, activeRoutineId) { period, routineId -> period to routineId }
             .flatMapLatest { (period, routineId) ->
-                observeWorkoutStats(period = WorkoutStatsPeriod.All).map { stats -> Triple(period, routineId, stats) }
+                observeWorkoutStats(period = period).map { stats -> Triple(period, routineId, stats) }
             }
             .onEach { (period, routineId, stats) ->
                 _uiState.update { currentState ->
