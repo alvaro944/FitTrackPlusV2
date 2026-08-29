@@ -276,7 +276,7 @@ private fun StatsPeriodControls(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
         ) {
-            statsPeriodDisplayOrder.forEach { period ->
+            WorkoutStatsPeriod.entries.forEach { period ->
                 FilterChip(
                     selected = selectedPeriod == period,
                     onClick = { onPeriodFilterChange(period) },
@@ -1068,13 +1068,6 @@ private fun formatWeekRange(weekStart: LocalDate, weekEnd: LocalDate): String {
     }
 }
 
-private val WorkoutStatsPeriod.label: String
-    get() = when (this) {
-        WorkoutStatsPeriod.All -> "Todo"
-        WorkoutStatsPeriod.LastFourWeeks -> "4 semanas"
-        WorkoutStatsPeriod.LastTwelveWeeks -> "12 semanas"
-    }
-
 @Composable
 private fun StatsLoadingSkeleton() {
     Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.lg)) {
@@ -1162,9 +1155,3 @@ private fun Double.toDisplayText(): String {
         String.format(Locale.getDefault(), "%.1f", this)
     }
 }
-
-private val statsPeriodDisplayOrder = listOf(
-    WorkoutStatsPeriod.LastFourWeeks,
-    WorkoutStatsPeriod.LastTwelveWeeks,
-    WorkoutStatsPeriod.All
-)

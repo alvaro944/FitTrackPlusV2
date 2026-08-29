@@ -81,6 +81,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowEditFieldStyle
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowMode
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDeltaDirection
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -145,7 +146,7 @@ private fun HistoryContent(
     contentPadding: PaddingValues,
     onSessionClick: (Long) -> Unit,
     onBackToList: () -> Unit,
-    onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
+    onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSortOrderChange: (HistorySortOrder) -> Unit,
     onRoutineFilterChange: (String?) -> Unit,
     onToggleEditMode: () -> Unit,
@@ -202,7 +203,7 @@ private fun HistoryListContent(
     state: HistoryUiState,
     contentPadding: PaddingValues,
     onSessionClick: (Long) -> Unit,
-    onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
+    onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSortOrderChange: (HistorySortOrder) -> Unit,
     onRoutineFilterChange: (String?) -> Unit
 ) {
@@ -286,11 +287,11 @@ private fun HistoryListContent(
 
 @Composable
 private fun HistoryFilterControls(
-    selectedPeriod: HistoryPeriodFilter,
+    selectedPeriod: WorkoutStatsPeriod,
     selectedSort: HistorySortOrder,
     selectedRoutineName: String?,
     availableRoutineNames: List<String>,
-    onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
+    onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSortOrderChange: (HistorySortOrder) -> Unit,
     onRoutineFilterChange: (String?) -> Unit
 ) {
@@ -303,7 +304,7 @@ private fun HistoryFilterControls(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
             ) {
-                HistoryPeriodFilter.entries.forEach { period ->
+                WorkoutStatsPeriod.entries.forEach { period ->
                     FilterChip(
                         selected = selectedPeriod == period,
                         onClick = { onPeriodFilterChange(period) },

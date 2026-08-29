@@ -8,6 +8,7 @@ import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryExercise
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryMetricDelta
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySet
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySummary
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import com.alvarocervantes.fittrackplus.domain.model.isWorkoutSetCompleted
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.data.repository.RoutineRepository
@@ -363,7 +364,7 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
-    fun setPeriodFilter(period: HistoryPeriodFilter) {
+    fun setPeriodFilter(period: WorkoutStatsPeriod) {
         _uiState.update { state ->
             state.copy(
                 selectedPeriod = period,
@@ -412,7 +413,7 @@ data class HistoryUiState(
     val isDetailLoading: Boolean = false,
     val allSessions: List<HistorySessionUiState> = emptyList(),
     val sessions: List<HistorySessionUiState> = emptyList(),
-    val selectedPeriod: HistoryPeriodFilter = HistoryPeriodFilter.All,
+    val selectedPeriod: WorkoutStatsPeriod = WorkoutStatsPeriod.LastFourWeeks,
     val selectedSort: HistorySortOrder = HistorySortOrder.Recent,
     val selectedRoutineName: String? = null,
     val selectedSessionId: Long? = null,
@@ -455,12 +456,6 @@ internal fun changedHistorySetEdits(
             }
         }
         ?: emptyList()
-}
-
-enum class HistoryPeriodFilter(val label: String) {
-    All("Todo"),
-    LastFourWeeks("4 semanas"),
-    LastTwelveWeeks("12 semanas")
 }
 
 enum class HistorySortOrder(val label: String) {
@@ -577,7 +572,7 @@ private fun WorkoutHistorySummary.toUiState(): HistorySessionUiState {
 }
 
 fun List<HistorySessionUiState>.applyHistoryFilters(
-    period: HistoryPeriodFilter,
+    period: WorkoutStatsPeriod,
     sort: HistorySortOrder,
     nowMillis: Long,
     selectedRoutineName: String? = null
@@ -596,13 +591,13 @@ fun List<HistorySessionUiState>.availableRoutineNames(): List<String> {
 }
 
 private fun List<HistorySessionUiState>.filterByPeriod(
-    period: HistoryPeriodFilter,
+    period: WorkoutStatsPeriod,
     nowMillis: Long
 ): List<HistorySessionUiState> {
     val cutoff = when (period) {
-        HistoryPeriodFilter.All -> return this
-        HistoryPeriodFilter.LastFourWeeks -> nowMillis - 4 * 7 * DAY_MILLIS
-        HistoryPeriodFilter.LastTwelveWeeks -> nowMillis - 12 * 7 * DAY_MILLIS
+        WorkoutStatsPeriod.All -> return this
+        WorkoutStatsPeriod.LastFourWeeks -> nowMillis - 4 * 7 * DAY_MILLIS
+        WorkoutStatsPeriod.LastTwelveWeeks -> nowMillis - 12 * 7 * DAY_MILLIS
     }
     return filter { session -> session.startedAt >= cutoff }
 }
