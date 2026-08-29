@@ -61,7 +61,8 @@ fun FitTrackTargetPrescriptionFields(
                 showCustomRepsDialog = false
             },
             onDismiss = { showCustomRepsDialog = false },
-            confirmEnabled = isValidTargetReps(customRepsDraft)
+            confirmEnabled = isValidTargetReps(customRepsDraft),
+            selectAllOnFocus = true
         )
     }
 

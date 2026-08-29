@@ -1,5 +1,7 @@
 package com.alvarocervantes.fittrackplus.core.design
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -25,9 +27,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.window.Dialog
+import com.alvarocervantes.fittrackplus.core.design.components.DisableNativeTextToolbar
+import com.alvarocervantes.fittrackplus.core.design.components.maybeSelectAllOnFocusValue
+import com.alvarocervantes.fittrackplus.core.design.components.syncTextFieldValue
 
 /** Standard two-button confirmation dialog. */
 @Composable
@@ -88,26 +100,54 @@ fun FitTrackInputDialog(
     minLines: Int = 1,
     maxLines: Int = Int.MAX_VALUE,
     confirmEnabled: Boolean = true,
+    selectAllOnFocus: Boolean = false,
     extraContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
+    var fieldValue by remember { mutableStateOf(TextFieldValue(value)) }
+    val interactionSource = remember { MutableInteractionSource() }
+
+    LaunchedEffect(value) {
+        fieldValue = syncTextFieldValue(fieldValue, value)
+    }
+
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collect { interaction ->
+            if (interaction is PressInteraction.Release) {
+                fieldValue = maybeSelectAllOnFocusValue(fieldValue, selectAllOnFocus)
+            }
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                OutlinedTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    label = label?.let { { Text(it) } },
-                    placeholder = placeholder?.let { { Text(it) } },
-                    supportingText = supportingText?.let { { Text(it) } },
-                    isError = isError,
-                    keyboardOptions = keyboardOptions,
-                    singleLine = singleLine,
-                    minLines = minLines,
-                    maxLines = maxLines,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                DisableNativeTextToolbar {
+                    OutlinedTextField(
+                        value = fieldValue,
+                        onValueChange = { newValue ->
+                            fieldValue = newValue
+                            onValueChange(newValue.text)
+                        },
+                        label = label?.let { { Text(it) } },
+                        placeholder = placeholder?.let { { Text(it) } },
+                        supportingText = supportingText?.let { { Text(it) } },
+                        isError = isError,
+                        keyboardOptions = keyboardOptions,
+                        singleLine = singleLine,
+                        minLines = minLines,
+                        maxLines = maxLines,
+                        interactionSource = interactionSource,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused) {
+                                    fieldValue = maybeSelectAllOnFocusValue(fieldValue, selectAllOnFocus)
+                                }
+                            }
+                    )
+                }
                 extraContent?.invoke(this)
             }
         },
