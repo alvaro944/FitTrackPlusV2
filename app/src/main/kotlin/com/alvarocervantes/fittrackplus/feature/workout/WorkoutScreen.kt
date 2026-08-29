@@ -48,6 +48,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +61,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,6 +70,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.ViewModelStoreOwner
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.success
 import com.alvarocervantes.fittrackplus.core.design.primaryMid
@@ -105,6 +108,8 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTargetPrescriptionFields
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
+import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
+import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -114,17 +119,46 @@ fun WorkoutScreen(
     onGoToRoutines: () -> Unit,
     viewModel: WorkoutViewModel = hiltViewModel()
 ) {
+    val activity = LocalActivity.current
+    val appShellOwner = requireNotNull(activity) as ViewModelStoreOwner
+    val appShellViewModel: AppShellViewModel = hiltViewModel(appShellOwner)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val pendingNavigation by appShellViewModel.pendingNavigation.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showFinishConfirmation by remember { mutableStateOf(false) }
     var finishNotes by remember { mutableStateOf("") }
     val haptic = LocalHapticFeedback.current
+
+    LaunchedEffect(state.activeSession?.sessionId) {
+        appShellViewModel.setNavigationBlocker(
+            route = AppRoute.Workout,
+            isBlocked = state.activeSession != null
+        )
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            appShellViewModel.setNavigationBlocker(AppRoute.Workout, isBlocked = false)
+        }
+    }
 
     state.message?.let { message ->
         LaunchedEffect(message) {
             snackbarHostState.showSnackbar(message)
             viewModel.clearMessage()
         }
+    }
+
+    if (pendingNavigation != null) {
+        FitTrackConfirmDialog(
+            title = "Entrenamiento en curso",
+            text = "Tienes una sesion activa. ¿Quieres salir sin finalizarla?",
+            confirmLabel = "Salir",
+            dismissLabel = "Seguir entrenando",
+            onConfirm = appShellViewModel::confirmPendingNavigation,
+            onDismiss = appShellViewModel::dismissPendingNavigation,
+            destructive = true
+        )
     }
 
     LaunchedEffect(Unit) {
