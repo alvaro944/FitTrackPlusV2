@@ -117,6 +117,7 @@ fun WorkoutScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showFinishConfirmation by remember { mutableStateOf(false) }
+    var finishNotes by remember { mutableStateOf("") }
     val haptic = LocalHapticFeedback.current
 
     state.message?.let { message ->
@@ -140,6 +141,10 @@ fun WorkoutScreen(
         }
     }
 
+    LaunchedEffect(state.activeSession?.sessionId) {
+        finishNotes = ""
+    }
+
     // Pick up a session reopened from History when returning to this tab (only when idle).
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.refreshIfIdle()
@@ -156,18 +161,17 @@ fun WorkoutScreen(
             else ->
                 "Se guardara la sesion en el historial con las series registradas hasta ahora."
         }
-        FitTrackConfirmDialog(
+        FinishWorkoutDialog(
             title = "Finalizar entrenamiento",
             text = finishDialogText,
-            confirmLabel = "Finalizar",
-            dismissLabel = "Seguir entrenando",
+            notes = finishNotes,
+            onNotesChange = { finishNotes = it },
             onConfirm = {
                 showFinishConfirmation = false
-                viewModel.finishWorkout()
+                viewModel.finishWorkout(finishNotes)
             },
             onDismiss = { showFinishConfirmation = false },
             confirmEnabled = !state.isFinishing,
-            destructive = false
         )
     }
 
@@ -199,6 +203,7 @@ fun WorkoutScreen(
                 onFinishWorkout = { showFinishConfirmation = true },
                 onSetWeightChange = viewModel::updateSetWeight,
                 onSetRepsChange = viewModel::updateSetReps,
+                onSetNotesChange = viewModel::updateSetNotes,
                 onCompleteSet = viewModel::completeSet,
                 onStepWeight = viewModel::stepSetWeight,
                 onStepReps = viewModel::stepSetReps,
@@ -251,6 +256,47 @@ fun WorkoutScreen(
     }
 }
 
+@Composable
+private fun FinishWorkoutDialog(
+    title: String,
+    text: String,
+    notes: String,
+    onNotesChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    confirmEnabled: Boolean
+) {
+    FitTrackDialog(
+        title = title,
+        onDismissRequest = onDismiss,
+        content = {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            FitTrackSelectAllTextField(
+                value = notes,
+                onValueChange = onNotesChange,
+                label = { Text("Notas de la sesion") },
+                singleLine = false,
+                minLines = 3,
+                selectAllOnFocus = false,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        actions = {
+            FitTrackFormDialogActions(
+                cancelLabel = "Seguir entrenando",
+                confirmLabel = "Finalizar",
+                onCancel = onDismiss,
+                onConfirm = onConfirm,
+                confirmEnabled = confirmEnabled
+            )
+        }
+    )
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WorkoutContent(
@@ -261,6 +307,7 @@ private fun WorkoutContent(
     onFinishWorkout: () -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onSetNotesChange: (Long, String) -> Unit,
     onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit,
@@ -349,6 +396,7 @@ private fun WorkoutContent(
                         onToggleExpanded = onToggleExerciseExpanded,
                         onSetWeightChange = onSetWeightChange,
                         onSetRepsChange = onSetRepsChange,
+                        onSetNotesChange = onSetNotesChange,
                         onCompleteSet = onCompleteSet,
                         onStepWeight = onStepWeight,
                         onStepReps = onStepReps
@@ -732,6 +780,7 @@ private fun WorkoutExerciseCard(
     onToggleExpanded: (Long) -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onSetNotesChange: (Long, String) -> Unit,
     onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit
@@ -776,6 +825,13 @@ private fun WorkoutExerciseCard(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        exercise.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+                            Text(
+                                text = "Notas: $notes",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         ExerciseCompletionLabel(
                             isExpanded = isExpanded,
                             isCompleted = isExerciseCompleted,
@@ -826,6 +882,7 @@ private fun WorkoutExerciseCard(
                             weightUnitLabel = weightUnitLabel,
                             onSetWeightChange = onSetWeightChange,
                             onSetRepsChange = onSetRepsChange,
+                            onSetNotesChange = onSetNotesChange,
                             onCompleteSet = onCompleteSet,
                             onStepWeight = onStepWeight,
                             onStepReps = onStepReps
@@ -993,6 +1050,7 @@ private fun WorkoutSetRow(
     weightUnitLabel: String,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onSetNotesChange: (Long, String) -> Unit,
     onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit
@@ -1002,6 +1060,7 @@ private fun WorkoutSetRow(
         setNumber = set.setNumber,
         weightText = set.weightText,
         repsText = set.repsText,
+        notes = set.notes,
         mode = FitTrackSetRowMode.Edit,
         isCompleted = set.isCompleted,
         isReadyToComplete = isWorkoutSetReadyToComplete(
@@ -1014,6 +1073,7 @@ private fun WorkoutSetRow(
         previousReps = set.previousReps,
         onWeightChange = { onSetWeightChange(set.id, it) },
         onRepsChange = { onSetRepsChange(set.id, it) },
+        onNotesChange = { onSetNotesChange(set.id, it) },
         onComplete = { onCompleteSet(set.id) },
         onStepWeight = { onStepWeight(set.id, it) },
         onStepReps = { onStepReps(set.id, it) },

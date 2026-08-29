@@ -71,6 +71,7 @@ fun FitTrackSetRow(
     previousReps: Int? = null,
     onWeightChange: (String) -> Unit = {},
     onRepsChange: (String) -> Unit = {},
+    onNotesChange: (String) -> Unit = {},
     onComplete: () -> Unit = {},
     onStepWeight: (Double) -> Unit = {},
     onStepReps: (Int) -> Unit = {},
@@ -117,6 +118,17 @@ fun FitTrackSetRow(
                     .background(background, MaterialTheme.shapes.large)
                     .border(1.dp, borderColor, MaterialTheme.shapes.large)
                     .padding(FitSpacing.smMd)
+            )
+            FitTrackSelectAllTextField(
+                value = notes.orEmpty(),
+                onValueChange = onNotesChange,
+                label = { Text("Notas") },
+                singleLine = false,
+                minLines = 2,
+                selectAllOnFocus = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = FitSpacing.xs)
             )
             footer?.invoke(this)
         }

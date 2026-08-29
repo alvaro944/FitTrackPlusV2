@@ -38,7 +38,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 @HiltViewModel
 class WorkoutViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
@@ -208,7 +208,8 @@ class WorkoutViewModel @Inject constructor(
                     variantKey = alternative.variantKey,
                     exerciseName = alternative.name,
                     targetRepsText = alternative.targetRepsText,
-                    targetSets = alternative.targetSets
+                    targetSets = alternative.targetSets,
+                    notes = alternative.notes
                 )
                 applied
             }.onSuccess { applied ->
@@ -249,7 +250,8 @@ class WorkoutViewModel @Inject constructor(
                 variantKey = option.variantKey,
                 exerciseName = option.name,
                 targetRepsText = option.targetRepsText,
-                targetSets = option.targetSets
+                targetSets = option.targetSets,
+                notes = option.notes
             )
             if (applied) {
                 refreshActiveSessionFromRepository()
@@ -356,6 +358,19 @@ class WorkoutViewModel @Inject constructor(
         )
     }
 
+    fun updateSetNotes(setId: Long, notes: String) {
+        updateSetState(setId) { set -> set.copy(notes = notes) }
+        viewModelScope.launch {
+            runCatching {
+                workoutRepository.updateSetNotes(setId, notes)
+            }.onFailure { throwable ->
+                _uiState.update { state ->
+                    state.copy(message = throwable.message ?: "No se pudieron guardar las notas de la serie.")
+                }
+            }
+        }
+    }
+
     fun completeSet(setId: Long) {
         val session = _uiState.value.activeSession ?: return
         val set = session.findSet(setId) ?: return
@@ -420,7 +435,7 @@ class WorkoutViewModel @Inject constructor(
         _uiState.update { state -> state.copy(restTimer = state.restTimer.withAutoStart(enabled)) }
     }
 
-    fun finishWorkout() {
+    fun finishWorkout(notes: String? = null) {
         val session = _uiState.value.activeSession ?: return
         val sessionId = session.sessionId
         val shouldDiscardSession = session.completedSetCount == 0
@@ -432,7 +447,7 @@ class WorkoutViewModel @Inject constructor(
                 if (shouldDiscardSession) {
                     workoutRepository.discardSession(sessionId)
                 } else {
-                    finishWorkoutSession(sessionId)
+                    finishWorkoutSession(sessionId, notes)
                 }
             }.onSuccess {
                 savedStateHandle.remove<Long>(SESSION_KEY)
@@ -744,6 +759,7 @@ data class WorkoutExerciseUiState(
     val variantKey: String,
     val name: String,
     val targetRepsText: String,
+    val notes: String? = null,
     val sets: List<WorkoutSetUiState>
 )
 
@@ -758,6 +774,7 @@ data class WorkoutSetUiState(
     val setNumber: Int,
     val weightText: String,
     val repsText: String,
+    val notes: String? = null,
     val isCompleted: Boolean = false,
     val previousWeight: String? = null,
     val previousReps: Int? = null,
@@ -825,6 +842,7 @@ private fun WorkoutSessionWithExercises.toUiState(weightUnit: WeightUnit): Activ
                     variantKey = exerciseWithSets.exercise.performedVariantKey,
                     name = exerciseWithSets.exercise.exerciseNameSnapshot,
                     targetRepsText = exerciseWithSets.exercise.targetRepsSnapshot,
+                    notes = exerciseWithSets.exercise.notes,
                     sets = exerciseWithSets.sets
                         .sortedBy { it.setNumber }
                         .map { set ->
@@ -837,6 +855,7 @@ private fun WorkoutSessionWithExercises.toUiState(weightUnit: WeightUnit): Activ
                                     ""
                                 },
                                 repsText = if (set.reps > 0) set.reps.toString() else "",
+                                notes = set.notes,
                                 isCompleted = set.isCompleted
                             )
                         }

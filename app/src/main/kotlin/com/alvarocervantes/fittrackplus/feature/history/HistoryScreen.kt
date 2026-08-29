@@ -706,6 +706,13 @@ private fun HistoryExerciseCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                exercise.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+                    Text(
+                        text = "Notas: $notes",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             exercise.sets.forEach { set ->
                 HistorySetRow(

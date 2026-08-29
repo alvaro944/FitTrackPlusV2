@@ -508,7 +508,7 @@ data class HistoryDetailUiState(
     val startedAt: Long,
     val finishedAt: Long,
     val weekNumber: Int,
-    val notes: String?,
+    val notes: String? = null,
     val pausedMillis: Long,
     val exercises: List<HistoryExerciseUiState>,
     val comparison: HistoryComparisonUiState? = null
@@ -566,6 +566,7 @@ data class HistoryExerciseUiState(
     val exerciseId: Long,
     val name: String,
     val targetRepsText: String,
+    val notes: String? = null,
     val sets: List<HistorySetUiState>
 )
 
@@ -696,6 +697,7 @@ private fun WorkoutHistoryExercise.toUiState(weightUnit: WeightUnit): HistoryExe
         exerciseId = exerciseId,
         name = name,
         targetRepsText = targetRepsText,
+        notes = notes,
         sets = sets.map { it.toUiState(weightUnit) }
     )
 }

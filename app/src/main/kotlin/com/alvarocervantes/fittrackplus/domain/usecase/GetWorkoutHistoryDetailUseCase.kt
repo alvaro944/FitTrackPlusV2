@@ -46,6 +46,7 @@ private fun WorkoutSessionWithExercises.toHistoryDetail(): WorkoutHistoryDetail?
                     exerciseId = exerciseWithSets.exercise.id,
                     name = exerciseWithSets.exercise.exerciseNameSnapshot,
                     targetRepsText = exerciseWithSets.exercise.targetRepsSnapshot,
+                    notes = exerciseWithSets.exercise.notes,
                     sets = exerciseWithSets.sets
                         .sortedBy { it.setNumber }
                         .map { set ->
