@@ -2,6 +2,7 @@ package com.alvarocervantes.fittrackplus.core.design.components
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -54,6 +55,7 @@ fun FitTrackSelectAllTextField(
     minLines: Int = 1,
     selectAllOnFocus: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     colors: TextFieldColors = OutlinedTextFieldDefaults.colors()
 ) {
     var fieldValue by remember { mutableStateOf(TextFieldValue(value)) }
@@ -90,6 +92,7 @@ fun FitTrackSelectAllTextField(
             singleLine = singleLine,
             minLines = minLines,
             keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions,
             colors = colors,
             interactionSource = interactionSource
         )

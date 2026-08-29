@@ -5,6 +5,12 @@ package com.alvarocervantes.fittrackplus.feature.workout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -944,12 +950,20 @@ private fun ExerciseAlternativesDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {
+                val notesFocusRequester = remember { FocusRequester() }
                 FitTrackSelectAllTextField(
                     value = picker.draft.name,
                     onValueChange = onDraftNameChange,
                     label = { Text("Nombre") },
                     singleLine = true,
                     selectAllOnFocus = false,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { notesFocusRequester.requestFocus() }
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 FitTrackTargetPrescriptionFields(
@@ -966,7 +980,10 @@ private fun ExerciseAlternativesDialog(
                     singleLine = false,
                     minLines = 2,
                     selectAllOnFocus = false,
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(notesFocusRequester)
                 )
             }
         },

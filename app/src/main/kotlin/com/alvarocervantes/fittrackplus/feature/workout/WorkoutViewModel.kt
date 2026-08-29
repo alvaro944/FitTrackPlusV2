@@ -156,7 +156,7 @@ class WorkoutViewModel @Inject constructor(
     }
 
     fun updateAlternativeDraftName(name: String) {
-        updateAlternativeDraft { draft -> draft.copy(name = normalizeWorkoutAlternativeNameInput(name)) }
+        updateAlternativeDraft { draft -> draft.copy(name = name) }
     }
 
     fun updateAlternativeDraftSets(targetSets: String) {
@@ -885,13 +885,6 @@ private fun RoutineExerciseSnapshot.toVariantOptions(currentVariantKey: String):
                 )
             )
         }
-    }
-}
-
-private fun normalizeWorkoutAlternativeNameInput(value: String): String {
-    if (value.isEmpty()) return value
-    return value.replaceFirstChar { char ->
-        if (char.isLowerCase()) char.titlecase() else char.toString()
     }
 }
 

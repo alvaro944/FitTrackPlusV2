@@ -4,6 +4,12 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
@@ -701,6 +707,7 @@ private fun RoutineEditorContent(
                     },
                     singleLine = true,
                     selectAllOnFocus = false,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -923,6 +930,7 @@ private fun RoutineDayEditor(
                 },
                 singleLine = true,
                 selectAllOnFocus = false,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -1160,6 +1168,7 @@ private fun RoutineExerciseEditor(
             },
             singleLine = true,
             selectAllOnFocus = false,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -1291,12 +1300,20 @@ private fun ExerciseAlternativesEditorDialog(
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
                             if (isEditing) {
+                                val notesFocusRequester = remember { FocusRequester() }
                                 FitTrackSelectAllTextField(
                                     value = alternative.name,
                                     onValueChange = { onAlternativeNameChange(index, it) },
                                     label = { Text("Nombre") },
                                     singleLine = true,
                                     selectAllOnFocus = false,
+                                    keyboardOptions = KeyboardOptions(
+                                        capitalization = KeyboardCapitalization.Words,
+                                        imeAction = ImeAction.Next
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onNext = { notesFocusRequester.requestFocus() }
+                                    ),
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 FitTrackTargetPrescriptionFields(
@@ -1319,7 +1336,10 @@ private fun ExerciseAlternativesEditorDialog(
                                     singleLine = false,
                                     minLines = 2,
                                     selectAllOnFocus = false,
-                                    modifier = Modifier.fillMaxWidth()
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusRequester(notesFocusRequester)
                                 )
                                 FitTrackFormDialogActions(
                                     cancelLabel = "Cancelar",
