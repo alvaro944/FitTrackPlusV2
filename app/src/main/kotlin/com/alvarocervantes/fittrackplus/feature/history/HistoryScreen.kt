@@ -74,6 +74,8 @@ import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
+import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRow
+import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRowStyle
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
@@ -588,34 +590,36 @@ private fun HistoryDetailSummary(detail: HistoryDetailUiState) {
                 compact = true
             )
         }
-        Text(
-            text = "Duracion: ${formatDuration(detail.durationMillis)}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        FitTrackKeyValueRow(
+            label = "Duracion",
+            value = formatDuration(detail.durationMillis),
+            style = FitTrackKeyValueRowStyle.Flat
         )
-        Text(
-            text = "Volumen total: ${detail.totalVolumeKg.toDisplayText()} kg",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        FitTrackKeyValueRow(
+            label = "Volumen total",
+            value = "${detail.totalVolumeKg.toDisplayText()} kg",
+            style = FitTrackKeyValueRowStyle.Flat
         )
         detail.bestSet?.let { bestSet ->
-            Text(
-                text = "Mejor set: ${bestSet.exerciseName} · ${bestSet.weightKg.toDisplayText()} kg x ${bestSet.reps}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            FitTrackKeyValueRow(
+                label = "Mejor set",
+                value = "${bestSet.exerciseName} · ${bestSet.weightKg.toDisplayText()} kg x ${bestSet.reps}",
+                style = FitTrackKeyValueRowStyle.Flat
             )
         }
         detail.notes?.takeIf { it.isNotBlank() }?.let { notes ->
-            Text(
-                text = "Notas: $notes",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            FitTrackKeyValueRow(
+                label = "Notas",
+                value = notes,
+                style = FitTrackKeyValueRowStyle.Flat
             )
         }
-        Text(
-            text = "Finalizada ${formatDate(detail.finishedAt)}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        FitTrackKeyValueRow(
+            label = "Finalizada",
+            value = formatDate(detail.finishedAt),
+            style = FitTrackKeyValueRowStyle.Flat,
+            labelTextStyle = MaterialTheme.typography.bodySmall,
+            valueTextStyle = MaterialTheme.typography.bodySmall
         )
     }
 }

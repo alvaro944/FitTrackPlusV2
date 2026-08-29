@@ -58,6 +58,8 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRow
+import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRowStyle
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
@@ -729,24 +731,11 @@ private fun RecordRow(
     label: String,
     value: String?
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.accentSoft, MaterialTheme.shapes.large)
-            .padding(horizontal = FitSpacing.md, vertical = FitSpacing.smMd),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value ?: "-",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.accentWarm
-        )
-    }
+    FitTrackKeyValueRow(
+        label = label,
+        value = value ?: "-",
+        style = FitTrackKeyValueRowStyle.Pill
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -872,12 +861,8 @@ private fun ProgressPointDetails(
     point: ProgressChartPointUiState,
     onClear: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.accentSoft, MaterialTheme.shapes.large)
-            .padding(FitSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+    FitTrackKeyValueRow(
+        style = FitTrackKeyValueRowStyle.Pill
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1107,12 +1092,8 @@ private fun SelectedDayDetail(
         .replaceFirstChar { it.uppercase() }
     val dateStr = "${date.dayOfMonth} de ${date.month.getDisplayName(TextStyle.FULL, locale)}"
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
-            .padding(FitSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+    FitTrackKeyValueRow(
+        style = FitTrackKeyValueRowStyle.Pill
     ) {
         Text(
             text = "$dayName, $dateStr",
