@@ -45,6 +45,8 @@ import com.alvarocervantes.fittrackplus.core.design.components.FitTrackStepper
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackThemeModeSelector
 import com.alvarocervantes.fittrackplus.core.design.textTertiary
 
+private const val MAX_DAILY_STEP_GOAL = 50_000
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -217,10 +219,13 @@ fun SettingsScreen(
                                             }
                                         },
                                         onIncrement = {
-                                            viewModel.setDailyStepGoal(dailyStepGoal + 1_000)
+                                            if (dailyStepGoal < MAX_DAILY_STEP_GOAL) {
+                                                viewModel.setDailyStepGoal(dailyStepGoal + 1_000)
+                                            }
                                         },
                                         compact = true,
-                                        decrementEnabled = dailyStepGoal > 1_000
+                                        decrementEnabled = dailyStepGoal > 1_000,
+                                        incrementEnabled = dailyStepGoal < MAX_DAILY_STEP_GOAL
                                     )
                                 }
                                 FitTrackOutlinedButton(
