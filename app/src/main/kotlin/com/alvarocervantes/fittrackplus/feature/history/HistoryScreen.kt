@@ -24,21 +24,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -55,7 +49,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -66,14 +59,21 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackDropdownField
+import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCardBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
-import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
+import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRow
+import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRowStyle
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
+import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRow
+import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowEditFieldStyle
+import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowMode
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDeltaDirection
 import java.text.SimpleDateFormat
@@ -316,60 +316,21 @@ private fun HistoryFilterControls(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RoutineFilterDropdown(
     selectedRoutineName: String?,
     availableRoutineNames: List<String>,
     onRoutineFilterChange: (String?) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
     val allRoutinesLabel = "Todas las rutinas"
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
-    ) {
-        OutlinedTextField(
-            value = selectedRoutineName ?: allRoutinesLabel,
-            onValueChange = {},
-            readOnly = true,
-            singleLine = true,
-            label = { Text("Rutina") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth()
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            DropdownMenuItem(
-                text = { Text(allRoutinesLabel) },
-                onClick = {
-                    onRoutineFilterChange(null)
-                    expanded = false
-                }
-            )
-            availableRoutineNames.forEach { routineName ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = routineName,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    onClick = {
-                        onRoutineFilterChange(routineName)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
+    FitTrackDropdownField(
+        label = "Rutina",
+        value = selectedRoutineName ?: allRoutinesLabel,
+        options = listOf<String?>(null) + availableRoutineNames,
+        onSelect = onRoutineFilterChange,
+        optionLabel = { it ?: allRoutinesLabel }
+    )
 }
 
 @Composable
@@ -489,67 +450,41 @@ private fun HistorySessionCard(
     session: HistorySessionUiState,
     onClick: () -> Unit
 ) {
-    FitTrackCard(
+    FitTrackEntityListCard(
+        title = session.routineName,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(
                 role = Role.Button,
                 onClickLabel = "Ver detalle de la sesion",
                 onClick = onClick
+            ),
+        leadingDot = if (!session.isComplete) MaterialTheme.colorScheme.error else null,
+        leadingDotContentDescription = if (!session.isComplete) "Entrenamiento incompleto" else null,
+        badge = FitTrackEntityListCardBadge(
+            text = "Semana ${session.weekNumber}",
+            tone = FitTrackBadgeTone.Neutral
+        ),
+        metaContent = {
+            Text(
+                text = session.dayName,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-                ) {
-                    if (!session.isComplete) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(MaterialTheme.colorScheme.error, CircleShape)
-                                .semantics { contentDescription = "Entrenamiento incompleto" }
-                        )
-                    }
-                    Text(
-                        text = session.routineName,
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Text(
-                    text = session.dayName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = formatDate(session.startedAt),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "${session.totalVolumeKg.toDisplayText()} kg - " +
-                        "${session.setCount} series - " +
-                        formatDuration(session.durationMillis),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            FitTrackBadge(
-                label = "Semana ${session.weekNumber}",
-                tone = FitTrackBadgeTone.Neutral
+            Text(
+                text = formatDate(session.startedAt),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "${session.totalVolumeKg.toDisplayText()} kg - " +
+                    "${session.setCount} series - " +
+                    formatDuration(session.durationMillis),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-    }
+    )
 }
 
 @Composable
@@ -612,34 +547,36 @@ private fun HistoryDetailSummary(detail: HistoryDetailUiState) {
                 compact = true
             )
         }
-        Text(
-            text = "Duracion: ${formatDuration(detail.durationMillis)}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        FitTrackKeyValueRow(
+            label = "Duracion",
+            value = formatDuration(detail.durationMillis),
+            style = FitTrackKeyValueRowStyle.Flat
         )
-        Text(
-            text = "Volumen total: ${detail.totalVolumeKg.toDisplayText()} kg",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        FitTrackKeyValueRow(
+            label = "Volumen total",
+            value = "${detail.totalVolumeKg.toDisplayText()} kg",
+            style = FitTrackKeyValueRowStyle.Flat
         )
         detail.bestSet?.let { bestSet ->
-            Text(
-                text = "Mejor set: ${bestSet.exerciseName} · ${bestSet.weightKg.toDisplayText()} kg x ${bestSet.reps}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            FitTrackKeyValueRow(
+                label = "Mejor set",
+                value = "${bestSet.exerciseName} · ${bestSet.weightKg.toDisplayText()} kg x ${bestSet.reps}",
+                style = FitTrackKeyValueRowStyle.Flat
             )
         }
         detail.notes?.takeIf { it.isNotBlank() }?.let { notes ->
-            Text(
-                text = "Notas: $notes",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            FitTrackKeyValueRow(
+                label = "Notas",
+                value = notes,
+                style = FitTrackKeyValueRowStyle.Flat
             )
         }
-        Text(
-            text = "Finalizada ${formatDate(detail.finishedAt)}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        FitTrackKeyValueRow(
+            label = "Finalizada",
+            value = formatDate(detail.finishedAt),
+            style = FitTrackKeyValueRowStyle.Flat,
+            labelTextStyle = MaterialTheme.typography.bodySmall,
+            valueTextStyle = MaterialTheme.typography.bodySmall
         )
     }
 }
@@ -778,64 +715,17 @@ private fun HistorySetRow(
     onWeightChange: (Long, String) -> Unit,
     onRepsChange: (Long, String) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
-            .padding(FitSpacing.smMd),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .background(MaterialTheme.colorScheme.surface, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = set.setNumber.toString(),
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-            if (isEditMode) {
-                FitTrackSelectAllTextField(
-                    value = set.weightText,
-                    onValueChange = { onWeightChange(set.setId, it) },
-                    label = { Text("kg") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f)
-                )
-                FitTrackSelectAllTextField(
-                    value = set.repsText,
-                    onValueChange = { onRepsChange(set.setId, it) },
-                    label = { Text("reps") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f)
-                )
-            } else {
-                Text(
-                    text = "${set.weightKg.toDisplayText()} kg",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = "${set.reps} reps",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-        set.notes?.takeIf { it.isNotBlank() }?.let { notes ->
-            Text(
-                text = notes,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
+    FitTrackSetRow(
+        setId = set.setId,
+        setNumber = set.setNumber,
+        weightText = if (isEditMode) set.weightText else "${set.weightKg.toDisplayText()} kg",
+        repsText = if (isEditMode) set.repsText else "${set.reps} reps",
+        mode = if (isEditMode) FitTrackSetRowMode.Edit else FitTrackSetRowMode.ReadOnly,
+        notes = set.notes,
+        editFieldStyle = FitTrackSetRowEditFieldStyle.TextField,
+        onWeightChange = { onWeightChange(set.setId, it) },
+        onRepsChange = { onRepsChange(set.setId, it) }
+    )
 }
 
 private fun formatDate(timestamp: Long): String {

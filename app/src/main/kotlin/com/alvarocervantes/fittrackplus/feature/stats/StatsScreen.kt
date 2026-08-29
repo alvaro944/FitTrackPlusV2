@@ -24,15 +24,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -58,6 +53,9 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackDropdownField
+import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRow
+import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRowStyle
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
@@ -308,67 +306,18 @@ private fun StatsFocusControls(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        StatsDropdown(
+        FitTrackDropdownField(
             label = "Rutina",
             value = selectedRoutineName ?: "Selecciona rutina",
             options = routineNames,
             onSelect = onSelectRoutine
         )
-        StatsDropdown(
+        FitTrackDropdownField(
             label = "Dia",
             value = selectedDayName ?: "Selecciona dia",
             options = dayNames,
             onSelect = onSelectDay
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun StatsDropdown(
-    label: String,
-    value: String,
-    options: List<String>,
-    onSelect: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it && options.isNotEmpty() }
-    ) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = {},
-            readOnly = true,
-            singleLine = true,
-            label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth()
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = option,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    onClick = {
-                        onSelect(option)
-                        expanded = false
-                    }
-                )
-            }
-        }
     }
 }
 
@@ -729,27 +678,13 @@ private fun RecordRow(
     label: String,
     value: String?
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.accentSoft, MaterialTheme.shapes.large)
-            .padding(horizontal = FitSpacing.md, vertical = FitSpacing.smMd),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value ?: "-",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.accentWarm
-        )
-    }
+    FitTrackKeyValueRow(
+        label = label,
+        value = value ?: "-",
+        style = FitTrackKeyValueRowStyle.Pill
+    )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProgressChartCard(
     exercises: List<ExerciseProgressUiState>,
@@ -763,8 +698,6 @@ private fun ProgressChartCard(
     onSelectProgressPoint: (Long) -> Unit,
     onClearSelectedProgressPoint: () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Progreso visual",
@@ -786,41 +719,13 @@ private fun ProgressChartCard(
             }
         }
 
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it }
-        ) {
-            OutlinedTextField(
-                value = selectedExerciseName ?: "Selecciona un ejercicio",
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                exercises.forEach { exercise ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = exercise.exerciseName,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        },
-                        onClick = {
-                            onSelectExercise(exercise.scopeKey)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
+        FitTrackDropdownField(
+            label = "Ejercicio",
+            value = selectedExerciseName ?: "Selecciona un ejercicio",
+            options = exercises,
+            onSelect = { exercise -> onSelectExercise(exercise.scopeKey) },
+            optionLabel = { it.exerciseName }
+        )
 
         when {
             selectedExerciseName == null -> {
@@ -872,12 +777,8 @@ private fun ProgressPointDetails(
     point: ProgressChartPointUiState,
     onClear: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.accentSoft, MaterialTheme.shapes.large)
-            .padding(FitSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+    FitTrackKeyValueRow(
+        style = FitTrackKeyValueRowStyle.Pill
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1107,12 +1008,8 @@ private fun SelectedDayDetail(
         .replaceFirstChar { it.uppercase() }
     val dateStr = "${date.dayOfMonth} de ${date.month.getDisplayName(TextStyle.FULL, locale)}"
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
-            .padding(FitSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+    FitTrackKeyValueRow(
+        style = FitTrackKeyValueRowStyle.Pill
     ) {
         Text(
             text = "$dayName, $dateStr",
