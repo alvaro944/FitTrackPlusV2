@@ -1,7 +1,6 @@
 package com.alvarocervantes.fittrackplus.feature.workout
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -73,35 +72,4 @@ class RestTimerStateTest {
         assertTrue(timer.autoStartEnabled)
     }
 
-    @Test
-    fun autoStartOnlyWhenRepsBecomePositiveAndTimerIsIdle() {
-        assertTrue(
-            shouldAutoStartRestTimer(
-                previousRepsText = "0",
-                nextRepsText = "8",
-                timer = RestTimerUiState(autoStartEnabled = true)
-            )
-        )
-        assertFalse(
-            shouldAutoStartRestTimer(
-                previousRepsText = "8",
-                nextRepsText = "10",
-                timer = RestTimerUiState(autoStartEnabled = true)
-            )
-        )
-        assertFalse(
-            shouldAutoStartRestTimer(
-                previousRepsText = "",
-                nextRepsText = "8",
-                timer = RestTimerUiState(autoStartEnabled = false)
-            )
-        )
-        assertFalse(
-            shouldAutoStartRestTimer(
-                previousRepsText = "",
-                nextRepsText = "8",
-                timer = RestTimerUiState(autoStartEnabled = true).startRestTimer(seconds = 60)
-            )
-        )
-    }
 }

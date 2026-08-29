@@ -145,12 +145,6 @@ class StatsViewModel @Inject constructor(
         selectedPeriod.value = period
     }
 
-    fun selectExercise(name: String) {
-        _uiState.update { state ->
-            state.withSelectedExercise(name)
-        }
-    }
-
     fun selectRoutine(routineName: String) {
         _uiState.update { state ->
             state.copy(
@@ -451,17 +445,6 @@ fun StatsUiState.withStatsPeriod(
         weeklyStepsData = weeklyStepsData,
         canGoToNextWeek = canGoToNextWeek
     ).withValidFocusSelection()
-}
-
-fun StatsUiState.withSelectedExercise(name: String): StatsUiState {
-    val selectedName = exerciseProgress
-        .firstOrNull { progress -> progress.exerciseName == name }
-        ?.exerciseName
-    return copy(
-        selectedExerciseName = selectedName,
-        selectedExerciseScopeKey = exerciseProgress.firstOrNull { it.exerciseName == selectedName }?.scopeKey,
-        selectedProgressPoint = null
-    ).withProgressPointsForSelection()
 }
 
 fun StatsUiState.withSelectedExerciseScope(scopeKey: String): StatsUiState {

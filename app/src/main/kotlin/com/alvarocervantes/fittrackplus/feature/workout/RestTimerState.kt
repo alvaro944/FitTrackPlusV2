@@ -83,18 +83,3 @@ fun RestTimerUiState.cancelRestTimer(): RestTimerUiState {
 fun RestTimerUiState.withAutoStart(enabled: Boolean): RestTimerUiState {
     return copy(autoStartEnabled = enabled)
 }
-
-fun shouldAutoStartRestTimer(
-    previousRepsText: String,
-    nextRepsText: String,
-    timer: RestTimerUiState
-): Boolean {
-    if (!timer.autoStartEnabled || timer.status == RestTimerStatus.Running || timer.status == RestTimerStatus.Paused) {
-        return false
-    }
-    return !previousRepsText.isPositiveRepsText() && nextRepsText.isPositiveRepsText()
-}
-
-private fun String.isPositiveRepsText(): Boolean {
-    return toIntOrNull()?.let { reps -> reps > 0 } == true
-}

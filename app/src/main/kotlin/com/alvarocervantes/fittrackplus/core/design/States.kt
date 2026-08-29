@@ -5,9 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -68,30 +66,6 @@ fun FitTrackEmptyState(
             if (action != null) {
                 action()
             }
-        }
-    }
-}
-
-@Deprecated(
-    message = "Usa SkeletonCard con SkeletonText/SkeletonBlock para shimmer contextual por pantalla."
-)
-@Composable
-fun FitTrackLoadingCard(text: String, modifier: Modifier = Modifier) {
-    FitTrackCard(modifier = modifier) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(14.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape)
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }

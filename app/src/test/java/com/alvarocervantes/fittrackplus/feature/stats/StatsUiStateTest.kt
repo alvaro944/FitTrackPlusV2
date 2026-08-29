@@ -15,30 +15,8 @@ class StatsUiStateTest {
     }
 
     @Test
-    fun selectExercise_keepsChronologicalProgressPointsAndClearsSelectedPoint() {
-        val state = sampleState(selectedProgressPoint = progressPoint(sessionId = 99))
-
-        val updated = state.withSelectedExercise("Bench Press")
-
-        assertEquals("Bench Press", updated.selectedExerciseName)
-        assertEquals(listOf(1L, 2L), updated.progressPoints.map { it.sessionId })
-        assertNull(updated.selectedProgressPoint)
-    }
-
-    @Test
-    fun selectExercise_clearsSelectionWhenExerciseDoesNotExist() {
-        val state = sampleState(selectedExerciseName = "Bench Press")
-
-        val updated = state.withSelectedExercise("Squat")
-
-        assertNull(updated.selectedExerciseName)
-        assertEquals(emptyList<ProgressChartPointUiState>(), updated.progressPoints)
-        assertNull(updated.selectedProgressPoint)
-    }
-
-    @Test
     fun selectProgressPoint_setsPointFromCurrentProgressPoints() {
-        val state = sampleState().withSelectedExercise("Bench Press")
+        val state = sampleState().withSelectedExerciseScope("ppl|push|bench press")
 
         val updated = state.withSelectedProgressPoint(sessionId = 2L)
 
@@ -48,7 +26,7 @@ class StatsUiStateTest {
 
     @Test
     fun selectedProgressMetricChangesChartValues() {
-        val state = sampleState().withSelectedExercise("Bench Press")
+        val state = sampleState().withSelectedExerciseScope("ppl|push|bench press")
 
         val repsState = state.withProgressMetric(ProgressMetric.Reps)
 
@@ -60,7 +38,7 @@ class StatsUiStateTest {
     @Test
     fun poundsPreferenceConvertsWeightChartValuesWithoutChangingStoredValues() {
         val state = sampleState()
-            .withSelectedExercise("Bench Press")
+            .withSelectedExerciseScope("ppl|push|bench press")
             .copy(weightUnit = WeightUnit.Pounds)
 
         assertEquals(198.416f, state.progressChartValues[0].second, 0.001f)
