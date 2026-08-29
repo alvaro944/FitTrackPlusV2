@@ -993,11 +993,11 @@ internal fun isWorkoutSetReadyToComplete(
 }
 
 internal fun updateWorkoutSetWeightInput(set: WorkoutSetUiState, weightText: String): WorkoutSetUiState {
-    return set.copy(weightText = weightText, isCompleted = false)
+    return set.copy(weightText = weightText, isCompleted = false, prType = null)
 }
 
 internal fun updateWorkoutSetRepsInput(set: WorkoutSetUiState, repsText: String): WorkoutSetUiState {
-    return set.copy(repsText = repsText, isCompleted = false)
+    return set.copy(repsText = repsText, isCompleted = false, prType = null)
 }
 
 internal fun shouldAutoStartRestTimerOnSetCompletion(

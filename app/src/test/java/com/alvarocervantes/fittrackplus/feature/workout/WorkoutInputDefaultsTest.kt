@@ -5,6 +5,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.alvarocervantes.fittrackplus.core.design.components.maybeSelectAllOnFocusValue
 import com.alvarocervantes.fittrackplus.core.design.components.selectAllOnFocusValue
 import com.alvarocervantes.fittrackplus.core.design.components.syncTextFieldValue
+import com.alvarocervantes.fittrackplus.domain.model.PrType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -85,6 +86,21 @@ class WorkoutInputDefaultsTest {
         assertEquals("60", result.weightText)
         assertFalse(result.isCompleted)
         assertTrue(isWorkoutSetReadyToComplete(result.repsText, result.isCompleted))
+    }
+
+    @Test
+    fun editingCompletedSetClearsItsPersonalRecordMarker() {
+        val set = WorkoutSetUiState(
+            id = 1,
+            setNumber = 1,
+            weightText = "60",
+            repsText = "10",
+            isCompleted = true,
+            prType = PrType.MaxWeight
+        )
+
+        assertEquals(null, updateWorkoutSetWeightInput(set, "62,5").prType)
+        assertEquals(null, updateWorkoutSetRepsInput(set, "11").prType)
     }
 
     @Test
