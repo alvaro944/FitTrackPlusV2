@@ -43,7 +43,6 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -667,7 +666,7 @@ private fun RoutineEditorContent(
 
         item {
             FitTrackCard(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
+                FitTrackSelectAllTextField(
                     value = editor.name,
                     onValueChange = onRoutineNameChange,
                     label = { Text("Nombre de la rutina") },
@@ -676,6 +675,7 @@ private fun RoutineEditorContent(
                         { Text(error) }
                     },
                     singleLine = true,
+                    selectAllOnFocus = false,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -910,7 +910,7 @@ private fun RoutineDayEditor(
                 }
             }
 
-            OutlinedTextField(
+            FitTrackSelectAllTextField(
                 value = day.name,
                 onValueChange = { onDayNameChange(dayIndex, it) },
                 label = { Text("Nombre del dia") },
@@ -919,6 +919,7 @@ private fun RoutineDayEditor(
                     { Text(error) }
                 },
                 singleLine = true,
+                selectAllOnFocus = false,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -1152,7 +1153,7 @@ private fun RoutineExerciseEditor(
             }
         }
 
-        OutlinedTextField(
+        FitTrackSelectAllTextField(
             value = exercise.name,
             onValueChange = { onExerciseNameChange(dayIndex, exerciseIndex, it) },
             label = { Text("Nombre del ejercicio") },
@@ -1161,6 +1162,7 @@ private fun RoutineExerciseEditor(
                 { Text(error) }
             },
             singleLine = true,
+            selectAllOnFocus = false,
             modifier = Modifier.fillMaxWidth()
         )
 
