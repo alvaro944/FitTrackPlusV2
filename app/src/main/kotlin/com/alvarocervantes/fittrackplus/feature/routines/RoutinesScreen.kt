@@ -1011,11 +1011,11 @@ private fun RoutineExerciseEditor(
             exercise = exercise,
             editingAlternativeIndex = editingAlternativeIndex,
             onDismiss = {
-                finishInlineAlternativeEdit(
+                cancelInlineAlternativeEdit(
                     editingAlternativeIndex,
                     dayIndex,
                     exerciseIndex,
-                    onFinishExerciseAlternativeEdit
+                    onCancelExerciseAlternativeEdit
                 )
                 showAlternativesDialog = false
                 editingAlternativeIndex = null
