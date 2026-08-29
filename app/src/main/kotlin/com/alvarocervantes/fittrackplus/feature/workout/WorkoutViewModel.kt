@@ -58,6 +58,7 @@ class WorkoutViewModel @Inject constructor(
 
     companion object {
         private const val SESSION_KEY = "active_session_id"
+        private const val CELEBRATION_DURATION_MS = 1_500L
     }
 
     private val _uiState = MutableStateFlow(WorkoutUiState())
@@ -73,6 +74,7 @@ class WorkoutViewModel @Inject constructor(
     val restTimerFinishedHapticEvent = _restTimerFinishedHapticEvent.receiveAsFlow()
 
     private var restTimerJob: Job? = null
+    private var celebrationDismissJob: Job? = null
     private var hasLoadedWorkoutState = false
 
     init {
@@ -506,6 +508,9 @@ class WorkoutViewModel @Inject constructor(
                     )
                 }
                 persistRestTimer(cancelledTimer)
+                if (!shouldDiscardSession && prCount > 0) {
+                    scheduleCelebrationDismissal()
+                }
             }.onFailure { throwable ->
                 _uiState.update { state ->
                     state.copy(
@@ -522,7 +527,21 @@ class WorkoutViewModel @Inject constructor(
     }
 
     fun dismissCelebration() {
+        celebrationDismissJob?.cancel()
+        celebrationDismissJob = null
         _uiState.update { state -> state.copy(celebration = null, message = "Entrenamiento finalizado.") }
+    }
+
+    private fun scheduleCelebrationDismissal() {
+        celebrationDismissJob?.cancel()
+        celebrationDismissJob = viewModelScope.launch {
+            delay(CELEBRATION_DURATION_MS)
+            _uiState.update { state ->
+                if (state.celebration == null) state else {
+                    state.copy(celebration = null, message = "Entrenamiento finalizado.")
+                }
+            }
+        }
     }
 
     private fun persistSet(
