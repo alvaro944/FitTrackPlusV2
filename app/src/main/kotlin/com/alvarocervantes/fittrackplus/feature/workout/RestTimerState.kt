@@ -13,6 +13,7 @@ data class RestTimerUiState(
     val durationSeconds: Int = 0,
     val remainingSeconds: Int = 0,
     val status: RestTimerStatus = RestTimerStatus.Stopped,
+    val endsAtMillis: Long? = null,
     val autoStartEnabled: Boolean = false
 ) {
     val isActive: Boolean
@@ -25,31 +26,43 @@ data class RestTimerUiState(
         }
 }
 
-fun RestTimerUiState.startRestTimer(seconds: Int): RestTimerUiState {
+fun RestTimerUiState.startRestTimer(
+    seconds: Int,
+    nowMillis: Long = System.currentTimeMillis()
+): RestTimerUiState {
     val normalizedSeconds = seconds.coerceAtLeast(1)
     return copy(
         durationSeconds = normalizedSeconds,
         remainingSeconds = normalizedSeconds,
-        status = RestTimerStatus.Running
+        status = RestTimerStatus.Running,
+        endsAtMillis = nowMillis + normalizedSeconds * 1_000L
     )
 }
 
-fun RestTimerUiState.tickRestTimer(): RestTimerUiState {
+fun RestTimerUiState.tickRestTimer(nowMillis: Long = System.currentTimeMillis()): RestTimerUiState {
     if (status != RestTimerStatus.Running) return this
-    val nextRemaining = (remainingSeconds - 1).coerceAtLeast(0)
+    val endTime = endsAtMillis ?: return copy(status = RestTimerStatus.Finished, remainingSeconds = 0)
+    val remainingMillis = endTime - nowMillis
+    val nextRemaining = ((remainingMillis.coerceAtLeast(0) + 999L) / 1_000L).toInt()
     return copy(
         remainingSeconds = nextRemaining,
-        status = if (nextRemaining == 0) RestTimerStatus.Finished else RestTimerStatus.Running
+        status = if (nextRemaining == 0) RestTimerStatus.Finished else RestTimerStatus.Running,
+        endsAtMillis = if (nextRemaining == 0) null else endTime
     )
 }
 
-fun RestTimerUiState.pauseRestTimer(): RestTimerUiState {
-    return if (status == RestTimerStatus.Running) copy(status = RestTimerStatus.Paused) else this
+fun RestTimerUiState.pauseRestTimer(nowMillis: Long = System.currentTimeMillis()): RestTimerUiState {
+    val refreshed = tickRestTimer(nowMillis)
+    return if (refreshed.status == RestTimerStatus.Running) {
+        refreshed.copy(status = RestTimerStatus.Paused, endsAtMillis = null)
+    } else {
+        refreshed
+    }
 }
 
-fun RestTimerUiState.resumeRestTimer(): RestTimerUiState {
+fun RestTimerUiState.resumeRestTimer(nowMillis: Long = System.currentTimeMillis()): RestTimerUiState {
     return if (status == RestTimerStatus.Paused && remainingSeconds > 0) {
-        copy(status = RestTimerStatus.Running)
+        copy(status = RestTimerStatus.Running, endsAtMillis = nowMillis + remainingSeconds * 1_000L)
     } else {
         this
     }
@@ -57,14 +70,14 @@ fun RestTimerUiState.resumeRestTimer(): RestTimerUiState {
 
 fun RestTimerUiState.resetRestTimer(): RestTimerUiState {
     return if (durationSeconds > 0) {
-        copy(remainingSeconds = durationSeconds, status = RestTimerStatus.Stopped)
+        copy(remainingSeconds = durationSeconds, status = RestTimerStatus.Stopped, endsAtMillis = null)
     } else {
         this
     }
 }
 
 fun RestTimerUiState.cancelRestTimer(): RestTimerUiState {
-    return copy(durationSeconds = 0, remainingSeconds = 0, status = RestTimerStatus.Stopped)
+    return copy(durationSeconds = 0, remainingSeconds = 0, status = RestTimerStatus.Stopped, endsAtMillis = null)
 }
 
 fun RestTimerUiState.withAutoStart(enabled: Boolean): RestTimerUiState {

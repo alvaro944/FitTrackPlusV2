@@ -446,6 +446,14 @@ Encontrado durante la implementacion de `fix/data-loss` (P0-9 de `docs/design/au
 
 ---
 
+### 39. Avisos de finalizacion del temporizador fuera de la pantalla
+
+El temporizador de descanso conserva su estado mediante `DataStore` y calcula el tiempo restante contra un instante absoluto, por lo que sobrevive a un cierre del proceso. Esta iteracion solo da respuesta haptica mientras `WorkoutScreen` sigue compuesta. Las notificaciones y el sonido al terminar con la app en segundo plano se posponen: requieren definir un canal de notificacion, su permiso en Android 13+, la politica de alertas y el ciclo de vida de un trabajo/alarma fiable. Deben disenar e implementarse juntos como una feature de alertas de fondo, no como un añadido aislado al temporizador.
+
+**Esfuerzo**: medio — afecta a permisos, notificaciones y comportamiento en segundo plano.
+
+---
+
 ## Siguiente paso sugerido
 
 El usuario revisa entrada por entrada y marca cuales entran en el backlog real. Las descartadas se dejan aqui como registro. Las aceptadas se repriorizan en `docs/planning/roadmap-2.1.md` cuando pasan a ser direccion vigente.

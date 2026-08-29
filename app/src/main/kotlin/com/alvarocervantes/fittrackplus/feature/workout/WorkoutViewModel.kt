@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.alvarocervantes.fittrackplus.feature.workout
 
 import androidx.lifecycle.SavedStateHandle
@@ -5,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alvarocervantes.fittrackplus.domain.model.isWorkoutSetCompleted
 import com.alvarocervantes.fittrackplus.data.local.relation.WorkoutSessionWithExercises
+import com.alvarocervantes.fittrackplus.data.preferences.RestTimerPreferences
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.data.repository.RoutineRepository
 import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
@@ -66,7 +69,11 @@ class WorkoutViewModel @Inject constructor(
     private val _setCompletionHapticEvent = Channel<Unit>(Channel.BUFFERED)
     val setCompletionHapticEvent = _setCompletionHapticEvent.receiveAsFlow()
 
+    private val _restTimerFinishedHapticEvent = Channel<Unit>(Channel.BUFFERED)
+    val restTimerFinishedHapticEvent = _restTimerFinishedHapticEvent.receiveAsFlow()
+
     private var restTimerJob: Job? = null
+    private var hasLoadedWorkoutState = false
 
     init {
         userPreferencesRepository.weightUnit
@@ -94,6 +101,33 @@ class WorkoutViewModel @Inject constructor(
                     )
                 }
             }
+            .launchIn(viewModelScope)
+
+        userPreferencesRepository.restTimerPreferences
+            .distinctUntilChanged()
+            .onEach { preferences ->
+                val restoredTimer = preferences.toRestTimerUiState()
+                val timer = if (hasLoadedWorkoutState && _uiState.value.activeSession == null) {
+                    RestTimerUiState(autoStartEnabled = restoredTimer.autoStartEnabled)
+                } else {
+                    restoredTimer
+                }
+                _uiState.update { state -> state.copy(restTimer = timer) }
+                if (timer.status == RestTimerStatus.Running) {
+                    launchRestTimerJob()
+                } else {
+                    stopRestTimerJob()
+                }
+                if (preferences != timer.toPreferences()) {
+                    persistRestTimer(timer)
+                }
+                if (restoredTimer.status == RestTimerStatus.Finished &&
+                    preferences.status == RestTimerStatus.Running.name
+                ) {
+                    _restTimerFinishedHapticEvent.trySend(Unit)
+                }
+            }
+            .catch { }
             .launchIn(viewModelScope)
 
         // Refresca el preview cuando cambia el contenido de la rutina activa (ej: nombre editado).
@@ -403,19 +437,18 @@ class WorkoutViewModel @Inject constructor(
     }
 
     fun startRestTimer(seconds: Int) {
-        _uiState.update { state ->
-            state.copy(restTimer = state.restTimer.startRestTimer(seconds))
-        }
+        val timer = _uiState.value.restTimer.startRestTimer(seconds)
+        updateRestTimer(timer)
         launchRestTimerJob()
     }
 
     fun pauseRestTimer() {
         stopRestTimerJob()
-        _uiState.update { state -> state.copy(restTimer = state.restTimer.pauseRestTimer()) }
+        updateRestTimer(_uiState.value.restTimer.pauseRestTimer())
     }
 
     fun resumeRestTimer() {
-        _uiState.update { state -> state.copy(restTimer = state.restTimer.resumeRestTimer()) }
+        updateRestTimer(_uiState.value.restTimer.resumeRestTimer())
         if (_uiState.value.restTimer.status == RestTimerStatus.Running) {
             launchRestTimerJob()
         }
@@ -423,16 +456,16 @@ class WorkoutViewModel @Inject constructor(
 
     fun resetRestTimer() {
         stopRestTimerJob()
-        _uiState.update { state -> state.copy(restTimer = state.restTimer.resetRestTimer()) }
+        updateRestTimer(_uiState.value.restTimer.resetRestTimer())
     }
 
     fun cancelRestTimer() {
         stopRestTimerJob()
-        _uiState.update { state -> state.copy(restTimer = state.restTimer.cancelRestTimer()) }
+        updateRestTimer(_uiState.value.restTimer.cancelRestTimer())
     }
 
     fun setAutoStartRestTimerEnabled(enabled: Boolean) {
-        _uiState.update { state -> state.copy(restTimer = state.restTimer.withAutoStart(enabled)) }
+        updateRestTimer(_uiState.value.restTimer.withAutoStart(enabled))
     }
 
     fun finishWorkout(notes: String? = null) {
@@ -452,6 +485,7 @@ class WorkoutViewModel @Inject constructor(
             }.onSuccess {
                 savedStateHandle.remove<Long>(SESSION_KEY)
                 stopRestTimerJob()
+                val cancelledTimer = _uiState.value.restTimer.cancelRestTimer()
                 val prCount = if (shouldDiscardSession) 0 else (_uiState.value.activeSession?.prCount ?: 0)
                 val activeRoutineId = _uiState.value.activeRoutineId
                 val nextPreview = activeRoutineId?.let { getNextWorkoutPreview(it) }
@@ -462,7 +496,7 @@ class WorkoutViewModel @Inject constructor(
                         expandedExerciseId = null,
                         hints = emptyMap(),
                         preview = nextPreview?.toUiState(),
-                        restTimer = state.restTimer.cancelRestTimer(),
+                        restTimer = cancelledTimer,
                         celebration = if (!shouldDiscardSession && prCount > 0) CelebrationData(prCount) else null,
                         message = when {
                             shouldDiscardSession -> "Sesion descartada."
@@ -471,6 +505,7 @@ class WorkoutViewModel @Inject constructor(
                         }
                     )
                 }
+                persistRestTimer(cancelledTimer)
             }.onFailure { throwable ->
                 _uiState.update { state ->
                     state.copy(
@@ -576,6 +611,12 @@ class WorkoutViewModel @Inject constructor(
             null
         }
         val hints = activeSession?.let { loadProgressionHints(it) }.orEmpty()
+        hasLoadedWorkoutState = true
+        val timerAfterLoading = if (activeSession == null) {
+            _uiState.value.restTimer.cancelRestTimer()
+        } else {
+            _uiState.value.restTimer
+        }
 
         _uiState.update { state ->
             state.copy(
@@ -587,11 +628,12 @@ class WorkoutViewModel @Inject constructor(
                 ),
                 hints = hints,
                 preview = preview,
-                restTimer = if (activeSession == null) state.restTimer.cancelRestTimer() else state.restTimer
+                restTimer = timerAfterLoading
             )
         }
         if (activeSession == null) {
             stopRestTimerJob()
+            persistRestTimer(timerAfterLoading)
         }
     }
 
@@ -644,7 +686,12 @@ class WorkoutViewModel @Inject constructor(
         restTimerJob = viewModelScope.launch {
             while (_uiState.value.restTimer.status == RestTimerStatus.Running) {
                 delay(1_000)
-                _uiState.update { state -> state.copy(restTimer = state.restTimer.tickRestTimer()) }
+                val nextTimer = _uiState.value.restTimer.tickRestTimer()
+                _uiState.update { state -> state.copy(restTimer = nextTimer) }
+                if (nextTimer.status == RestTimerStatus.Finished) {
+                    persistRestTimer(nextTimer)
+                    _restTimerFinishedHapticEvent.trySend(Unit)
+                }
             }
         }
     }
@@ -652,6 +699,17 @@ class WorkoutViewModel @Inject constructor(
     private fun stopRestTimerJob() {
         restTimerJob?.cancel()
         restTimerJob = null
+    }
+
+    private fun updateRestTimer(timer: RestTimerUiState) {
+        _uiState.update { state -> state.copy(restTimer = timer) }
+        persistRestTimer(timer)
+    }
+
+    private fun persistRestTimer(timer: RestTimerUiState) {
+        viewModelScope.launch {
+            userPreferencesRepository.setRestTimerPreferences(timer.toPreferences())
+        }
     }
 
     private fun updateAlternativeDraft(
@@ -1057,4 +1115,28 @@ internal fun shouldAutoStartRestTimerOnManualSetCompletion(timer: RestTimerUiSta
     return timer.autoStartEnabled &&
         timer.status != RestTimerStatus.Running &&
         timer.status != RestTimerStatus.Paused
+}
+
+private fun RestTimerPreferences.toRestTimerUiState(
+    nowMillis: Long = System.currentTimeMillis()
+): RestTimerUiState {
+    val status = RestTimerStatus.entries.firstOrNull { it.name == this.status }
+        ?: RestTimerStatus.Stopped
+    return RestTimerUiState(
+        durationSeconds = durationSeconds.coerceAtLeast(0),
+        remainingSeconds = remainingSeconds.coerceAtLeast(0),
+        status = status,
+        endsAtMillis = endsAtMillis,
+        autoStartEnabled = autoStartEnabled
+    ).tickRestTimer(nowMillis)
+}
+
+private fun RestTimerUiState.toPreferences(): RestTimerPreferences {
+    return RestTimerPreferences(
+        durationSeconds = durationSeconds,
+        remainingSeconds = remainingSeconds,
+        status = status.name,
+        endsAtMillis = endsAtMillis,
+        autoStartEnabled = autoStartEnabled
+    )
 }

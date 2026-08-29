@@ -141,6 +141,12 @@ fun WorkoutScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.restTimerFinishedHapticEvent.collect {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
+
     LaunchedEffect(state.activeSession?.sessionId) {
         finishNotes = ""
     }
@@ -570,14 +576,6 @@ private fun RestTimerCard(
     onCancelRestTimer: () -> Unit,
     onAutoStartRestTimerChange: (Boolean) -> Unit
 ) {
-    val haptic = LocalHapticFeedback.current
-
-    LaunchedEffect(timer.status) {
-        if (timer.status == RestTimerStatus.Finished) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        }
-    }
-
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         RestTimerHeader(
             timer = timer,
