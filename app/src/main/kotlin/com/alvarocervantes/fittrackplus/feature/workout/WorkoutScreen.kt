@@ -90,6 +90,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackFormDialogActions
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
@@ -980,15 +981,13 @@ private fun ExerciseAlternativesDialog(
         },
         actions = if (picker.draft != null) {
             {
-                TextButton(onClick = onCancelCreating) {
-                    Text("Cancelar")
-                }
-                TextButton(
-                    onClick = onSaveAlternative,
-                    enabled = picker.draft.canSave && !picker.isSaving
-                ) {
-                    Text("Guardar y usar")
-                }
+                FitTrackFormDialogActions(
+                    cancelLabel = "Cancelar",
+                    confirmLabel = "Guardar y usar",
+                    onCancel = onCancelCreating,
+                    onConfirm = onSaveAlternative,
+                    confirmEnabled = picker.draft.canSave && !picker.isSaving
+                )
             }
         } else null
     )

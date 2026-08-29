@@ -30,6 +30,7 @@ class RoutinesViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(RoutinesUiState())
     val uiState: StateFlow<RoutinesUiState> = _uiState.asStateFlow()
+    private val alternativeEditSnapshots = mutableMapOf<AlternativeEditKey, AlternativeEditSnapshot>()
 
     init {
         combine(
@@ -115,6 +116,7 @@ class RoutinesViewModel @Inject constructor(
     }
 
     fun discardEditorChanges() {
+        alternativeEditSnapshots.clear()
         _uiState.update { state -> state.copy(editor = null) }
     }
 
@@ -211,6 +213,49 @@ class RoutinesViewModel @Inject constructor(
                 exercise.withSeedAlternative()
             }
         }
+    }
+
+    /** Captures an alternative before inline editing so cancelling can restore its saved draft. */
+    fun beginExerciseAlternativeEdit(dayIndex: Int, exerciseIndex: Int, alternativeIndex: Int) {
+        val editor = _uiState.value.editor ?: return
+        val alternatives = editor.days
+            .getOrNull(dayIndex)
+            ?.exercises
+            ?.getOrNull(exerciseIndex)
+            ?.alternatives
+            ?: return
+        if (alternativeIndex !in 0..alternatives.size) return
+
+        alternativeEditSnapshots[AlternativeEditKey(dayIndex, exerciseIndex, alternativeIndex)] =
+            AlternativeEditSnapshot(
+                alternative = alternatives.getOrNull(alternativeIndex),
+                wasDirty = editor.isDirty
+            )
+    }
+
+    /** Restores the captured draft, or removes the newly-created seed when it did not exist yet. */
+    fun cancelExerciseAlternativeEdit(dayIndex: Int, exerciseIndex: Int, alternativeIndex: Int) {
+        val key = AlternativeEditKey(dayIndex, exerciseIndex, alternativeIndex)
+        if (!alternativeEditSnapshots.containsKey(key)) return
+        val snapshot = requireNotNull(alternativeEditSnapshots.remove(key))
+
+        _uiState.update { state ->
+            val editor = state.editor ?: return@update state
+            val restoredEditor = editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
+                val restoredAlternatives = if (snapshot.alternative == null) {
+                    exercise.alternatives.removeAt(alternativeIndex)
+                } else {
+                    exercise.alternatives.replaceAt(alternativeIndex) { snapshot.alternative }
+                }
+                exercise.copy(alternatives = restoredAlternatives)
+            }
+            state.copy(editor = restoredEditor.copy(isDirty = snapshot.wasDirty))
+        }
+    }
+
+    /** Clears the transient snapshot after inline edits are saved or the dialog is closed. */
+    fun finishExerciseAlternativeEdit(dayIndex: Int, exerciseIndex: Int, alternativeIndex: Int) {
+        alternativeEditSnapshots.remove(AlternativeEditKey(dayIndex, exerciseIndex, alternativeIndex))
     }
 
     fun updateExerciseAlternativeName(dayIndex: Int, exerciseIndex: Int, alternativeIndex: Int, name: String) {
@@ -327,6 +372,7 @@ class RoutinesViewModel @Inject constructor(
                     editor.routineId
                 }
             }.onSuccess { routineId ->
+                alternativeEditSnapshots.clear()
                 _uiState.update { state -> state.copy(editor = null, isSaving = false) }
                 if (_uiState.value.activeRoutineId == null) {
                     userPreferencesRepository.setActiveRoutineId(routineId)
@@ -384,6 +430,17 @@ class RoutinesViewModel @Inject constructor(
         }
     }
 }
+
+private data class AlternativeEditKey(
+    val dayIndex: Int,
+    val exerciseIndex: Int,
+    val alternativeIndex: Int
+)
+
+private data class AlternativeEditSnapshot(
+    val alternative: RoutineExerciseAlternativeEditorUiState?,
+    val wasDirty: Boolean
+)
 
 private fun RoutineEditorUiState.updateExercise(
     dayIndex: Int,

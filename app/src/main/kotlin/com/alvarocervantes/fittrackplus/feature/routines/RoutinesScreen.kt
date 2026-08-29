@@ -71,6 +71,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCardBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackFormDialogActions
 import com.alvarocervantes.fittrackplus.core.design.FitTrackInputDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeTone
@@ -232,6 +233,9 @@ fun RoutinesScreen(
                 onExerciseRepsChange = viewModel::updateExerciseReps,
                 onExerciseNotesChange = viewModel::updateExerciseNotes,
                 onAddExerciseAlternative = viewModel::addExerciseAlternative,
+                onBeginExerciseAlternativeEdit = viewModel::beginExerciseAlternativeEdit,
+                onCancelExerciseAlternativeEdit = viewModel::cancelExerciseAlternativeEdit,
+                onFinishExerciseAlternativeEdit = viewModel::finishExerciseAlternativeEdit,
                 onExerciseAlternativeNameChange = viewModel::updateExerciseAlternativeName,
                 onExerciseAlternativeSetsChange = viewModel::updateExerciseAlternativeSets,
                 onExerciseAlternativeRepsChange = viewModel::updateExerciseAlternativeReps,
@@ -594,6 +598,9 @@ private fun RoutineEditorContent(
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
     onAddExerciseAlternative: (Int, Int) -> Unit,
+    onBeginExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
+    onCancelExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
+    onFinishExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
     onExerciseAlternativeNameChange: (Int, Int, Int, String) -> Unit,
     onExerciseAlternativeSetsChange: (Int, Int, Int, String) -> Unit,
     onExerciseAlternativeRepsChange: (Int, Int, Int, String) -> Unit,
@@ -703,6 +710,9 @@ private fun RoutineEditorContent(
                 onExerciseRepsChange = onExerciseRepsChange,
                 onExerciseNotesChange = onExerciseNotesChange,
                 onAddExerciseAlternative = onAddExerciseAlternative,
+                onBeginExerciseAlternativeEdit = onBeginExerciseAlternativeEdit,
+                onCancelExerciseAlternativeEdit = onCancelExerciseAlternativeEdit,
+                onFinishExerciseAlternativeEdit = onFinishExerciseAlternativeEdit,
                 onExerciseAlternativeNameChange = onExerciseAlternativeNameChange,
                 onExerciseAlternativeSetsChange = onExerciseAlternativeSetsChange,
                 onExerciseAlternativeRepsChange = onExerciseAlternativeRepsChange,
@@ -781,6 +791,9 @@ private fun RoutineDayEditor(
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
     onAddExerciseAlternative: (Int, Int) -> Unit,
+    onBeginExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
+    onCancelExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
+    onFinishExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
     onExerciseAlternativeNameChange: (Int, Int, Int, String) -> Unit,
     onExerciseAlternativeSetsChange: (Int, Int, Int, String) -> Unit,
     onExerciseAlternativeRepsChange: (Int, Int, Int, String) -> Unit,
@@ -907,6 +920,9 @@ private fun RoutineDayEditor(
                     onExerciseRepsChange = onExerciseRepsChange,
                     onExerciseNotesChange = onExerciseNotesChange,
                     onAddExerciseAlternative = onAddExerciseAlternative,
+                    onBeginExerciseAlternativeEdit = onBeginExerciseAlternativeEdit,
+                    onCancelExerciseAlternativeEdit = onCancelExerciseAlternativeEdit,
+                    onFinishExerciseAlternativeEdit = onFinishExerciseAlternativeEdit,
                     onExerciseAlternativeNameChange = onExerciseAlternativeNameChange,
                     onExerciseAlternativeSetsChange = onExerciseAlternativeSetsChange,
                     onExerciseAlternativeRepsChange = onExerciseAlternativeRepsChange,
@@ -941,6 +957,9 @@ private fun RoutineExerciseEditor(
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
     onAddExerciseAlternative: (Int, Int) -> Unit,
+    onBeginExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
+    onCancelExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
+    onFinishExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
     onExerciseAlternativeNameChange: (Int, Int, Int, String) -> Unit,
     onExerciseAlternativeSetsChange: (Int, Int, Int, String) -> Unit,
     onExerciseAlternativeRepsChange: (Int, Int, Int, String) -> Unit,
@@ -1021,6 +1040,12 @@ private fun RoutineExerciseEditor(
             exercise = exercise,
             editingAlternativeIndex = editingAlternativeIndex,
             onDismiss = {
+                finishInlineAlternativeEdit(
+                    editingAlternativeIndex,
+                    dayIndex,
+                    exerciseIndex,
+                    onFinishExerciseAlternativeEdit
+                )
                 showAlternativesDialog = false
                 editingAlternativeIndex = null
             },
@@ -1030,10 +1055,12 @@ private fun RoutineExerciseEditor(
             },
             onStartCreateAlternative = {
                 val nextIndex = exercise.alternatives.size
+                onBeginExerciseAlternativeEdit(dayIndex, exerciseIndex, nextIndex)
                 onAddExerciseAlternative(dayIndex, exerciseIndex)
                 editingAlternativeIndex = nextIndex
             },
             onEditAlternative = { alternativeIndex ->
+                onBeginExerciseAlternativeEdit(dayIndex, exerciseIndex, alternativeIndex)
                 editingAlternativeIndex = alternativeIndex
             },
             onRemoveAlternative = { alternativeIndex ->
@@ -1052,7 +1079,24 @@ private fun RoutineExerciseEditor(
             onAlternativeNotesChange = { alternativeIndex, value ->
                 onExerciseAlternativeNotesChange(dayIndex, exerciseIndex, alternativeIndex, value)
             },
-            onCloseEditor = { editingAlternativeIndex = null }
+            onCancelEditor = {
+                cancelInlineAlternativeEdit(
+                    editingAlternativeIndex,
+                    dayIndex,
+                    exerciseIndex,
+                    onCancelExerciseAlternativeEdit
+                )
+                editingAlternativeIndex = null
+            },
+            onCloseEditor = {
+                finishInlineAlternativeEdit(
+                    editingAlternativeIndex,
+                    dayIndex,
+                    exerciseIndex,
+                    onFinishExerciseAlternativeEdit
+                )
+                editingAlternativeIndex = null
+            }
         )
     }
 
@@ -1192,6 +1236,26 @@ private data class PendingExerciseRemoval(
     val exerciseName: String
 )
 
+private fun finishInlineAlternativeEdit(
+    alternativeIndex: Int?,
+    dayIndex: Int,
+    exerciseIndex: Int,
+    onFinish: (Int, Int, Int) -> Unit
+) {
+    val index = alternativeIndex ?: return
+    onFinish(dayIndex, exerciseIndex, index)
+}
+
+private fun cancelInlineAlternativeEdit(
+    alternativeIndex: Int?,
+    dayIndex: Int,
+    exerciseIndex: Int,
+    onCancel: (Int, Int, Int) -> Unit
+) {
+    val index = alternativeIndex ?: return
+    onCancel(dayIndex, exerciseIndex, index)
+}
+
 internal fun exerciseRemovalMessage(
     exerciseIndex: Int,
     exerciseName: String
@@ -1218,6 +1282,7 @@ private fun ExerciseAlternativesEditorDialog(
     onAlternativeSetsChange: (Int, String) -> Unit,
     onAlternativeRepsChange: (Int, String) -> Unit,
     onAlternativeNotesChange: (Int, String) -> Unit,
+    onCancelEditor: () -> Unit,
     onCloseEditor: () -> Unit
 ) {
     FitTrackDialog(
@@ -1287,11 +1352,12 @@ private fun ExerciseAlternativesEditorDialog(
                                     minLines = 2,
                                     modifier = Modifier.fillMaxWidth()
                                 )
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                    TextButton(onClick = onCloseEditor) {
-                                        Text("Listo")
-                                    }
-                                }
+                                FitTrackFormDialogActions(
+                                    cancelLabel = "Cancelar",
+                                    confirmLabel = "Guardar",
+                                    onCancel = onCancelEditor,
+                                    onConfirm = onCloseEditor
+                                )
                             } else {
                                 Text(text = alternative.name, style = MaterialTheme.typography.titleMedium)
                                 Text(
