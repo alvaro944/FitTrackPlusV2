@@ -1025,6 +1025,7 @@ private fun RoutineExerciseEditor(
     var showAlternativesDialog by remember { mutableStateOf(false) }
     var editingAlternativeIndex by remember { mutableStateOf<Int?>(null) }
     var alternativePendingRemoval by remember { mutableStateOf<Int?>(null) }
+    var showDeleteNoteConfirm by remember { mutableStateOf(false) }
 
     alternativePendingRemoval?.let { alternativeIndex ->
         FitTrackConfirmDialog(
@@ -1061,16 +1062,27 @@ private fun RoutineExerciseEditor(
             onDismiss = { showNotesDialog = false },
             extraContent = {
                 if (exercise.notes.isNotBlank()) {
-                    TextButton(
-                        onClick = {
-                            onExerciseNotesChange(dayIndex, exerciseIndex, "")
-                            showNotesDialog = false
-                        }
-                    ) {
+                    TextButton(onClick = { showDeleteNoteConfirm = true }) {
                         Text("Eliminar nota")
                     }
                 }
             }
+        )
+    }
+
+    if (showDeleteNoteConfirm) {
+        FitTrackConfirmDialog(
+            title = "Eliminar nota",
+            text = "Se eliminara la nota de este ejercicio. Esta accion no se puede deshacer.",
+            confirmLabel = "Eliminar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onExerciseNotesChange(dayIndex, exerciseIndex, "")
+                showDeleteNoteConfirm = false
+                showNotesDialog = false
+            },
+            onDismiss = { showDeleteNoteConfirm = false },
+            destructive = true
         )
     }
 

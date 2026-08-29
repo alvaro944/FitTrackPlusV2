@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.FilterChip
@@ -132,7 +133,8 @@ fun HistoryScreen(
             onConfirmSaveChanges = viewModel::confirmSaveChanges,
             onConfirmDiscardChanges = viewModel::confirmDiscardChanges,
             onCancelPendingEditExit = viewModel::cancelPendingEditExit,
-            onRecoverSession = viewModel::recoverSession
+            onRecoverSession = viewModel::recoverSession,
+            onDeleteSession = viewModel::deleteSession
         )
     }
 }
@@ -152,7 +154,8 @@ private fun HistoryContent(
     onConfirmSaveChanges: () -> Unit,
     onConfirmDiscardChanges: () -> Unit,
     onCancelPendingEditExit: () -> Unit,
-    onRecoverSession: () -> Unit
+    onRecoverSession: () -> Unit,
+    onDeleteSession: () -> Unit
 ) {
     val showingDetail = state.selectedSessionId != null || state.isDetailLoading
 
@@ -178,7 +181,8 @@ private fun HistoryContent(
                 onConfirmSaveChanges = onConfirmSaveChanges,
                 onConfirmDiscardChanges = onConfirmDiscardChanges,
                 onCancelPendingEditExit = onCancelPendingEditExit,
-                onRecoverSession = onRecoverSession
+                onRecoverSession = onRecoverSession,
+                onDeleteSession = onDeleteSession
             )
         } else {
             HistoryListContent(
@@ -360,9 +364,42 @@ private fun HistoryDetailContent(
     onConfirmSaveChanges: () -> Unit,
     onConfirmDiscardChanges: () -> Unit,
     onCancelPendingEditExit: () -> Unit,
-    onRecoverSession: () -> Unit
+    onRecoverSession: () -> Unit,
+    onDeleteSession: () -> Unit
 ) {
     val listState = rememberLazyListState()
+    var showRecoverConfirm by remember { mutableStateOf(false) }
+    var showDeleteSessionConfirm by remember { mutableStateOf(false) }
+
+    if (showRecoverConfirm) {
+        FitTrackConfirmDialog(
+            title = "Recuperar entrenamiento",
+            text = "Se reabrira esta sesion en la pestana Entrenar para que sigas donde lo dejaste.",
+            confirmLabel = "Recuperar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                showRecoverConfirm = false
+                onRecoverSession()
+            },
+            onDismiss = { showRecoverConfirm = false },
+            destructive = false
+        )
+    }
+
+    if (showDeleteSessionConfirm) {
+        FitTrackConfirmDialog(
+            title = "Eliminar sesion",
+            text = "Se eliminara esta sesion del historial de forma permanente. Esta accion no se puede deshacer.",
+            confirmLabel = "Eliminar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                showDeleteSessionConfirm = false
+                onDeleteSession()
+            },
+            onDismiss = { showDeleteSessionConfirm = false },
+            destructive = true
+        )
+    }
 
     if (state.pendingEditExit != null) {
         FitTrackConfirmDialog(
@@ -404,15 +441,25 @@ private fun HistoryDetailContent(
                 },
                 trailing = if (state.selectedDetail != null) {
                     {
-                        IconButton(onClick = onToggleEditMode) {
-                            Icon(
-                                imageVector = if (state.isEditMode) Icons.Filled.Check else Icons.Filled.Edit,
-                                contentDescription = if (state.isEditMode) {
-                                    "Terminar edicion de series"
-                                } else {
-                                    "Editar series"
+                        Row {
+                            if (!state.isEditMode && state.selectedDetail.isComplete) {
+                                IconButton(onClick = { showDeleteSessionConfirm = true }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = "Eliminar sesion"
+                                    )
                                 }
-                            )
+                            }
+                            IconButton(onClick = onToggleEditMode) {
+                                Icon(
+                                    imageVector = if (state.isEditMode) Icons.Filled.Check else Icons.Filled.Edit,
+                                    contentDescription = if (state.isEditMode) {
+                                        "Terminar edicion de series"
+                                    } else {
+                                        "Editar series"
+                                    }
+                                )
+                            }
                         }
                     }
                 } else {
@@ -433,7 +480,7 @@ private fun HistoryDetailContent(
                 }
                 if (!state.selectedDetail.isComplete) {
                     item {
-                        HistoryIncompleteCard(onRecoverSession = onRecoverSession)
+                        HistoryIncompleteCard(onRecoverSession = { showRecoverConfirm = true })
                     }
                 }
                 item {

@@ -888,6 +888,24 @@ private fun ExerciseAlternativesDialog(
     onDraftNotesChange: (String) -> Unit,
     onSaveAlternative: () -> Unit
 ) {
+    var pendingVariantKey by remember { mutableStateOf<String?>(null) }
+
+    pendingVariantKey?.let { variantKey ->
+        FitTrackConfirmDialog(
+            title = "Cambiar variante",
+            text = "Cambiaras el ejercicio activo de esta sesion. Las series objetivo se actualizaran " +
+                "segun la nueva variante.",
+            confirmLabel = "Cambiar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onApplyVariant(variantKey)
+                pendingVariantKey = null
+            },
+            onDismiss = { pendingVariantKey = null },
+            destructive = false
+        )
+    }
+
     FitTrackDialog(
         title = "Ejercicios alternativos",
         onDismissRequest = onDismiss,
@@ -903,7 +921,7 @@ private fun ExerciseAlternativesDialog(
                         if (option.variantKey == picker.currentVariantKey) {
                             onDismiss()
                         } else {
-                            onApplyVariant(option.variantKey)
+                            pendingVariantKey = option.variantKey
                         }
                     }
                     FitTrackCard(

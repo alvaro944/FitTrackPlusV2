@@ -11,6 +11,7 @@ import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySummary
 import com.alvarocervantes.fittrackplus.domain.model.isWorkoutSetCompleted
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.data.repository.RoutineRepository
+import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
 import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHistoryDetailUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutHistoryUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ReopenWorkoutSessionResult
@@ -46,7 +47,8 @@ class HistoryViewModel @Inject constructor(
     private val updateWorkoutSet: UpdateWorkoutSetUseCase,
     private val reopenWorkoutSession: ReopenWorkoutSessionUseCase,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val routineRepository: RoutineRepository
+    private val routineRepository: RoutineRepository,
+    private val workoutRepository: WorkoutRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -193,6 +195,15 @@ class HistoryViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    /** Permanently deletes the currently selected session from history. */
+    fun deleteSession() {
+        val sessionId = _uiState.value.selectedSessionId ?: return
+        viewModelScope.launch {
+            workoutRepository.discardSession(sessionId)
+            clearSelection()
         }
     }
 
