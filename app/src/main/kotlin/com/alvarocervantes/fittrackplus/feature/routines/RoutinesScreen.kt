@@ -619,6 +619,22 @@ private fun RoutineEditorContent(
         WindowInsets.ime.getBottom(this).toDp()
     }
     var exercisePendingRemoval by remember { mutableStateOf<PendingExerciseRemoval?>(null) }
+    var dayPendingRemoval by remember { mutableStateOf<Int?>(null) }
+
+    dayPendingRemoval?.let { dayIndex ->
+        FitTrackConfirmDialog(
+            title = "Eliminar dia",
+            text = "Se eliminara el dia y todos sus ejercicios. Esta accion no se puede deshacer.",
+            confirmLabel = "Eliminar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onRemoveDay(dayIndex)
+                dayPendingRemoval = null
+            },
+            onDismiss = { dayPendingRemoval = null },
+            destructive = true
+        )
+    }
 
     exercisePendingRemoval?.let { pendingRemoval ->
         FitTrackConfirmDialog(
@@ -706,7 +722,7 @@ private fun RoutineEditorContent(
                 onDayNameChange = onDayNameChange,
                 onDuplicateDay = onDuplicateDay,
                 onMoveDay = onMoveDay,
-                onRemoveDay = onRemoveDay,
+                onRemoveDay = { dayPendingRemoval = it },
                 onAddExercise = onAddExercise,
                 onExerciseNameChange = onExerciseNameChange,
                 onExerciseSetsChange = onExerciseSetsChange,
