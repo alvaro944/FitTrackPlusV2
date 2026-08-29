@@ -345,7 +345,7 @@ class WorkoutViewModel @Inject constructor(
     fun completeSet(setId: Long) {
         val session = _uiState.value.activeSession ?: return
         val set = session.findSet(setId) ?: return
-        if (!isWorkoutSetReadyToComplete(set.weightText, set.repsText, set.isCompleted)) return
+        if (!isWorkoutSetReadyToComplete(set.repsText, set.isCompleted)) return
 
         val exercise = session.exercises.firstOrNull { ex -> ex.sets.any { it.id == setId } }
         updateSetState(setId) { it.copy(isCompleted = true) }
@@ -979,18 +979,16 @@ internal fun adjustWorkoutWeightInput(currentValue: String, deltaKg: Double): St
     return adjusted.toInputText()
 }
 
-internal fun isWorkoutSetCompleted(weightText: String, repsText: String): Boolean {
-    val weightKg = parseWorkoutWeightInput(weightText) ?: 0.0
+internal fun isWorkoutSetCompleted(repsText: String): Boolean {
     val reps = repsText.toIntOrNull() ?: 0
-    return weightKg > 0.0 && reps > 0
+    return reps > 0
 }
 
 internal fun isWorkoutSetReadyToComplete(
-    weightText: String,
     repsText: String,
     isCompleted: Boolean
 ): Boolean {
-    return !isCompleted && isWorkoutSetCompleted(weightText, repsText)
+    return !isCompleted && isWorkoutSetCompleted(repsText)
 }
 
 internal fun updateWorkoutSetWeightInput(set: WorkoutSetUiState, weightText: String): WorkoutSetUiState {
@@ -1002,17 +1000,15 @@ internal fun updateWorkoutSetRepsInput(set: WorkoutSetUiState, repsText: String)
 }
 
 internal fun shouldAutoStartRestTimerOnSetCompletion(
-    previousWeightText: String,
     previousRepsText: String,
-    nextWeightText: String,
     nextRepsText: String,
     timer: RestTimerUiState
 ): Boolean {
     if (!timer.autoStartEnabled || timer.status == RestTimerStatus.Running || timer.status == RestTimerStatus.Paused) {
         return false
     }
-    return !isWorkoutSetCompleted(previousWeightText, previousRepsText) &&
-        isWorkoutSetCompleted(nextWeightText, nextRepsText)
+    return !isWorkoutSetCompleted(previousRepsText) &&
+        isWorkoutSetCompleted(nextRepsText)
 }
 
 internal fun shouldAutoStartRestTimerOnManualSetCompletion(timer: RestTimerUiState): Boolean {

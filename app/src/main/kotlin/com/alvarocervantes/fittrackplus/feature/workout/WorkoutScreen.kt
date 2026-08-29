@@ -1000,7 +1000,6 @@ private fun WorkoutSetRow(
         mode = FitTrackSetRowMode.Edit,
         isCompleted = set.isCompleted,
         isReadyToComplete = isWorkoutSetReadyToComplete(
-            set.weightText,
             set.repsText,
             set.isCompleted
         ),
