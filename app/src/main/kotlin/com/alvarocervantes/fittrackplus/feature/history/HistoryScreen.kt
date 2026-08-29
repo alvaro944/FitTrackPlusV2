@@ -30,10 +30,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,6 +62,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackDropdownField
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCardBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
@@ -320,60 +317,21 @@ private fun HistoryFilterControls(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RoutineFilterDropdown(
     selectedRoutineName: String?,
     availableRoutineNames: List<String>,
     onRoutineFilterChange: (String?) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
     val allRoutinesLabel = "Todas las rutinas"
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
-    ) {
-        OutlinedTextField(
-            value = selectedRoutineName ?: allRoutinesLabel,
-            onValueChange = {},
-            readOnly = true,
-            singleLine = true,
-            label = { Text("Rutina") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth()
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            DropdownMenuItem(
-                text = { Text(allRoutinesLabel) },
-                onClick = {
-                    onRoutineFilterChange(null)
-                    expanded = false
-                }
-            )
-            availableRoutineNames.forEach { routineName ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = routineName,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    onClick = {
-                        onRoutineFilterChange(routineName)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
+    FitTrackDropdownField(
+        label = "Rutina",
+        value = selectedRoutineName ?: allRoutinesLabel,
+        options = listOf<String?>(null) + availableRoutineNames,
+        onSelect = onRoutineFilterChange,
+        optionLabel = { it ?: allRoutinesLabel }
+    )
 }
 
 @Composable
