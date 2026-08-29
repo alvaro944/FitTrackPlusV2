@@ -291,7 +291,7 @@ private fun SetCompletionControl(
     onClick: () -> Unit
 ) {
     val contentDescription = when {
-        isCompleted -> "Serie $setNumber completada"
+        isCompleted -> "Desmarcar serie $setNumber como completada"
         isReadyToComplete -> "Completar serie $setNumber"
         else -> "Serie $setNumber pendiente"
     }
@@ -305,7 +305,7 @@ private fun SetCompletionControl(
         tone = if (isCompleted) FitTrackIconBadgeTone.Filled else FitTrackIconBadgeTone.Outlined,
         modifier = Modifier
             .padding(top = 6.dp)
-            .clickable(enabled = isReadyToComplete, onClick = onClick)
+            .clickable(enabled = isCompleted || isReadyToComplete, onClick = onClick)
             .semantics { this.contentDescription = contentDescription }
     )
 }

@@ -410,6 +410,22 @@ class WorkoutViewModel @Inject constructor(
     fun completeSet(setId: Long) {
         val session = _uiState.value.activeSession ?: return
         val set = session.findSet(setId) ?: return
+        if (set.isCompleted) {
+            updateSetState(setId) { it.copy(isCompleted = false, prType = null) }
+            if (set.prType != null) {
+                _uiState.update { state ->
+                    val activeSession = state.activeSession ?: return@update state
+                    state.copy(activeSession = activeSession.copy(prCount = (activeSession.prCount - 1).coerceAtLeast(0)))
+                }
+            }
+            persistSet(
+                setId = setId,
+                weightText = set.weightText,
+                repsText = set.repsText,
+                isCompleted = false
+            )
+            return
+        }
         if (!isWorkoutSetReadyToComplete(set.repsText, set.isCompleted)) return
 
         val exercise = session.exercises.firstOrNull { ex -> ex.sets.any { it.id == setId } }
