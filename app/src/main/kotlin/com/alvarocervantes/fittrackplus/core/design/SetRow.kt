@@ -62,6 +62,7 @@ fun FitTrackSetRow(
     mode: FitTrackSetRowMode,
     modifier: Modifier = Modifier,
     notes: String? = null,
+    showNotes: Boolean = true,
     isCompleted: Boolean = false,
     isReadyToComplete: Boolean = false,
     showCompletionControl: Boolean = false,
@@ -119,17 +120,19 @@ fun FitTrackSetRow(
                     .border(1.dp, borderColor, MaterialTheme.shapes.large)
                     .padding(FitSpacing.smMd)
             )
-            FitTrackSelectAllTextField(
-                value = notes.orEmpty(),
-                onValueChange = onNotesChange,
-                label = { Text("Notas") },
-                singleLine = false,
-                minLines = 2,
-                selectAllOnFocus = false,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = FitSpacing.xs)
-            )
+            if (showNotes) {
+                FitTrackSelectAllTextField(
+                    value = notes.orEmpty(),
+                    onValueChange = onNotesChange,
+                    label = { Text("Notas") },
+                    singleLine = false,
+                    minLines = 2,
+                    selectAllOnFocus = false,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = FitSpacing.xs)
+                )
+            }
             footer?.invoke(this)
         }
     } else {
@@ -160,7 +163,7 @@ fun FitTrackSetRow(
                 onStepReps = onStepReps,
                 modifier = Modifier.fillMaxWidth()
             )
-            notes?.takeIf { it.isNotBlank() }?.let {
+            notes?.takeIf { showNotes && it.isNotBlank() }?.let {
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall,

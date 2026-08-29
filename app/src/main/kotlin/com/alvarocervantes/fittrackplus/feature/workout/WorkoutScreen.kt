@@ -822,8 +822,7 @@ private fun WorkoutExerciseCard(
     val showProgressionHint = hint != ProgressionHint.NONE && exercise.sets.none { it.isCompleted }
     val completedSetCount = exercise.sets.count { it.isCompleted }
     val isExerciseCompleted = completedSetCount == exercise.sets.size && exercise.sets.isNotEmpty()
-    val hasNotes = !exercise.notes.isNullOrBlank()
-    var showNotes by remember(exercise.id) { mutableStateOf(false) }
+    var showSetNotes by remember(exercise.id) { mutableStateOf(false) }
 
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -861,7 +860,7 @@ private fun WorkoutExerciseCard(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        exercise.notes?.takeIf { showNotes && it.isNotBlank() }?.let { notes ->
+                        exercise.notes?.takeIf { showSetNotes && it.isNotBlank() }?.let { notes ->
                             Text(
                                 text = "Notas: $notes",
                                 style = MaterialTheme.typography.bodySmall,
@@ -879,20 +878,18 @@ private fun WorkoutExerciseCard(
                         horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (hasNotes) {
-                            IconButton(
-                                onClick = { showNotes = !showNotes },
-                                modifier = Modifier.minimumInteractiveComponentSize()
-                            ) {
-                                Icon(
-                                    imageVector = if (showNotes) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                    contentDescription = if (showNotes) {
-                                        "Ocultar notas de ${exercise.name}"
-                                    } else {
-                                        "Mostrar notas de ${exercise.name}"
-                                    }
-                                )
-                            }
+                        IconButton(
+                            onClick = { showSetNotes = !showSetNotes },
+                            modifier = Modifier.minimumInteractiveComponentSize()
+                        ) {
+                            Icon(
+                                imageVector = if (showSetNotes) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (showSetNotes) {
+                                    "Ocultar notas de las series de ${exercise.name}"
+                                } else {
+                                    "Mostrar notas de las series de ${exercise.name}"
+                                }
+                            )
                         }
                         Icon(
                             imageVector = if (isExpanded) {
@@ -931,6 +928,7 @@ private fun WorkoutExerciseCard(
                         WorkoutSetRow(
                             set = set,
                             weightUnitLabel = weightUnitLabel,
+                            showNotes = showSetNotes,
                             onSetWeightChange = onSetWeightChange,
                             onSetRepsChange = onSetRepsChange,
                             onSetNotesChange = onSetNotesChange,
@@ -1099,6 +1097,7 @@ private fun ExerciseAlternativesDialog(
 private fun WorkoutSetRow(
     set: WorkoutSetUiState,
     weightUnitLabel: String,
+    showNotes: Boolean,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
     onSetNotesChange: (Long, String) -> Unit,
@@ -1112,6 +1111,7 @@ private fun WorkoutSetRow(
         weightText = set.weightText,
         repsText = set.repsText,
         notes = set.notes,
+        showNotes = showNotes,
         mode = FitTrackSetRowMode.Edit,
         isCompleted = set.isCompleted,
         isReadyToComplete = isWorkoutSetReadyToComplete(

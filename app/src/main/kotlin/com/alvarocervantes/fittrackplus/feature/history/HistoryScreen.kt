@@ -29,6 +29,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -688,6 +690,9 @@ private fun HistoryExerciseCard(
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit
 ) {
+    val hasNotes = !exercise.notes.isNullOrBlank() || exercise.sets.any { !it.notes.isNullOrBlank() }
+    var showNotes by remember(exercise.exerciseId) { mutableStateOf(false) }
+
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
@@ -695,18 +700,36 @@ private fun HistoryExerciseCard(
             Column(
                 verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
             ) {
-                Text(
-                    text = exercise.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = exercise.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (hasNotes) {
+                        IconButton(onClick = { showNotes = !showNotes }) {
+                            Icon(
+                                imageVector = if (showNotes) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (showNotes) {
+                                    "Ocultar notas de ${exercise.name}"
+                                } else {
+                                    "Mostrar notas de ${exercise.name}"
+                                }
+                            )
+                        }
+                    }
+                }
                 Text(
                     text = "Objetivo: ${exercise.targetRepsText} reps",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                exercise.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+                exercise.notes?.takeIf { showNotes && it.isNotBlank() }?.let { notes ->
                     Text(
                         text = "Notas: $notes",
                         style = MaterialTheme.typography.bodySmall,
@@ -719,6 +742,7 @@ private fun HistoryExerciseCard(
                     set = set,
                     weightUnit = weightUnit,
                     isEditMode = isEditMode,
+                    showNotes = showNotes,
                     onWeightChange = onSetWeightChange,
                     onRepsChange = onSetRepsChange
                 )
@@ -732,6 +756,7 @@ private fun HistorySetRow(
     set: HistorySetUiState,
     weightUnit: WeightUnit,
     isEditMode: Boolean,
+    showNotes: Boolean,
     onWeightChange: (Long, String) -> Unit,
     onRepsChange: (Long, String) -> Unit
 ) {
@@ -742,6 +767,7 @@ private fun HistorySetRow(
         repsText = if (isEditMode) set.repsText else "${set.reps} reps",
         mode = if (isEditMode) FitTrackSetRowMode.Edit else FitTrackSetRowMode.ReadOnly,
         notes = set.notes,
+        showNotes = showNotes,
         editFieldStyle = FitTrackSetRowEditFieldStyle.TextField,
         weightUnitLabel = weightUnit.label,
         onWeightChange = { onWeightChange(set.setId, it) },
