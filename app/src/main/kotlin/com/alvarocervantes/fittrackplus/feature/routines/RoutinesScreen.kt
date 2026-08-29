@@ -666,17 +666,19 @@ private fun RoutineEditorContent(
         }
 
         item {
-            OutlinedTextField(
-                value = editor.name,
-                onValueChange = onRoutineNameChange,
-                label = { Text("Nombre de la rutina") },
-                isError = editor.routineNameError != null,
-                supportingText = editor.routineNameError?.let { error ->
-                    { Text(error) }
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = editor.name,
+                    onValueChange = onRoutineNameChange,
+                    label = { Text("Nombre de la rutina") },
+                    isError = editor.routineNameError != null,
+                    supportingText = editor.routineNameError?.let { error ->
+                        { Text(error) }
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
 
         item {
