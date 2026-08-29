@@ -34,6 +34,8 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
@@ -820,6 +822,8 @@ private fun WorkoutExerciseCard(
     val showProgressionHint = hint != ProgressionHint.NONE && exercise.sets.none { it.isCompleted }
     val completedSetCount = exercise.sets.count { it.isCompleted }
     val isExerciseCompleted = completedSetCount == exercise.sets.size && exercise.sets.isNotEmpty()
+    val hasNotes = !exercise.notes.isNullOrBlank()
+    var showNotes by remember(exercise.id) { mutableStateOf(false) }
 
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -857,7 +861,7 @@ private fun WorkoutExerciseCard(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        exercise.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+                        exercise.notes?.takeIf { showNotes && it.isNotBlank() }?.let { notes ->
                             Text(
                                 text = "Notas: $notes",
                                 style = MaterialTheme.typography.bodySmall,
@@ -875,6 +879,21 @@ private fun WorkoutExerciseCard(
                         horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        if (hasNotes) {
+                            IconButton(
+                                onClick = { showNotes = !showNotes },
+                                modifier = Modifier.minimumInteractiveComponentSize()
+                            ) {
+                                Icon(
+                                    imageVector = if (showNotes) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                    contentDescription = if (showNotes) {
+                                        "Ocultar notas de ${exercise.name}"
+                                    } else {
+                                        "Mostrar notas de ${exercise.name}"
+                                    }
+                                )
+                            }
+                        }
                         Icon(
                             imageVector = if (isExpanded) {
                                 Icons.Filled.KeyboardArrowUp
