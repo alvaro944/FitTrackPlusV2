@@ -95,7 +95,9 @@ Todas las versiones verificadas contra maven-metadata.xml real, no contra pagina
 - Revisar Glance (widget) y Health Connect: actualizar a la version mas reciente compatible si existe, para no dejar esas dos piezas desalineadas del resto del stack.
 - **No adoptar APIs de Material 3 Expressive en esta rama.** Existen marcadas `@ExperimentalMaterial3ExpressiveApi` en 1.4.0, pero su adopcion es decision de `refactor/design-system-round-3`, no de esta migracion.
 - Revisar warnings de deprecacion que introduzca el nuevo BOM (M3 1.2.1→1.4.0 es un salto grande, es esperable que haya APIs renombradas o deprecadas) y resolverlos, no silenciarlos.
-- `test` + `build` en verde.
+- `test` + `build` en verde: **confirmado**. Un unico warning de codigo propio aparecio (`Dropdown.kt:43`, `menuAnchor()` deprecado) — resuelto con `ExposedDropdownMenuAnchorType.PrimaryNotEditable`.
+- Warning externo detectado y **no** resuelto (no es codigo nuestro): `ReportingExtension.file(String)` deprecado, emitido por el plugin de detekt internamente (`--warning-mode all` lo confirma), programado para eliminarse en Gradle 10. No afecta a Gradle 9.7.1. Pendiente de que detekt lo arregle en su propio plugin.
+- Confirmado por grep: cero usos de `ExperimentalMaterial3ExpressiveApi`/`ButtonGroup`/`SplitButton`/`WavyProgressIndicator` en el codigo.
 
 ## Fuera de alcance
 
