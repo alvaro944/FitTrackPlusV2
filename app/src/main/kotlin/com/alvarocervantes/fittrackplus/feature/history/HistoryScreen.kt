@@ -25,7 +25,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
@@ -378,27 +378,29 @@ private fun HistoryDetailContent(
             FitTrackScreenHeader(
                 title = "Historial",
                 subtitle = if (state.isEditMode) "Editando series" else "Detalle historico",
-                trailing = {
-                    Row {
-                        if (state.selectedDetail != null) {
-                            IconButton(onClick = onToggleEditMode) {
-                                Icon(
-                                    imageVector = if (state.isEditMode) Icons.Filled.Check else Icons.Filled.Edit,
-                                    contentDescription = if (state.isEditMode) {
-                                        "Terminar edicion de series"
-                                    } else {
-                                        "Editar series"
-                                    }
-                                )
-                            }
-                        }
-                        IconButton(onClick = onBackToList) {
+                leading = {
+                    IconButton(onClick = onBackToList) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver al listado de historial"
+                        )
+                    }
+                },
+                trailing = if (state.selectedDetail != null) {
+                    {
+                        IconButton(onClick = onToggleEditMode) {
                             Icon(
-                                imageVector = Icons.Filled.ArrowBack,
-                                contentDescription = "Volver al listado de historial"
+                                imageVector = if (state.isEditMode) Icons.Filled.Check else Icons.Filled.Edit,
+                                contentDescription = if (state.isEditMode) {
+                                    "Terminar edicion de series"
+                                } else {
+                                    "Editar series"
+                                }
                             )
                         }
                     }
+                } else {
+                    null
                 }
             )
         }

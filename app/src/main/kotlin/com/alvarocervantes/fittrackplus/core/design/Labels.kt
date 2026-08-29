@@ -85,6 +85,7 @@ fun FitTrackScreenHeader(
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
+    leading: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null
 ) {
     Row(
@@ -92,6 +93,14 @@ fun FitTrackScreenHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top
     ) {
+        if (leading != null) {
+            Box(
+                modifier = Modifier.padding(end = FitSpacing.md),
+                contentAlignment = Alignment.TopStart
+            ) {
+                leading()
+            }
+        }
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
