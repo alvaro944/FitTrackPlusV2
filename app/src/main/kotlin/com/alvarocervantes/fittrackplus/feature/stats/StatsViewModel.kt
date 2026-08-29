@@ -11,6 +11,7 @@ import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutSessionVolume
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStats
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
+import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHeatmapUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutStatsUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ReadDailyStepsUseCase
@@ -54,6 +55,14 @@ class StatsViewModel @Inject constructor(
             .onEach { id ->
                 activeRoutineId.value = id
                 _uiState.update { state -> state.copy(activeRoutineId = id).withValidFocusSelection() }
+            }
+            .launchIn(viewModelScope)
+
+        userPreferencesRepository.weightUnit
+            .onEach { preference ->
+                _uiState.update { state ->
+                    state.copy(weightUnit = WeightUnit.fromPreference(preference))
+                }
             }
             .launchIn(viewModelScope)
 
@@ -221,6 +230,7 @@ data class StatsUiState(
     val selectedExerciseScopeKey: String? = null,
     val selectedExerciseName: String? = null,
     val selectedProgressMetric: ProgressMetric = ProgressMetric.MaxWeight,
+    val weightUnit: WeightUnit = WeightUnit.Kilograms,
     val progressPoints: List<ProgressChartPointUiState> = emptyList(),
     val selectedProgressPoint: ProgressChartPointUiState? = null,
     val heatmapDays: List<HeatmapDay> = emptyList(),
@@ -272,10 +282,10 @@ data class StatsUiState(
         ?.let { scopeKey -> focusedExerciseRecords.firstOrNull { records -> records.scopeKey == scopeKey } }
     val progressChartValues: List<Pair<Long, Float>> = progressPoints.map { point ->
         point.finishedAt to when (selectedProgressMetric) {
-            ProgressMetric.MaxWeight -> point.maxWeightKg.toFloat()
-            ProgressMetric.Volume -> point.volumeKg.toFloat()
+            ProgressMetric.MaxWeight -> weightUnit.fromKilograms(point.maxWeightKg).toFloat()
+            ProgressMetric.Volume -> weightUnit.fromKilograms(point.volumeKg).toFloat()
             ProgressMetric.Reps -> point.totalReps.toFloat()
-            ProgressMetric.EstimatedOneRepMax -> point.estimatedOneRepMaxKg.toFloat()
+            ProgressMetric.EstimatedOneRepMax -> weightUnit.fromKilograms(point.estimatedOneRepMaxKg).toFloat()
         }
     }
 }
@@ -428,6 +438,7 @@ fun StatsUiState.withStatsPeriod(
         selectedExerciseName = selectedExerciseName,
         selectedProgressPoint = null,
         heatmapDays = heatmapDays,
+        weightUnit = weightUnit,
         weeklyStepsData = weeklyStepsData,
         canGoToNextWeek = canGoToNextWeek
     ).withValidFocusSelection()

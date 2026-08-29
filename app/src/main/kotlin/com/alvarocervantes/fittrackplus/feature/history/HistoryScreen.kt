@@ -76,6 +76,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowEditFieldStyle
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowMode
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDeltaDirection
+import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -256,6 +257,7 @@ private fun HistoryListContent(
                 ) { session ->
                     HistorySessionCard(
                         session = session,
+                        weightUnit = state.weightUnit,
                         onClick = { onSessionClick(session.sessionId) }
                     )
                 }
@@ -411,7 +413,10 @@ private fun HistoryDetailContent(
 
             state.selectedDetail != null -> {
                 item {
-                    HistoryDetailSummary(detail = state.selectedDetail)
+                    HistoryDetailSummary(
+                        detail = state.selectedDetail,
+                        weightUnit = state.weightUnit
+                    )
                 }
                 if (!state.selectedDetail.isComplete) {
                     item {
@@ -419,7 +424,10 @@ private fun HistoryDetailContent(
                     }
                 }
                 item {
-                    HistoryComparisonCard(comparison = state.selectedDetail.comparison)
+                    HistoryComparisonCard(
+                        comparison = state.selectedDetail.comparison,
+                        weightUnit = state.weightUnit
+                    )
                 }
                 item {
                     FitTrackSectionLabel(label = "Ejercicios")
@@ -430,6 +438,7 @@ private fun HistoryDetailContent(
                 ) { exercise ->
                     HistoryExerciseCard(
                         exercise = exercise,
+                        weightUnit = state.weightUnit,
                         isEditMode = state.isEditMode,
                         onSetWeightChange = onSetWeightChange,
                         onSetRepsChange = onSetRepsChange
@@ -448,6 +457,7 @@ private fun HistoryDetailContent(
 @Composable
 private fun HistorySessionCard(
     session: HistorySessionUiState,
+    weightUnit: WeightUnit,
     onClick: () -> Unit
 ) {
     FitTrackEntityListCard(
@@ -477,7 +487,7 @@ private fun HistorySessionCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "${session.totalVolumeKg.toDisplayText()} kg - " +
+                text = "${session.totalVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label} - " +
                     "${session.setCount} series - " +
                     formatDuration(session.durationMillis),
                 style = MaterialTheme.typography.bodySmall,
@@ -518,7 +528,7 @@ private fun HistoryIncompleteCard(onRecoverSession: () -> Unit) {
 }
 
 @Composable
-private fun HistoryDetailSummary(detail: HistoryDetailUiState) {
+private fun HistoryDetailSummary(detail: HistoryDetailUiState, weightUnit: WeightUnit) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = detail.routineName,
@@ -554,13 +564,13 @@ private fun HistoryDetailSummary(detail: HistoryDetailUiState) {
         )
         FitTrackKeyValueRow(
             label = "Volumen total",
-            value = "${detail.totalVolumeKg.toDisplayText()} kg",
+            value = "${detail.totalVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}",
             style = FitTrackKeyValueRowStyle.Flat
         )
         detail.bestSet?.let { bestSet ->
             FitTrackKeyValueRow(
                 label = "Mejor set",
-                value = "${bestSet.exerciseName} · ${bestSet.weightKg.toDisplayText()} kg x ${bestSet.reps}",
+                value = "${bestSet.exerciseName} · ${bestSet.weightKg.toDisplayText(weightUnit)} ${weightUnit.label} x ${bestSet.reps}",
                 style = FitTrackKeyValueRowStyle.Flat
             )
         }
@@ -582,7 +592,7 @@ private fun HistoryDetailSummary(detail: HistoryDetailUiState) {
 }
 
 @Composable
-private fun HistoryComparisonCard(comparison: HistoryComparisonUiState?) {
+private fun HistoryComparisonCard(comparison: HistoryComparisonUiState?, weightUnit: WeightUnit) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
             Text(
@@ -603,9 +613,9 @@ private fun HistoryComparisonCard(comparison: HistoryComparisonUiState?) {
                 )
                 HistoryDeltaRow(
                     label = "Volumen",
-                    currentText = "${comparison.totalVolumeDelta.currentValue.toDisplayText()} kg",
+                    currentText = "${comparison.totalVolumeDelta.currentValue.toDisplayText(weightUnit)} ${weightUnit.label}",
                     delta = comparison.totalVolumeDelta,
-                    deltaText = "${comparison.totalVolumeDelta.deltaValue.toSignedDisplayText()} kg"
+                    deltaText = "${comparison.totalVolumeDelta.deltaValue.toSignedDisplayText(weightUnit)} ${weightUnit.label}"
                 )
                 HistoryDeltaRow(
                     label = "Duracion",
@@ -622,10 +632,10 @@ private fun HistoryComparisonCard(comparison: HistoryComparisonUiState?) {
                 HistoryDeltaRow(
                     label = "Mejor set",
                     currentText = comparison.bestSet.current?.let { bestSet ->
-                        "${bestSet.exerciseName}: ${bestSet.weightKg.toDisplayText()} kg x ${bestSet.reps}"
+                        "${bestSet.exerciseName}: ${bestSet.weightKg.toDisplayText(weightUnit)} ${weightUnit.label} x ${bestSet.reps}"
                     } ?: "Sin datos",
                     delta = comparison.bestSet.delta,
-                    deltaText = "${comparison.bestSet.delta.deltaValue.toSignedDisplayText()} kg"
+                    deltaText = "${comparison.bestSet.delta.deltaValue.toSignedDisplayText(weightUnit)} ${weightUnit.label}"
                 )
             }
         }
@@ -673,6 +683,7 @@ private fun HistoryDeltaRow(
 @Composable
 private fun HistoryExerciseCard(
     exercise: HistoryExerciseUiState,
+    weightUnit: WeightUnit,
     isEditMode: Boolean,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit
@@ -699,6 +710,7 @@ private fun HistoryExerciseCard(
             exercise.sets.forEach { set ->
                 HistorySetRow(
                     set = set,
+                    weightUnit = weightUnit,
                     isEditMode = isEditMode,
                     onWeightChange = onSetWeightChange,
                     onRepsChange = onSetRepsChange
@@ -711,6 +723,7 @@ private fun HistoryExerciseCard(
 @Composable
 private fun HistorySetRow(
     set: HistorySetUiState,
+    weightUnit: WeightUnit,
     isEditMode: Boolean,
     onWeightChange: (Long, String) -> Unit,
     onRepsChange: (Long, String) -> Unit
@@ -718,11 +731,12 @@ private fun HistorySetRow(
     FitTrackSetRow(
         setId = set.setId,
         setNumber = set.setNumber,
-        weightText = if (isEditMode) set.weightText else "${set.weightKg.toDisplayText()} kg",
+        weightText = if (isEditMode) set.weightText else "${set.weightKg.toDisplayText(weightUnit)} ${weightUnit.label}",
         repsText = if (isEditMode) set.repsText else "${set.reps} reps",
         mode = if (isEditMode) FitTrackSetRowMode.Edit else FitTrackSetRowMode.ReadOnly,
         notes = set.notes,
         editFieldStyle = FitTrackSetRowEditFieldStyle.TextField,
+        weightUnitLabel = weightUnit.label,
         onWeightChange = { onWeightChange(set.setId, it) },
         onRepsChange = { onRepsChange(set.setId, it) }
     )
@@ -752,8 +766,8 @@ private fun WorkoutHistoryDeltaDirection.toDeltaLabel(deltaText: String): String
     }
 }
 
-private fun Double.toSignedDisplayText(): String {
-    val absolute = kotlin.math.abs(this).toDisplayText()
+private fun Double.toSignedDisplayText(weightUnit: WeightUnit): String {
+    val absolute = kotlin.math.abs(this).toDisplayText(weightUnit)
     return if (this < 0.0) {
         "-$absolute"
     } else {
@@ -838,3 +852,6 @@ private fun Double.toDisplayText(): String {
         String.format(Locale.getDefault(), "%.1f", this)
     }
 }
+
+private fun Double.toDisplayText(weightUnit: WeightUnit): String =
+    weightUnit.fromKilograms(this).toDisplayText()

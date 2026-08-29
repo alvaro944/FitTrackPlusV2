@@ -342,6 +342,7 @@ private fun WorkoutContent(
                 ) { exercise ->
                     WorkoutExerciseCard(
                         exercise = exercise,
+                        weightUnitLabel = state.weightUnit.label,
                         hint = state.hints[exercise.id] ?: ProgressionHint.NONE,
                         isExpanded = state.expandedExerciseId == exercise.id,
                         onOpenAlternatives = onOpenExerciseAlternatives,
@@ -724,6 +725,7 @@ private fun isRestTimerUrgent(timer: RestTimerUiState): Boolean {
 @Composable
 private fun WorkoutExerciseCard(
     exercise: WorkoutExerciseUiState,
+    weightUnitLabel: String,
     hint: ProgressionHint,
     isExpanded: Boolean,
     onOpenAlternatives: (Long) -> Unit,
@@ -821,6 +823,7 @@ private fun WorkoutExerciseCard(
                     exercise.sets.forEach { set ->
                         WorkoutSetRow(
                             set = set,
+                            weightUnitLabel = weightUnitLabel,
                             onSetWeightChange = onSetWeightChange,
                             onSetRepsChange = onSetRepsChange,
                             onCompleteSet = onCompleteSet,
@@ -987,6 +990,7 @@ private fun ExerciseAlternativesDialog(
 @Composable
 private fun WorkoutSetRow(
     set: WorkoutSetUiState,
+    weightUnitLabel: String,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
     onCompleteSet: (Long) -> Unit,
@@ -1006,6 +1010,7 @@ private fun WorkoutSetRow(
         ),
         showCompletionControl = true,
         previousWeight = set.previousWeight,
+        weightUnitLabel = weightUnitLabel,
         previousReps = set.previousReps,
         onWeightChange = { onSetWeightChange(set.id, it) },
         onRepsChange = { onSetRepsChange(set.id, it) },

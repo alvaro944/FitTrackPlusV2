@@ -2,6 +2,7 @@ package com.alvarocervantes.fittrackplus.feature.stats
 
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
+import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -54,6 +55,17 @@ class StatsUiStateTest {
         assertEquals(ProgressMetric.Reps, repsState.selectedProgressMetric)
         assertEquals(listOf(8f, 10f), repsState.progressChartValues.map { it.second })
         assertNull(repsState.selectedProgressPoint)
+    }
+
+    @Test
+    fun poundsPreferenceConvertsWeightChartValuesWithoutChangingStoredValues() {
+        val state = sampleState()
+            .withSelectedExercise("Bench Press")
+            .copy(weightUnit = WeightUnit.Pounds)
+
+        assertEquals(198.416f, state.progressChartValues[0].second, 0.001f)
+        assertEquals(209.439f, state.progressChartValues[1].second, 0.001f)
+        assertEquals(90.0, state.progressPoints.first().maxWeightKg, 0.0)
     }
 
     @Test

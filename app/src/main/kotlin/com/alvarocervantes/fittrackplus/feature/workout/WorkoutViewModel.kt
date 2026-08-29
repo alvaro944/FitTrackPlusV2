@@ -14,6 +14,7 @@ import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseAlternativeD
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutPreview
+import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import com.alvarocervantes.fittrackplus.domain.usecase.DetectPersonalRecordUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.FinishWorkoutSessionUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.GetNextWorkoutPreviewUseCase
@@ -68,6 +69,18 @@ class WorkoutViewModel @Inject constructor(
     private var restTimerJob: Job? = null
 
     init {
+        userPreferencesRepository.weightUnit
+            .distinctUntilChanged()
+            .onEach { preference ->
+                val weightUnit = WeightUnit.fromPreference(preference)
+                val changed = _uiState.value.weightUnit != weightUnit
+                _uiState.update { state -> state.copy(weightUnit = weightUnit) }
+                if (changed && _uiState.value.activeSession != null) {
+                    refreshActiveSessionFromRepository()
+                }
+            }
+            .launchIn(viewModelScope)
+
         userPreferencesRepository.activeRoutineId
             .distinctUntilChanged()
             .onEach { activeRoutineId ->
@@ -285,7 +298,7 @@ class WorkoutViewModel @Inject constructor(
 
             val activeSession = workoutRepository
                 .getSessionWithExercises(startedSession.sessionId)
-                ?.toUiState()
+                ?.toUiState(_uiState.value.weightUnit)
                 ?.let { enrichWorkoutSession(it) }
             val hints = activeSession?.let { loadProgressionHints(it) }.orEmpty()
 
@@ -471,19 +484,23 @@ class WorkoutViewModel @Inject constructor(
         previousSetWasIncomplete: Boolean = false,
         isCompleted: Boolean? = null
     ) {
+        val weightUnit = _uiState.value.weightUnit
         viewModelScope.launch {
             runCatching {
                 updateWorkoutSet(
                     setId = setId,
                     weightText = weightText,
-                    repsText = repsText
+                    repsText = repsText,
+                    weightUnit = weightUnit
                 )
                 if (isCompleted != null) {
                     workoutRepository.updateSetCompletion(setId, isCompleted)
                 }
             }.onSuccess {
                 val reps = repsText.toIntOrNull() ?: 0
-                val weightKg = parseWorkoutWeightInput(weightText) ?: 0.0
+                val weightKg = parseWorkoutWeightInput(weightText)
+                    ?.let(weightUnit::toKilograms)
+                    ?: 0.0
                 if (previousSetWasIncomplete && isCompleted == true) {
                     _setCompletionHapticEvent.trySend(Unit)
                 }
@@ -529,13 +546,13 @@ class WorkoutViewModel @Inject constructor(
         val activeSession = if (savedSessionId != null) {
             val session = workoutRepository.getSessionWithExercises(savedSessionId)
                 ?.takeIf { it.session.finishedAt == null }
-                ?.toUiState()
+                ?.toUiState(_uiState.value.weightUnit)
                 ?.let { enrichWorkoutSession(it) }
             if (session == null) savedStateHandle.remove<Long>(SESSION_KEY)
             session
         } else {
             workoutRepository.getActiveSessionWithExercises()
-                ?.toUiState()
+                ?.toUiState(_uiState.value.weightUnit)
                 ?.let { enrichWorkoutSession(it) }
         }
         val preview = if (activeSession == null && activeRoutineId != null) {
@@ -580,7 +597,7 @@ class WorkoutViewModel @Inject constructor(
                             setNumber = set.setNumber
                         )?.takeIf { it > 0 }
                         set.copy(
-                            previousWeight = prevKg?.toInputText(),
+                            previousWeight = prevKg?.let(_uiState.value.weightUnit::fromKilograms)?.toInputText(),
                             previousReps = previousReps
                         )
                     }
@@ -635,7 +652,7 @@ class WorkoutViewModel @Inject constructor(
     private suspend fun refreshActiveSessionFromRepository() {
         val sessionId = _uiState.value.activeSession?.sessionId ?: return
         val refreshed = workoutRepository.getSessionWithExercises(sessionId)
-            ?.toUiState()
+            ?.toUiState(_uiState.value.weightUnit)
             ?.let { enrichWorkoutSession(it) }
         val hints = refreshed?.let { loadProgressionHints(it) }.orEmpty()
         _uiState.update { state ->
@@ -692,6 +709,7 @@ data class WorkoutUiState(
     val hints: Map<Long, ProgressionHint> = emptyMap(),
     val alternativePicker: ExerciseAlternativesUiState? = null,
     val restTimer: RestTimerUiState = RestTimerUiState(),
+    val weightUnit: WeightUnit = WeightUnit.Kilograms,
     val celebration: CelebrationData? = null,
     val message: String? = null
 )
@@ -791,7 +809,7 @@ private fun WorkoutPreview.toUiState(): WorkoutPreviewUiState {
     )
 }
 
-private fun WorkoutSessionWithExercises.toUiState(): ActiveWorkoutSessionUiState {
+private fun WorkoutSessionWithExercises.toUiState(weightUnit: WeightUnit): ActiveWorkoutSessionUiState {
     return ActiveWorkoutSessionUiState(
         sessionId = session.id,
         routineName = session.routineNameSnapshot,
@@ -813,7 +831,11 @@ private fun WorkoutSessionWithExercises.toUiState(): ActiveWorkoutSessionUiState
                             WorkoutSetUiState(
                                 id = set.id,
                                 setNumber = set.setNumber,
-                                weightText = if (set.weightKg > 0.0) set.weightKg.toInputText() else "",
+                                weightText = if (set.weightKg > 0.0) {
+                                    weightUnit.fromKilograms(set.weightKg).toInputText()
+                                } else {
+                                    ""
+                                },
                                 repsText = if (set.reps > 0) set.reps.toString() else "",
                                 isCompleted = set.isCompleted
                             )

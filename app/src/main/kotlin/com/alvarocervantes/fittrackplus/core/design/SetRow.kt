@@ -66,6 +66,7 @@ fun FitTrackSetRow(
     isReadyToComplete: Boolean = false,
     showCompletionControl: Boolean = false,
     editFieldStyle: FitTrackSetRowEditFieldStyle = FitTrackSetRowEditFieldStyle.Stepper,
+    weightUnitLabel: String = "kg",
     previousWeight: String? = null,
     previousReps: Int? = null,
     onWeightChange: (String) -> Unit = {},
@@ -103,6 +104,7 @@ fun FitTrackSetRow(
                 isReadyToComplete = isReadyToComplete,
                 showCompletionControl = true,
                 editFieldStyle = editFieldStyle,
+                weightUnitLabel = weightUnitLabel,
                 previousWeight = previousWeight,
                 previousReps = previousReps,
                 onWeightChange = onWeightChange,
@@ -136,6 +138,7 @@ fun FitTrackSetRow(
                 isReadyToComplete = isReadyToComplete,
                 showCompletionControl = false,
                 editFieldStyle = editFieldStyle,
+                weightUnitLabel = weightUnitLabel,
                 previousWeight = previousWeight,
                 previousReps = previousReps,
                 onWeightChange = onWeightChange,
@@ -168,6 +171,7 @@ private fun SetRowContent(
     isReadyToComplete: Boolean,
     showCompletionControl: Boolean,
     editFieldStyle: FitTrackSetRowEditFieldStyle,
+    weightUnitLabel: String,
     previousWeight: String?,
     previousReps: Int?,
     onWeightChange: (String) -> Unit,
@@ -201,6 +205,7 @@ private fun SetRowContent(
                         weightText = weightText,
                         previousWeight = previousWeight,
                         isCompleted = isCompleted,
+                        weightUnitLabel = weightUnitLabel,
                         onWeightChange = onWeightChange,
                         onStepWeight = onStepWeight,
                         modifier = Modifier.weight(1.15f)
@@ -221,7 +226,7 @@ private fun SetRowContent(
                     FitTrackSelectAllTextField(
                         value = weightText,
                         onValueChange = onWeightChange,
-                        label = { Text("kg") },
+                        label = { Text(weightUnitLabel) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f)
                     )
@@ -299,6 +304,7 @@ private fun SetRowWeightField(
     weightText: String,
     previousWeight: String?,
     isCompleted: Boolean,
+    weightUnitLabel: String,
     onWeightChange: (String) -> Unit,
     onStepWeight: (Double) -> Unit,
     modifier: Modifier
@@ -337,7 +343,7 @@ private fun SetRowWeightField(
                         fieldValue = it
                         onWeightChange(it.text)
                     },
-                    placeholder = { Text("Kg") },
+                    placeholder = { Text(weightUnitLabel) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     colors = setFieldColors(isCompleted),
@@ -353,7 +359,7 @@ private fun SetRowWeightField(
         }
         previousWeight?.let {
             Text(
-                text = "ant. $it kg",
+                text = "ant. $it $weightUnitLabel",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.padding(start = 4.dp, top = 2.dp)

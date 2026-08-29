@@ -1,6 +1,7 @@
 package com.alvarocervantes.fittrackplus.domain.usecase
 
 import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
+import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import com.alvarocervantes.fittrackplus.domain.model.isWorkoutSetCompleted
 import javax.inject.Inject
 
@@ -16,9 +17,13 @@ class UpdateWorkoutSetUseCase @Inject constructor(
         setId: Long,
         weightText: String,
         repsText: String,
+        weightUnit: WeightUnit = WeightUnit.Kilograms,
         markCompletionFromData: Boolean = false
     ) {
-        val weightKg = parseWorkoutWeightText(weightText)?.coerceAtLeast(0.0) ?: 0.0
+        val weightKg = parseWorkoutWeightText(weightText)
+            ?.let(weightUnit::toKilograms)
+            ?.coerceAtLeast(0.0)
+            ?: 0.0
         val reps = repsText.toIntOrNull()?.coerceAtLeast(0) ?: 0
         workoutRepository.updateSet(setId = setId, weightKg = weightKg, reps = reps)
         if (markCompletionFromData) {

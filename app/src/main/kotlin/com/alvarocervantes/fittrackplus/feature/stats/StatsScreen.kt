@@ -47,6 +47,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
+import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import com.alvarocervantes.fittrackplus.core.design.components.LineChart
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
@@ -230,6 +231,7 @@ private fun StatsContent(
                             chartValues = state.progressChartValues,
                             selectedMetric = state.selectedProgressMetric,
                             selectedProgressPoint = state.selectedProgressPoint,
+                            weightUnit = state.weightUnit,
                             onSelectExercise = onSelectExercise,
                             onSelectProgressMetric = onSelectProgressMetric,
                             onSelectProgressPoint = onSelectProgressPoint,
@@ -241,21 +243,24 @@ private fun StatsContent(
                 if (state.focusedSessionVolumesChronological.isNotEmpty()) {
                     item { FitTrackSectionLabel(label = "Volumen por sesion") }
                     item {
-                        SessionVolumeTrendCard(sessions = state.focusedSessionVolumesChronological)
+                        SessionVolumeTrendCard(
+                            sessions = state.focusedSessionVolumesChronological,
+                            weightUnit = state.weightUnit
+                        )
                     }
                 }
 
                 state.selectedExerciseProgress?.let { progress ->
                     item { FitTrackSectionLabel(label = "Progreso del ejercicio") }
                     item {
-                        ExerciseProgressCard(progress = progress)
+                        ExerciseProgressCard(progress = progress, weightUnit = state.weightUnit)
                     }
                 }
 
                 state.selectedExerciseRecords?.let { records ->
                     item { FitTrackSectionLabel(label = "Mejores marcas") }
                     item {
-                        ExerciseRecordsCard(records = records)
+                        ExerciseRecordsCard(records = records, weightUnit = state.weightUnit)
                     }
                 }
             }
@@ -498,7 +503,10 @@ private fun ConsistencyDayCell(
 }
 
 @Composable
-private fun SessionVolumeTrendCard(sessions: List<SessionVolumeUiState>) {
+private fun SessionVolumeTrendCard(
+    sessions: List<SessionVolumeUiState>,
+    weightUnit: WeightUnit
+) {
     val first = sessions.firstOrNull()
     val last = sessions.lastOrNull()
     val delta = if (first != null && last != null) last.totalVolumeKg - first.totalVolumeKg else 0.0
@@ -527,8 +535,8 @@ private fun SessionVolumeTrendCard(sessions: List<SessionVolumeUiState>) {
                 )
             }
             FitTrackMetric(
-                value = last?.totalVolumeKg?.toDisplayText() ?: "0",
-                unit = "kg",
+                value = last?.totalVolumeKg?.toDisplayText(weightUnit) ?: "0",
+                unit = weightUnit.label,
                 label = "ultima",
                 accent = FitTrackMetricAccent.Primary,
                 compact = true
@@ -537,8 +545,12 @@ private fun SessionVolumeTrendCard(sessions: List<SessionVolumeUiState>) {
 
         if (selectedSessions.size >= 2) {
             LineChart(
-                points = selectedSessions.map { session -> session.finishedAt to session.totalVolumeKg.toFloat() },
-                pointLabels = selectedSessions.map { session -> "${session.totalVolumeKg.toDisplayText()} kg" },
+                points = selectedSessions.map { session ->
+                    session.finishedAt to weightUnit.fromKilograms(session.totalVolumeKg).toFloat()
+                },
+                pointLabels = selectedSessions.map { session ->
+                    "${session.totalVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}"
+                },
                 xAxisLabels = selectedSessions.map { session -> formatChartDate(session.finishedAt) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -557,14 +569,16 @@ private fun SessionVolumeTrendCard(sessions: List<SessionVolumeUiState>) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = first?.let { "Inicio ${it.totalVolumeKg.toDisplayText()} kg" } ?: "Sin datos",
+                text = first?.let {
+                    "Inicio ${it.totalVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}"
+                } ?: "Sin datos",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = when {
-                    delta > 0.0 -> "+${delta.toDisplayText()} kg"
-                    delta < 0.0 -> "${delta.toDisplayText()} kg"
+                    delta > 0.0 -> "+${delta.toDisplayText(weightUnit)} ${weightUnit.label}"
+                    delta < 0.0 -> "${delta.toDisplayText(weightUnit)} ${weightUnit.label}"
                     else -> "sin cambio"
                 },
                 style = MaterialTheme.typography.bodySmall,
@@ -576,7 +590,7 @@ private fun SessionVolumeTrendCard(sessions: List<SessionVolumeUiState>) {
 }
 
 @Composable
-private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
+private fun ExerciseProgressCard(progress: ExerciseProgressUiState, weightUnit: WeightUnit) {
     val latest = progress.entries.lastOrNull()
     val maxWeight = progress.entries.maxOfOrNull { it.maxWeightKg } ?: 0.0
 
@@ -605,7 +619,7 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
             }
             if (latest != null) {
                 FitTrackBadge(
-                    label = "1RM ${latest.estimatedOneRepMaxKg.toDisplayText()}",
+                    label = "1RM ${latest.estimatedOneRepMaxKg.toDisplayText(weightUnit)} ${weightUnit.label}",
                     tone = FitTrackBadgeTone.Primary
                 )
             }
@@ -617,8 +631,8 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
                 horizontalArrangement = Arrangement.spacedBy(FitSpacing.lg)
             ) {
                 FitTrackMetric(
-                    value = latest.maxWeightKg.toDisplayText(),
-                    unit = "kg",
+                    value = latest.maxWeightKg.toDisplayText(weightUnit),
+                    unit = weightUnit.label,
                     label = "peso max",
                     accent = FitTrackMetricAccent.Primary,
                     compact = true
@@ -634,8 +648,8 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
                 contentDescription = "Progreso de peso maximo de ${progress.exerciseName}"
             )
             Text(
-                text = "Volumen ${latest.volumeKg.toDisplayText()} kg - " +
-                    "mejor peso registrado ${maxWeight.toDisplayText()} kg",
+                text = "Volumen ${latest.volumeKg.toDisplayText(weightUnit)} ${weightUnit.label} - " +
+                    "mejor peso registrado ${maxWeight.toDisplayText(weightUnit)} ${weightUnit.label}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -644,7 +658,7 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
 }
 
 @Composable
-private fun ExerciseRecordsCard(records: ExerciseRecordsUiState) {
+private fun ExerciseRecordsCard(records: ExerciseRecordsUiState, weightUnit: WeightUnit) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
@@ -661,13 +675,13 @@ private fun ExerciseRecordsCard(records: ExerciseRecordsUiState) {
             )
         }
 
-        RecordRow("Peso max", records.maxWeight?.let { "${it.weightKg.toDisplayText()} kg x ${it.reps}" })
-        RecordRow("Reps max", records.maxReps?.let { "${it.reps} reps con ${it.weightKg.toDisplayText()} kg" })
-        RecordRow("Volumen set", records.bestSetVolume?.let { "${it.setVolumeKg.toDisplayText()} kg" })
+        RecordRow("Peso max", records.maxWeight?.let { "${it.weightKg.toDisplayText(weightUnit)} ${weightUnit.label} x ${it.reps}" })
+        RecordRow("Reps max", records.maxReps?.let { "${it.reps} reps con ${it.weightKg.toDisplayText(weightUnit)} ${weightUnit.label}" })
+        RecordRow("Volumen set", records.bestSetVolume?.let { "${it.setVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}" })
         RecordRow(
             label = "1RM estimado",
             value = records.bestEstimatedOneRepMax?.let {
-                "${it.estimatedOneRepMaxKg.toDisplayText()} kg"
+                "${it.estimatedOneRepMaxKg.toDisplayText(weightUnit)} ${weightUnit.label}"
             }
         )
     }
@@ -693,6 +707,7 @@ private fun ProgressChartCard(
     chartValues: List<Pair<Long, Float>>,
     selectedMetric: ProgressMetric,
     selectedProgressPoint: ProgressChartPointUiState?,
+    weightUnit: WeightUnit,
     onSelectExercise: (String) -> Unit,
     onSelectProgressMetric: (ProgressMetric) -> Unit,
     onSelectProgressPoint: (Long) -> Unit,
@@ -749,7 +764,7 @@ private fun ProgressChartCard(
                 LineChart(
                     points = chartValues,
                     selectedPointIndex = selectedIndex,
-                    pointLabels = progressPoints.map { point -> point.toChartLabel(selectedMetric) },
+                    pointLabels = progressPoints.map { point -> point.toChartLabel(selectedMetric, weightUnit) },
                     xAxisLabels = progressPoints.map { point -> formatChartDate(point.finishedAt) },
                     onPointSelected = { index ->
                         progressPoints.getOrNull(index)?.let { point ->
@@ -764,6 +779,7 @@ private fun ProgressChartCard(
                 selectedProgressPoint?.let { point ->
                     ProgressPointDetails(
                         point = point,
+                        weightUnit = weightUnit,
                         onClear = onClearSelectedProgressPoint
                     )
                 }
@@ -775,6 +791,7 @@ private fun ProgressChartCard(
 @Composable
 private fun ProgressPointDetails(
     point: ProgressChartPointUiState,
+    weightUnit: WeightUnit,
     onClear: () -> Unit
 ) {
     FitTrackKeyValueRow(
@@ -797,21 +814,21 @@ private fun ProgressPointDetails(
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.lg)
         ) {
             FitTrackMetric(
-                value = point.maxWeightKg.toDisplayText(),
-                unit = "kg",
+                value = point.maxWeightKg.toDisplayText(weightUnit),
+                unit = weightUnit.label,
                 label = "peso max",
                 accent = FitTrackMetricAccent.Primary,
                 compact = true
             )
             FitTrackMetric(
-                value = point.volumeKg.toDisplayText(),
-                unit = "kg",
+                value = point.volumeKg.toDisplayText(weightUnit),
+                unit = weightUnit.label,
                 label = "volumen",
                 compact = true
             )
         }
         Text(
-            text = "${point.totalReps} reps - 1RM ${point.estimatedOneRepMaxKg.toDisplayText()} kg",
+            text = "${point.totalReps} reps - 1RM ${point.estimatedOneRepMaxKg.toDisplayText(weightUnit)} ${weightUnit.label}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -1146,12 +1163,12 @@ private fun formatChartDate(timestamp: Long): String {
     return SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(timestamp))
 }
 
-private fun ProgressChartPointUiState.toChartLabel(metric: ProgressMetric): String {
+private fun ProgressChartPointUiState.toChartLabel(metric: ProgressMetric, weightUnit: WeightUnit): String {
     return when (metric) {
-        ProgressMetric.MaxWeight -> "${maxWeightKg.toDisplayText()} kg"
+        ProgressMetric.MaxWeight -> "${maxWeightKg.toDisplayText(weightUnit)} ${weightUnit.label}"
         ProgressMetric.Reps -> totalReps.toString()
-        ProgressMetric.Volume -> "${volumeKg.toDisplayText()} kg"
-        ProgressMetric.EstimatedOneRepMax -> "${estimatedOneRepMaxKg.toDisplayText()} kg"
+        ProgressMetric.Volume -> "${volumeKg.toDisplayText(weightUnit)} ${weightUnit.label}"
+        ProgressMetric.EstimatedOneRepMax -> "${estimatedOneRepMaxKg.toDisplayText(weightUnit)} ${weightUnit.label}"
     }
 }
 
@@ -1162,6 +1179,9 @@ private fun Double.toDisplayText(): String {
         String.format(Locale.getDefault(), "%.1f", this)
     }
 }
+
+private fun Double.toDisplayText(weightUnit: WeightUnit): String =
+    weightUnit.fromKilograms(this).toDisplayText()
 
 private val statsPeriodDisplayOrder = listOf(
     WorkoutStatsPeriod.LastFourWeeks,
