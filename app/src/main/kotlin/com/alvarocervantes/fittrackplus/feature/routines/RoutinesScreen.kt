@@ -81,8 +81,8 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackReorderActions
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
+import com.alvarocervantes.fittrackplus.core.design.FitTrackTargetPrescriptionFields
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
-import com.alvarocervantes.fittrackplus.core.design.components.FitTrackStepper
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
@@ -93,7 +93,6 @@ import com.alvarocervantes.fittrackplus.core.design.borderLight
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 
-private val repsPresetOptions = listOf("5", "6-8", "8-12", "10-15")
 
 @Composable
 fun RoutinesScreen(
@@ -971,39 +970,10 @@ private fun RoutineExerciseEditor(
     onMoveExercise: (Int, Int, MoveDirection) -> Unit,
     onRemoveExercise: (Int, Int, String) -> Unit
 ) {
-    val currentSets = exercise.targetSets.toIntOrNull()?.coerceIn(1, 99) ?: 3
-    val hasCustomReps = exercise.targetRepsText !in repsPresetOptions
-    var showCustomRepsDialog by remember { mutableStateOf(false) }
-    var customRepsDraft by remember { mutableStateOf("") }
     var showNotesDialog by remember { mutableStateOf(false) }
     var notesDraft by remember { mutableStateOf("") }
     var showAlternativesDialog by remember { mutableStateOf(false) }
     var editingAlternativeIndex by remember { mutableStateOf<Int?>(null) }
-
-    if (showCustomRepsDialog) {
-        val customRepsError = customRepsDraft
-            .takeIf { it.isNotBlank() }
-            ?.let { draft ->
-                if (isValidTargetReps(draft)) null else "Usa 8, 8-12, AMRAP o RPE 8."
-            }
-        FitTrackInputDialog(
-            title = "Reps personalizadas",
-            value = customRepsDraft,
-            onValueChange = { customRepsDraft = it },
-            label = "Valor personalizado",
-            placeholder = "12-15 o AMRAP",
-            supportingText = customRepsError,
-            isError = customRepsError != null,
-            confirmLabel = "Guardar",
-            dismissLabel = "Cancelar",
-            onConfirm = {
-                onExerciseRepsChange(dayIndex, exerciseIndex, customRepsDraft.trim())
-                showCustomRepsDialog = false
-            },
-            onDismiss = { showCustomRepsDialog = false },
-            confirmEnabled = isValidTargetReps(customRepsDraft)
-        )
-    }
 
     if (showNotesDialog) {
         FitTrackInputDialog(
@@ -1156,70 +1126,19 @@ private fun RoutineExerciseEditor(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Column(
-            verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-        ) {
-            Text(
-                text = "Series",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                Box(
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.large)
-                        .padding(horizontal = FitSpacing.sm, vertical = FitSpacing.xs)
-                ) {
-                    FitTrackStepper(
-                        value = currentSets.toString(),
-                        onDecrement = {
-                            onExerciseSetsChange(
-                                dayIndex,
-                                exerciseIndex,
-                                (currentSets - 1).coerceAtLeast(1).toString()
-                            )
-                        },
-                        onIncrement = {
-                            onExerciseSetsChange(
-                                dayIndex,
-                                exerciseIndex,
-                                (currentSets + 1).coerceAtMost(99).toString()
-                            )
-                        },
-                        decrementEnabled = currentSets > 1,
-                        incrementEnabled = currentSets < 99
-                    )
-                }
-            }
-            exercise.targetSetsError?.let { error ->
-                Text(
-                    text = error,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-
-        ExerciseRepsSelector(
-            selectedReps = exercise.targetRepsText,
-            onPresetSelected = { preset ->
-                onExerciseRepsChange(dayIndex, exerciseIndex, preset)
+        FitTrackTargetPrescriptionFields(
+            targetSets = exercise.targetSets,
+            targetRepsText = exercise.targetRepsText,
+            onTargetSetsChange = { value ->
+                onExerciseSetsChange(dayIndex, exerciseIndex, value)
             },
-            onCustomSelected = {
-                customRepsDraft = if (hasCustomReps) exercise.targetRepsText else ""
-                showCustomRepsDialog = true
-            }
+            onTargetRepsChange = { value ->
+                onExerciseRepsChange(dayIndex, exerciseIndex, value)
+            },
+            isValidTargetReps = ::isValidTargetReps,
+            targetSetsError = exercise.targetSetsError,
+            targetRepsError = exercise.targetRepsError
         )
-        exercise.targetRepsError?.let { error ->
-            Text(
-                text = error,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
 
         NotesActionRow(
             hasNote = exercise.notes.isNotBlank(),
@@ -1343,22 +1262,19 @@ private fun ExerciseAlternativesEditorDialog(
                                     selectAllOnFocus = false,
                                     modifier = Modifier.fillMaxWidth()
                                 )
-                                Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                                    FitTrackSelectAllTextField(
-                                        value = alternative.targetSets,
-                                        onValueChange = { onAlternativeSetsChange(index, it) },
-                                        label = { Text("Series") },
-                                        singleLine = true,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    FitTrackSelectAllTextField(
-                                        value = alternative.targetRepsText,
-                                        onValueChange = { onAlternativeRepsChange(index, it) },
-                                        label = { Text("Reps") },
-                                        singleLine = true,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
+                                FitTrackTargetPrescriptionFields(
+                                    targetSets = alternative.targetSets,
+                                    targetRepsText = alternative.targetRepsText,
+                                    onTargetSetsChange = { value ->
+                                        onAlternativeSetsChange(index, value)
+                                    },
+                                    onTargetRepsChange = { value ->
+                                        onAlternativeRepsChange(index, value)
+                                    },
+                                    isValidTargetReps = ::isValidTargetReps,
+                                    targetSetsError = alternative.targetSetsError,
+                                    targetRepsError = alternative.targetRepsError
+                                )
                                 FitTrackSelectAllTextField(
                                     value = alternative.notes,
                                     onValueChange = { onAlternativeNotesChange(index, it) },
@@ -1415,43 +1331,6 @@ private fun ExerciseAlternativesEditorDialog(
             }
         }
     )
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ExerciseRepsSelector(
-    selectedReps: String,
-    onPresetSelected: (String) -> Unit,
-    onCustomSelected: () -> Unit
-) {
-    val hasCustomSelection = selectedReps !in repsPresetOptions
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-    ) {
-        Text(
-            text = "Reps objetivo",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-        ) {
-            repsPresetOptions.forEach { preset ->
-                FilterChip(
-                    selected = selectedReps == preset,
-                    onClick = { onPresetSelected(preset) },
-                    label = { Text(preset) }
-                )
-            }
-            FilterChip(
-                selected = hasCustomSelection,
-                onClick = onCustomSelected,
-                label = { Text(if (hasCustomSelection) selectedReps else "+") }
-            )
-        }
-    }
 }
 
 @Composable
