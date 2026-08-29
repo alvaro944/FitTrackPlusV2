@@ -40,11 +40,20 @@ class SettingsViewModel @Inject constructor(
     val healthConnectConnected: StateFlow<Boolean> = userPreferencesRepository.healthConnectConnected
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    val isHealthConnectAvailable: Boolean = healthConnectRepository.isAvailable()
-    val healthConnectNeedsInstallation: Boolean = healthConnectRepository.needsInstallation()
+    private val _healthConnectAvailable = MutableStateFlow(false)
+    val isHealthConnectAvailable: StateFlow<Boolean> = _healthConnectAvailable.asStateFlow()
+    private val _healthConnectNeedsInstallation = MutableStateFlow(false)
+    val healthConnectNeedsInstallation: StateFlow<Boolean> = _healthConnectNeedsInstallation.asStateFlow()
     val requiredPermissions: Set<String> = healthConnectRepository.requiredPermissions
 
     fun permissionsContract() = healthConnectRepository.permissionsContract()
+
+    init { refreshHealthConnectAvailability() }
+
+    fun refreshHealthConnectAvailability() {
+        _healthConnectAvailable.value = healthConnectRepository.isAvailable()
+        _healthConnectNeedsInstallation.value = healthConnectRepository.needsInstallation()
+    }
 
     fun setWeightUnit(unit: String) {
         if (unit == weightUnit.value) return
@@ -99,8 +108,14 @@ class SettingsViewModel @Inject constructor(
 
     fun disconnectHealthConnect() {
         viewModelScope.launch {
-            userPreferencesRepository.setHealthConnectConnected(false)
-            _message.value = "Health Connect desconectado."
+            runCatching { healthConnectRepository.revokePermissions() }
+                .onSuccess {
+                    userPreferencesRepository.setHealthConnectConnected(false)
+                    _message.value = "Health Connect desconectado."
+                }
+                .onFailure { throwable ->
+                    _message.value = throwable.message ?: "No se pudieron revocar los permisos de Health Connect."
+                }
         }
     }
 }
