@@ -351,13 +351,13 @@ private fun HistoryDetailContent(
     if (state.pendingEditExit != null) {
         FitTrackConfirmDialog(
             title = "Cambios sin guardar",
-            text = "Has modificado datos de esta sesion. ¿Quieres descartarlos?",
-            confirmLabel = "Descartar",
-            dismissLabel = "Guardar",
-            onConfirm = onConfirmDiscardChanges,
-            onDismiss = onConfirmSaveChanges,
+            text = "Has modificado datos de esta sesion. ¿Quieres guardarlos?",
+            confirmLabel = "Guardar",
+            dismissLabel = "Descartar",
+            onConfirm = onConfirmSaveChanges,
+            onDismiss = onConfirmDiscardChanges,
             onDismissRequest = onCancelPendingEditExit,
-            destructive = true
+            destructive = false
         )
     }
 

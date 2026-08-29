@@ -215,6 +215,13 @@ class HistoryViewModel @Inject constructor(
 
     fun confirmSaveChanges() {
         val action = _uiState.value.pendingEditExit ?: return
+        changedSetEdits().forEach { edit ->
+            persistSetEdit(
+                setId = edit.setId,
+                weightText = edit.weightText,
+                repsText = edit.repsText
+            )
+        }
         finalizeEditExit(action)
     }
 
@@ -230,7 +237,6 @@ class HistoryViewModel @Inject constructor(
                     reps = repsText.toIntOrNull() ?: current.reps
                 )
             }
-            persistSetEdit(setId = setId, weightText = weightText, repsText = repsText)
         }
         finalizeEditExit(action)
     }
@@ -281,7 +287,6 @@ class HistoryViewModel @Inject constructor(
                 isCompleted = completed
             )
         }
-        persistSetEdit(setId = setId, weightText = sanitizedWeightText, repsText = set.repsText)
     }
 
     fun updateSetReps(setId: Long, repsText: String) {
@@ -295,7 +300,10 @@ class HistoryViewModel @Inject constructor(
                 isCompleted = completed
             )
         }
-        persistSetEdit(setId = setId, weightText = set.weightText, repsText = sanitizedRepsText)
+    }
+
+    private fun changedSetEdits(): List<HistorySetEdit> {
+        return changedHistorySetEdits(_uiState.value.selectedDetail, editSnapshot)
     }
 
     private fun findSelectedSet(setId: Long): HistorySetUiState? {
@@ -406,6 +414,34 @@ data class HistoryUiState(
 enum class HistoryEditExitAction {
     FinishEditing,
     BackToList
+}
+
+internal data class HistorySetEdit(
+    val setId: Long,
+    val weightText: String,
+    val repsText: String
+)
+
+internal fun changedHistorySetEdits(
+    detail: HistoryDetailUiState?,
+    snapshot: Map<Long, Pair<String, String>>
+): List<HistorySetEdit> {
+    return detail
+        ?.exercises
+        ?.flatMap { exercise -> exercise.sets }
+        ?.mapNotNull { set ->
+            val original = snapshot[set.setId] ?: return@mapNotNull null
+            if (original.first == set.weightText && original.second == set.repsText) {
+                null
+            } else {
+                HistorySetEdit(
+                    setId = set.setId,
+                    weightText = set.weightText,
+                    repsText = set.repsText
+                )
+            }
+        }
+        ?: emptyList()
 }
 
 enum class HistoryPeriodFilter(val label: String) {
