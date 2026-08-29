@@ -1281,6 +1281,7 @@ private fun ExerciseAlternativesEditorDialog(
                                     label = { Text("Notas") },
                                     singleLine = false,
                                     minLines = 2,
+                                    selectAllOnFocus = false,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 FitTrackFormDialogActions(
