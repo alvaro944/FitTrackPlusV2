@@ -185,7 +185,7 @@ class RoutinesViewModel @Inject constructor(
     fun updateExerciseName(dayIndex: Int, exerciseIndex: Int, name: String) {
         updateEditor { editor ->
             editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
-                exercise.copy(name = name)
+                exercise.copy(name = name, hasInteractedWithName = true)
             }
         }
     }
@@ -523,7 +523,7 @@ data class RoutineEditorUiState(
                 day.nameError == null &&
                 day.exercises.isNotEmpty() &&
                     day.exercises.all { exercise ->
-                        exercise.nameError == null &&
+                        !exercise.isNameBlank &&
                             exercise.targetSetsError == null &&
                             exercise.targetRepsError == null &&
                             exercise.alternatives.all { alternative ->
@@ -557,13 +557,18 @@ data class RoutineExerciseEditorUiState(
     val variantKey: String? = null,
     val defaultVariantKey: String? = null,
     val name: String = "",
+    val hasInteractedWithName: Boolean = false,
     val targetSets: String = "3",
     val targetRepsText: String = "8-12",
     val notes: String = "",
     val alternatives: List<RoutineExerciseAlternativeEditorUiState> = emptyList()
 ) {
+    val isNameBlank: Boolean
+        get() = name.isBlank()
+    // Only surfaced once the user has actually touched the field - otherwise a brand new
+    // exercise shows a validation error before anyone has typed anything.
     val nameError: String?
-        get() = if (name.isBlank()) "Pon un nombre para el ejercicio." else null
+        get() = if (hasInteractedWithName && isNameBlank) "Pon un nombre para el ejercicio." else null
     val targetSetsError: String?
         get() = if (targetSets.toIntOrNull()?.let { it in 1..99 } == true) {
             null

@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -114,6 +115,15 @@ fun RoutinesScreen(
     val pendingNavigation by appShellViewModel.pendingNavigation.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var routinePendingArchive by remember { mutableStateOf<RoutineListItemUiState?>(null) }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        appShellViewModel.activeTabReselected.collect { route ->
+            if (route == AppRoute.Routines && state.editor == null) {
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
 
     LaunchedEffect(state.editor?.hasUnsavedChanges) {
         appShellViewModel.setNavigationBlocker(
@@ -187,6 +197,7 @@ fun RoutinesScreen(
             RoutineListContent(
                 state = state,
                 contentPadding = padding,
+                listState = listState,
                 onCreateRoutine = viewModel::startCreateRoutine,
                 onUseTemplate = viewModel::startCreateRoutineFromTemplate,
                 onEditRoutine = viewModel::startEditRoutine,
@@ -273,6 +284,7 @@ fun RoutinesScreen(
 private fun RoutineListContent(
     state: RoutinesUiState,
     contentPadding: PaddingValues,
+    listState: LazyListState,
     onCreateRoutine: () -> Unit,
     onUseTemplate: (String) -> Unit,
     onEditRoutine: (Long) -> Unit,
@@ -285,6 +297,7 @@ private fun RoutineListContent(
     val activeRoutine = state.routines.firstOrNull { it.isActive }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
@@ -709,7 +722,10 @@ private fun RoutineEditorContent(
                     },
                     singleLine = true,
                     selectAllOnFocus = false,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Done
+                    ),
                     maxLength = MAX_NAME_LENGTH,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -923,6 +939,9 @@ private fun RoutineDayEditor(
                 )
             }
 
+            var awaitingNewExerciseFocus by remember { mutableStateOf(false) }
+            var focusExerciseDraftId by remember { mutableStateOf<String?>(null) }
+
             FitTrackSelectAllTextField(
                 value = day.name,
                 onValueChange = { onDayNameChange(dayIndex, it) },
@@ -933,13 +952,16 @@ private fun RoutineDayEditor(
                 },
                 singleLine = true,
                 selectAllOnFocus = false,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusExerciseDraftId = day.exercises.firstOrNull()?.draftId }
+                ),
                 maxLength = MAX_NAME_LENGTH,
                 modifier = Modifier.fillMaxWidth()
             )
-
-            var awaitingNewExerciseFocus by remember { mutableStateOf(false) }
-            var focusExerciseDraftId by remember { mutableStateOf<String?>(null) }
 
             LaunchedEffect(day.exercises.size) {
                 if (awaitingNewExerciseFocus) {
@@ -1209,7 +1231,10 @@ private fun RoutineExerciseEditor(
             },
             singleLine = true,
             selectAllOnFocus = false,
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
+                imeAction = ImeAction.Done
+            ),
             maxLength = MAX_NAME_LENGTH,
             modifier = Modifier
                 .fillMaxWidth()
