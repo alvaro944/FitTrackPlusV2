@@ -456,6 +456,32 @@ El temporizador de descanso conserva su estado mediante `DataStore` y calcula el
 
 ---
 
+### 40. Importacion de datos y borrado total
+
+Encontrado al verificar P1-10 de `docs/design/auditoria-ronda-3.md` (2026-08-30).
+
+`fix/broken-features` cerro la mitad del hueco: `ExportUserDataUseCase` genera el volcado y
+`AppShellViewModel.saveDataExport` lo escribe via `ACTION_CREATE_DOCUMENT`. Con eso, un usuario
+puede sacar sus datos antes de perder el movil. Quedan las dos operaciones que **escriben o
+destruyen**, y por eso se posponen a proposito:
+
+- **Importacion** (`ACTION_OPEN_DOCUMENT`): no es el reflejo de la exportacion. Hay que decidir
+  la politica de colision (¿reemplazar todo, fusionar, duplicar?), validar y versionar el formato
+  del fichero, y respetar el invariante de snapshots — una sesion importada arrastra nombres y
+  reps objetivo historicos que **no** deben reescribirse con las rutinas actuales. Sin eso, una
+  importacion corrompe el historial en silencio, que es justo la clase de bug que cerro `fix/data-loss`.
+- **Borrado total**: hoy la unica operacion destructiva global es la recarga de datos demo, y es
+  solo de debug. Un usuario de release no puede resetear la app. Necesita confirmacion reforzada
+  (no un `FitTrackConfirmDialog` normal) y deberia ofrecer exportar antes de borrar.
+
+Ambas conviene hacerlas juntas y con calma: comparten el formato de fichero y el modelo de
+"estado completo de la app". No son un añadido a la exportacion.
+
+**Esfuerzo**: alto — formato versionado, politica de colision, invariante de snapshots y una
+ruta destructiva irreversible.
+
+---
+
 ## Siguiente paso sugerido
 
 El usuario revisa entrada por entrada y marca cuales entran en el backlog real. Las descartadas se dejan aqui como registro. Las aceptadas se repriorizan en `docs/planning/roadmap-2.1.md` cuando pasan a ser direccion vigente.

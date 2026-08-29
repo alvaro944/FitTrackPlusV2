@@ -29,3 +29,6 @@ docs/design/final-form-v2/.thumbnail
 
 # Local agent caches
 .atl/.skill-registry.cache.json
+
+# Gradle wrapper cache from the Codex sandbox
+.gradle-codex/
