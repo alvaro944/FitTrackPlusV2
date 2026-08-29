@@ -2,8 +2,13 @@ package com.alvarocervantes.fittrackplus.core.navigation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
+import android.net.Uri
 import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
+import com.alvarocervantes.fittrackplus.domain.usecase.ExportUserDataUseCase
+import com.alvarocervantes.fittrackplus.domain.usecase.UserDataExport
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -18,17 +23,21 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class AppShellViewModel @Inject constructor(
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val exportUserData: ExportUserDataUseCase,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _blockedRoute = MutableStateFlow<AppRoute?>(null)
     private val _pendingNavigation = MutableStateFlow<NavigationRequest?>(null)
     private val _message = MutableStateFlow<String?>(null)
     private val _approvedNavigation = MutableSharedFlow<NavigationRequest>(extraBufferCapacity = 1)
+    private val _exportRequests = MutableSharedFlow<UserDataExport>(extraBufferCapacity = 1)
 
     val pendingNavigation: StateFlow<NavigationRequest?> = _pendingNavigation.asStateFlow()
     val message: StateFlow<String?> = _message.asStateFlow()
     val approvedNavigation: SharedFlow<NavigationRequest> = _approvedNavigation.asSharedFlow()
+    val exportRequests: SharedFlow<UserDataExport> = _exportRequests.asSharedFlow()
 
     val weightUnit: StateFlow<String> = userPreferencesRepository.weightUnit
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "kg")
@@ -54,6 +63,29 @@ class AppShellViewModel @Inject constructor(
 
     fun showFutureActionMessage(title: String) {
         _message.value = "$title disponible en una fase futura."
+    }
+
+    fun requestDataExport() {
+        viewModelScope.launch {
+            runCatching { exportUserData() }
+                .onSuccess { _exportRequests.emit(it) }
+                .onFailure { throwable ->
+                    _message.value = throwable.message ?: "No se pudieron preparar los datos para exportar."
+                }
+        }
+    }
+
+    fun saveDataExport(uri: Uri, export: UserDataExport) {
+        viewModelScope.launch {
+            runCatching {
+                requireNotNull(context.contentResolver.openOutputStream(uri))
+                    .bufferedWriter().use { it.write(export.content) }
+            }.onSuccess {
+                _message.value = "Datos exportados correctamente."
+            }.onFailure { throwable ->
+                _message.value = throwable.message ?: "No se pudieron guardar los datos exportados."
+            }
+        }
     }
 
     fun setNavigationBlocker(route: AppRoute, isBlocked: Boolean) {

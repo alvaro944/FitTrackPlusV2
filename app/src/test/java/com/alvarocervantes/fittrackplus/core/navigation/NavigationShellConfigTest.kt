@@ -50,7 +50,7 @@ class NavigationShellConfigTest {
         )
         assertTrue(
             items.any { item ->
-                item.title == "Exportar datos" && item.isFuture
+                item.title == "Exportar datos" && item.kind == DrawerItemKind.Action && !item.isFuture
             }
         )
     }

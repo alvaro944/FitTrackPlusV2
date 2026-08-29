@@ -217,6 +217,8 @@ Las mejoras de abajo son las que propuse antes de ver la Fase 6. Mantenidas por 
 
 ### 3. Export local de historial (CSV o JSON)
 
+**Actualizacion (2026-08-30):** la exportacion JSON de rutinas e historial ya esta disponible. Importar una copia y borrar todos los datos siguen fuera de esta ronda: requieren validacion/migracion de formatos y una confirmacion destructiva con recuperacion, respectivamente.
+
 - **Problema**: no hay forma de llevarse los datos. Firebase/sync queda lejos y mientras tanto el usuario depende de un unico dispositivo. Si se pierde la instalacion, se pierde el historial.
 - **Propuesta**: accion en Settings que exporte `WorkoutSession` + `WorkoutExercise` + `WorkoutSet` a JSON (mas simple) o CSV (mas amigable para Excel) usando `ActivityResultContracts.CreateDocument` + `ContentResolver`. Sin import todavia (YAGNI hasta que haya dos devices).
 - **Esfuerzo**: medio. Valor alto para portfolio (APIs de Storage Access Framework) y utilidad real.
