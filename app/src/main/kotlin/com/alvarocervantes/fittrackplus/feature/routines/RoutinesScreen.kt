@@ -89,6 +89,7 @@ import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
 import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
+import com.alvarocervantes.fittrackplus.core.design.borderLight
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 
@@ -1290,7 +1291,14 @@ private fun ExerciseAlternativesEditorDialog(
         onDismissRequest = onDismiss,
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+                FitTrackCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    borderColor = if (exercise.defaultVariantKey == exercise.variantKey) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.borderLight
+                    }
+                ) {
                     Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
                         Text(
                             text = exercise.name.ifBlank { "Ejercicio base" },
@@ -1317,7 +1325,14 @@ private fun ExerciseAlternativesEditorDialog(
 
                 exercise.alternatives.forEachIndexed { index, alternative ->
                     val isEditing = editingAlternativeIndex == index
-                    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+                    FitTrackCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        borderColor = if (exercise.defaultVariantKey == alternative.variantKey) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.borderLight
+                        }
+                    ) {
                         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
                             if (isEditing) {
                                 FitTrackSelectAllTextField(
