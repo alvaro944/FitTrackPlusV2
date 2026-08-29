@@ -277,7 +277,7 @@ private fun DrawerContent(
                         supporting = when {
                             item.route == AppRoute.Settings -> "Preferencias y datos de la aplicacion"
                             item.title == "Widget & atajos" -> "Visible ahora, implementacion futura"
-                            item.title == "Exportar datos" -> "Visible ahora, implementacion futura"
+                            item.title == "Exportar datos" -> "Guarda una copia JSON de tus rutinas e historial"
                             else -> null
                         },
                         icon = item.icon(),
