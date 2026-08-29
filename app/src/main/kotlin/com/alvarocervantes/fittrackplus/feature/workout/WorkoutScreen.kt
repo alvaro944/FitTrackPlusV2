@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
@@ -63,7 +62,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -86,10 +84,12 @@ import com.alvarocervantes.fittrackplus.core.design.components.ConfettiAnimation
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
 import com.alvarocervantes.fittrackplus.domain.model.PrType
 import com.alvarocervantes.fittrackplus.domain.model.ProgressionHint
+import com.alvarocervantes.fittrackplus.feature.routines.isValidTargetReps
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackFormDialogActions
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
 import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
@@ -102,6 +102,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRow
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowMode
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
+import com.alvarocervantes.fittrackplus.core.design.FitTrackTargetPrescriptionFields
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import java.text.SimpleDateFormat
@@ -951,23 +952,13 @@ private fun ExerciseAlternativesDialog(
                     selectAllOnFocus = false,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                    FitTrackSelectAllTextField(
-                        value = picker.draft.targetSets,
-                        onValueChange = onDraftSetsChange,
-                        label = { Text("Series") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
-                    )
-                    FitTrackSelectAllTextField(
-                        value = picker.draft.targetRepsText,
-                        onValueChange = onDraftRepsChange,
-                        label = { Text("Reps") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                FitTrackTargetPrescriptionFields(
+                    targetSets = picker.draft.targetSets,
+                    targetRepsText = picker.draft.targetRepsText,
+                    onTargetSetsChange = onDraftSetsChange,
+                    onTargetRepsChange = onDraftRepsChange,
+                    isValidTargetReps = ::isValidTargetReps
+                )
                 FitTrackSelectAllTextField(
                     value = picker.draft.notes,
                     onValueChange = onDraftNotesChange,
@@ -980,15 +971,13 @@ private fun ExerciseAlternativesDialog(
         },
         actions = if (picker.draft != null) {
             {
-                TextButton(onClick = onCancelCreating) {
-                    Text("Cancelar")
-                }
-                TextButton(
-                    onClick = onSaveAlternative,
-                    enabled = picker.draft.canSave && !picker.isSaving
-                ) {
-                    Text("Guardar y usar")
-                }
+                FitTrackFormDialogActions(
+                    cancelLabel = "Cancelar",
+                    confirmLabel = "Guardar y usar",
+                    onCancel = onCancelCreating,
+                    onConfirm = onSaveAlternative,
+                    confirmEnabled = picker.draft.canSave && !picker.isSaving
+                )
             }
         } else null
     )
