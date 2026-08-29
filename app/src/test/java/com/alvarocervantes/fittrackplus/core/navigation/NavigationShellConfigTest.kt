@@ -37,13 +37,18 @@ class NavigationShellConfigTest {
         )
         assertTrue(
             items.any { item ->
-                item.title == "Widget & atajos" && item.isFuture
-            }
-        )
-        assertTrue(
-            items.any { item ->
                 item.title == "Exportar datos" && item.isFuture
             }
         )
+    }
+
+    @Test
+    fun `widget entry no longer claims to be a future action since the widget already exists`() {
+        val items = shellDrawerItems()
+        val widgetItem = items.first { it.title == "Widget & atajos" }
+
+        assertEquals(DrawerItemKind.InfoAction, widgetItem.kind)
+        assertFalse(widgetItem.isFuture)
+        assertTrue(widgetItem.message.orEmpty().isNotBlank())
     }
 }

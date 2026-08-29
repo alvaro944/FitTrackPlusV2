@@ -61,6 +61,10 @@ class AppShellViewModel @Inject constructor(
         _message.value = "$title disponible en una fase futura."
     }
 
+    fun showMessage(text: String) {
+        _message.value = text
+    }
+
     fun setNavigationBlocker(route: AppRoute, isBlocked: Boolean) {
         _blockedRoute.value = when {
             isBlocked -> route

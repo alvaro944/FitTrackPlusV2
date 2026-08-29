@@ -124,6 +124,7 @@ fun FitTrackAppShell(
                             )
                         },
                         onFutureAction = viewModel::showFutureActionMessage,
+                        onInfoAction = viewModel::showMessage,
                         drawerScope = coroutineScope,
                         closeDrawer = { drawerState.close() }
                     )
@@ -412,6 +413,7 @@ private fun handleDrawerItemClick(
     onNavigateToSecondary: (AppRoute) -> Unit,
     onRequestNavigation: (AppRoute) -> Boolean,
     onFutureAction: (String) -> Unit,
+    onInfoAction: (String) -> Unit,
     drawerScope: CoroutineScope,
     closeDrawer: suspend () -> Unit
 ) {
@@ -424,6 +426,7 @@ private fun handleDrawerItemClick(
                 }
             }
             DrawerItemKind.FutureAction -> onFutureAction(item.title)
+            DrawerItemKind.InfoAction -> onInfoAction(item.message ?: item.title)
         }
     }
 }
