@@ -243,8 +243,17 @@ data class StatsUiState(
         exerciseRecords.isEmpty()
     val summarySessionVolumes: List<SessionVolumeUiState> = sessionVolumes.filterByPeriod(selectedPeriod)
     val sessionCount: Int = summarySessionVolumes.size
-    val exerciseCount: Int = exerciseProgress.sumOf { progress ->
-        progress.entries.count { entry -> entry.finishedAt.isInsideStatsPeriod(selectedPeriod) }
+    val exerciseCount: Int = exerciseProgress
+        .map { progress -> progress.exerciseKey }
+        .distinct()
+        .size
+    val personalRecordCount: Int = exerciseRecords.sumOf { records ->
+        listOf(
+            records.maxWeight,
+            records.maxReps,
+            records.bestSetVolume,
+            records.bestEstimatedOneRepMax
+        ).count { it != null }
     }
     val availableRoutineNames: List<String> = sessionVolumes
         .map { session -> session.routineName.trim() }

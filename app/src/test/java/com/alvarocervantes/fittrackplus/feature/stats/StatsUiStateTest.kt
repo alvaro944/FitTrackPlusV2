@@ -184,7 +184,7 @@ class StatsUiStateTest {
     }
 
     @Test
-    fun summaryUsesExerciseAppearancesInsteadOfBestSessionVolume() {
+    fun summaryCountsDistinctExercisesInsteadOfSessionAppearances() {
         val state = sampleStatsUiState(
             sessionVolumes = listOf(
                 sessionVolume(1, totalVolumeKg = 500.0),
@@ -194,7 +194,34 @@ class StatsUiStateTest {
         ).copy(selectedPeriod = WorkoutStatsPeriod.All)
 
         assertEquals(3, state.sessionCount)
-        assertEquals(2, state.exerciseCount)
+        assertEquals(1, state.exerciseCount)
+    }
+
+    @Test
+    fun summaryCountsEachAvailablePersonalRecord() {
+        val record = ExerciseSetRecordUiState(
+            sessionId = 1,
+            finishedAt = 100,
+            weightKg = 100.0,
+            reps = 8,
+            setVolumeKg = 800.0,
+            estimatedOneRepMaxKg = 126.6
+        )
+        val state = sampleStatsUiState(
+            exerciseRecords = listOf(
+                ExerciseRecordsUiState(
+                    exerciseKey = "bench",
+                    scopeKey = "ppl|push|bench",
+                    exerciseName = "Bench Press",
+                    maxWeight = record,
+                    maxReps = record,
+                    bestSetVolume = record,
+                    bestEstimatedOneRepMax = null
+                )
+            )
+        )
+
+        assertEquals(3, state.personalRecordCount)
     }
 
     @Test

@@ -349,7 +349,7 @@ private fun SummaryGrid(state: StatsUiState) {
         }
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
-                value = state.focusedExerciseRecords.size.toString(),
+                value = state.personalRecordCount.toString(),
                 label = "PRs",
                 accent = FitTrackMetricAccent.Warm,
                 compact = true
