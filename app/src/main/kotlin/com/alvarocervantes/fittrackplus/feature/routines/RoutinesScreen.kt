@@ -50,6 +50,7 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -693,7 +694,7 @@ private fun RoutineEditorContent(
             FitTrackSectionLabel(label = "Dias")
         }
 
-        itemsIndexed(editor.days) { dayIndex, day ->
+        itemsIndexed(editor.days, key = { _, day -> day.draftId }) { dayIndex, day ->
             RoutineDayEditor(
                 dayIndex = dayIndex,
                 day = day,
@@ -910,7 +911,8 @@ private fun RoutineDayEditor(
             )
 
             day.exercises.forEachIndexed { exerciseIndex, exercise ->
-                RoutineExerciseEditor(
+                key(exercise.draftId) {
+                    RoutineExerciseEditor(
                     dayIndex = dayIndex,
                     exerciseIndex = exerciseIndex,
                     exercise = exercise,
@@ -933,8 +935,9 @@ private fun RoutineDayEditor(
                     onSetExerciseDefaultVariant = onSetExerciseDefaultVariant,
                     onDuplicateExercise = onDuplicateExercise,
                     onMoveExercise = onMoveExercise,
-                    onRemoveExercise = onRemoveExercise
-                )
+                        onRemoveExercise = onRemoveExercise
+                    )
+                }
             }
 
             FitTrackAddButton(

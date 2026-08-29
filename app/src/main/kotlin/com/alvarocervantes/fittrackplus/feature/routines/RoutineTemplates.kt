@@ -164,7 +164,13 @@ fun RoutineTemplateUiState.toEditorState(): RoutineEditorUiState {
 fun RoutineEditorUiState.duplicateDay(dayIndex: Int): RoutineEditorUiState {
     if (dayIndex !in days.indices) return this
     val source = days[dayIndex]
-    val duplicate = source.copy(name = "${source.name} copia")
+    val duplicate = source.copy(
+        draftId = java.util.UUID.randomUUID().toString(),
+        name = "${source.name} copia",
+        exercises = source.exercises.map { exercise ->
+            exercise.copy(draftId = java.util.UUID.randomUUID().toString())
+        }
+    )
     return copy(
         days = days.take(dayIndex + 1) + duplicate + days.drop(dayIndex + 1),
         expandedDayIndex = dayIndex + 1,
@@ -188,7 +194,10 @@ fun RoutineEditorUiState.duplicateExercise(dayIndex: Int, exerciseIndex: Int): R
     val day = days[dayIndex]
     if (exerciseIndex !in day.exercises.indices) return this
     val source = day.exercises[exerciseIndex]
-    val duplicate = source.copy(name = "${source.name} copia")
+    val duplicate = source.copy(
+        draftId = java.util.UUID.randomUUID().toString(),
+        name = "${source.name} copia"
+    )
     return copy(
         days = days.replaceAt(dayIndex) {
             it.copy(
