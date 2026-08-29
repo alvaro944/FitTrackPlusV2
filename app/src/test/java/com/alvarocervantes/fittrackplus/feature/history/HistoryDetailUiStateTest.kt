@@ -82,4 +82,43 @@ class HistoryDetailUiStateTest {
 
         assertEquals(1_800_000, detail.durationMillis) // only the 30 min actually trained
     }
+
+    @Test
+    fun discardedSetEditProducesNoPendingDatabaseWrite() {
+        val originalSet = HistorySetUiState(
+            setId = 101,
+            setNumber = 1,
+            weightKg = 80.0,
+            reps = 8,
+            notes = null,
+            isCompleted = true
+        )
+        val detail = HistoryDetailUiState(
+            sessionId = 1,
+            routineName = "Push",
+            dayName = "Day 1",
+            startedAt = 0,
+            finishedAt = 1,
+            weekNumber = 1,
+            notes = null,
+            pausedMillis = 0,
+            exercises = listOf(
+                HistoryExerciseUiState(
+                    exerciseId = 1,
+                    name = "Bench Press",
+                    targetRepsText = "8-12",
+                    sets = listOf(originalSet)
+                )
+            )
+        )
+        val snapshot = mapOf(originalSet.setId to (originalSet.weightText to originalSet.repsText))
+        val editedDetail = detail.copy(
+            exercises = detail.exercises.map { exercise ->
+                exercise.copy(sets = exercise.sets.map { set -> set.copy(weightText = "85") })
+            }
+        )
+
+        assertEquals(1, changedHistorySetEdits(editedDetail, snapshot).size)
+        assertEquals(emptyList<HistorySetEdit>(), changedHistorySetEdits(detail, snapshot))
+    }
 }

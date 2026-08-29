@@ -1,6 +1,7 @@
 package com.alvarocervantes.fittrackplus.domain.usecase
 
 import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
+import com.alvarocervantes.fittrackplus.domain.model.isWorkoutSetCompleted
 import javax.inject.Inject
 
 class UpdateWorkoutSetUseCase @Inject constructor(
@@ -8,7 +9,7 @@ class UpdateWorkoutSetUseCase @Inject constructor(
 ) {
     /**
      * @param markCompletionFromData when true, the set's completion flag is derived from the data
-     * (weight > 0 and reps > 0). Used from History, where filling in a set counts as completing it.
+     * (positive reps). Used from History, where filling in a set counts as completing it.
      * The live workout keeps completion manual (green button), so it leaves this false.
      */
     suspend operator fun invoke(
@@ -21,7 +22,7 @@ class UpdateWorkoutSetUseCase @Inject constructor(
         val reps = repsText.toIntOrNull()?.coerceAtLeast(0) ?: 0
         workoutRepository.updateSet(setId = setId, weightKg = weightKg, reps = reps)
         if (markCompletionFromData) {
-            workoutRepository.updateSetCompletion(setId = setId, isCompleted = weightKg > 0.0 && reps > 0)
+            workoutRepository.updateSetCompletion(setId = setId, isCompleted = isWorkoutSetCompleted(reps))
         }
     }
 }

@@ -10,6 +10,7 @@ import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseAlternativeD
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseDraft
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -357,6 +358,7 @@ class RoutinesViewModel @Inject constructor(
     }
 
     fun saveEditor() {
+        if (_uiState.value.isSaving) return
         val editor = _uiState.value.editor ?: return
         if (!editor.canSave) return
 
@@ -532,6 +534,7 @@ internal fun RoutineEditorUiState.toggleDayExpansion(dayIndex: Int): RoutineEdit
 }
 
 data class RoutineDayEditorUiState(
+    val draftId: String = UUID.randomUUID().toString(),
     val name: String = "Dia 1",
     val exercises: List<RoutineExerciseEditorUiState> = listOf(RoutineExerciseEditorUiState())
 ) {
@@ -540,6 +543,7 @@ data class RoutineDayEditorUiState(
 }
 
 data class RoutineExerciseEditorUiState(
+    val draftId: String = UUID.randomUUID().toString(),
     val routineExerciseId: Long? = null,
     val variantKey: String? = null,
     val defaultVariantKey: String? = null,

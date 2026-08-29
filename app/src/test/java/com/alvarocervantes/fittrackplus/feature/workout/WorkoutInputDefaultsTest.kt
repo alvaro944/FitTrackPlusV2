@@ -5,6 +5,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.alvarocervantes.fittrackplus.core.design.components.maybeSelectAllOnFocusValue
 import com.alvarocervantes.fittrackplus.core.design.components.selectAllOnFocusValue
 import com.alvarocervantes.fittrackplus.core.design.components.syncTextFieldValue
+import com.alvarocervantes.fittrackplus.domain.model.PrType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -57,17 +58,17 @@ class WorkoutInputDefaultsTest {
     }
 
     @Test
-    fun isWorkoutSetCompleted_requiresPositiveWeightAndReps() {
-        assertFalse(isWorkoutSetCompleted(weightText = "", repsText = "10"))
-        assertFalse(isWorkoutSetCompleted(weightText = "20", repsText = "0"))
-        assertTrue(isWorkoutSetCompleted(weightText = "20", repsText = "10"))
+    fun isWorkoutSetCompleted_acceptsBodyweightSetsWithPositiveReps() {
+        assertTrue(isWorkoutSetCompleted(repsText = "8"))
+        assertFalse(isWorkoutSetCompleted(repsText = "0"))
+        assertTrue(isWorkoutSetCompleted(repsText = "10"))
     }
 
     @Test
-    fun workoutSetReadyToComplete_requiresInputsAndNotCompleted() {
-        assertFalse(isWorkoutSetReadyToComplete(weightText = "", repsText = "10", isCompleted = false))
-        assertFalse(isWorkoutSetReadyToComplete(weightText = "20", repsText = "10", isCompleted = true))
-        assertTrue(isWorkoutSetReadyToComplete(weightText = "20", repsText = "10", isCompleted = false))
+    fun workoutSetReadyToComplete_requiresPositiveRepsAndNotCompleted() {
+        assertTrue(isWorkoutSetReadyToComplete(repsText = "10", isCompleted = false))
+        assertFalse(isWorkoutSetReadyToComplete(repsText = "10", isCompleted = true))
+        assertFalse(isWorkoutSetReadyToComplete(repsText = "0", isCompleted = false))
     }
 
     @Test
@@ -84,7 +85,22 @@ class WorkoutInputDefaultsTest {
 
         assertEquals("60", result.weightText)
         assertFalse(result.isCompleted)
-        assertTrue(isWorkoutSetReadyToComplete(result.weightText, result.repsText, result.isCompleted))
+        assertTrue(isWorkoutSetReadyToComplete(result.repsText, result.isCompleted))
+    }
+
+    @Test
+    fun editingCompletedSetClearsItsPersonalRecordMarker() {
+        val set = WorkoutSetUiState(
+            id = 1,
+            setNumber = 1,
+            weightText = "60",
+            repsText = "10",
+            isCompleted = true,
+            prType = PrType.MaxWeight
+        )
+
+        assertEquals(null, updateWorkoutSetWeightInput(set, "62,5").prType)
+        assertEquals(null, updateWorkoutSetRepsInput(set, "11").prType)
     }
 
     @Test
@@ -93,27 +109,21 @@ class WorkoutInputDefaultsTest {
 
         assertTrue(
             shouldAutoStartRestTimerOnSetCompletion(
-                previousWeightText = "",
-                previousRepsText = "10",
-                nextWeightText = "20",
+                previousRepsText = "",
                 nextRepsText = "10",
                 timer = timer
             )
         )
         assertTrue(
             shouldAutoStartRestTimerOnSetCompletion(
-                previousWeightText = "20",
                 previousRepsText = "",
-                nextWeightText = "20",
                 nextRepsText = "10",
                 timer = timer
             )
         )
         assertFalse(
             shouldAutoStartRestTimerOnSetCompletion(
-                previousWeightText = "20",
                 previousRepsText = "10",
-                nextWeightText = "25",
                 nextRepsText = "10",
                 timer = timer
             )

@@ -50,6 +50,7 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -146,7 +147,9 @@ fun RoutinesScreen(
             when {
                 state.editor?.hasUnsavedChanges == true -> {
                     ExtendedFloatingActionButton(
-                        onClick = viewModel::saveEditor
+                        onClick = {
+                            if (!state.isSaving) viewModel.saveEditor()
+                        }
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Check,
@@ -616,6 +619,22 @@ private fun RoutineEditorContent(
         WindowInsets.ime.getBottom(this).toDp()
     }
     var exercisePendingRemoval by remember { mutableStateOf<PendingExerciseRemoval?>(null) }
+    var dayPendingRemoval by remember { mutableStateOf<Int?>(null) }
+
+    dayPendingRemoval?.let { dayIndex ->
+        FitTrackConfirmDialog(
+            title = "Eliminar dia",
+            text = "Se eliminara el dia y todos sus ejercicios. Esta accion no se puede deshacer.",
+            confirmLabel = "Eliminar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onRemoveDay(dayIndex)
+                dayPendingRemoval = null
+            },
+            onDismiss = { dayPendingRemoval = null },
+            destructive = true
+        )
+    }
 
     exercisePendingRemoval?.let { pendingRemoval ->
         FitTrackConfirmDialog(
@@ -691,7 +710,7 @@ private fun RoutineEditorContent(
             FitTrackSectionLabel(label = "Dias")
         }
 
-        itemsIndexed(editor.days) { dayIndex, day ->
+        itemsIndexed(editor.days, key = { _, day -> day.draftId }) { dayIndex, day ->
             RoutineDayEditor(
                 dayIndex = dayIndex,
                 day = day,
@@ -703,7 +722,7 @@ private fun RoutineEditorContent(
                 onDayNameChange = onDayNameChange,
                 onDuplicateDay = onDuplicateDay,
                 onMoveDay = onMoveDay,
-                onRemoveDay = onRemoveDay,
+                onRemoveDay = { dayPendingRemoval = it },
                 onAddExercise = onAddExercise,
                 onExerciseNameChange = onExerciseNameChange,
                 onExerciseSetsChange = onExerciseSetsChange,
@@ -908,7 +927,8 @@ private fun RoutineDayEditor(
             )
 
             day.exercises.forEachIndexed { exerciseIndex, exercise ->
-                RoutineExerciseEditor(
+                key(exercise.draftId) {
+                    RoutineExerciseEditor(
                     dayIndex = dayIndex,
                     exerciseIndex = exerciseIndex,
                     exercise = exercise,
@@ -931,8 +951,9 @@ private fun RoutineDayEditor(
                     onSetExerciseDefaultVariant = onSetExerciseDefaultVariant,
                     onDuplicateExercise = onDuplicateExercise,
                     onMoveExercise = onMoveExercise,
-                    onRemoveExercise = onRemoveExercise
-                )
+                        onRemoveExercise = onRemoveExercise
+                    )
+                }
             }
 
             FitTrackAddButton(
@@ -974,6 +995,23 @@ private fun RoutineExerciseEditor(
     var notesDraft by remember { mutableStateOf("") }
     var showAlternativesDialog by remember { mutableStateOf(false) }
     var editingAlternativeIndex by remember { mutableStateOf<Int?>(null) }
+    var alternativePendingRemoval by remember { mutableStateOf<Int?>(null) }
+
+    alternativePendingRemoval?.let { alternativeIndex ->
+        FitTrackConfirmDialog(
+            title = "Eliminar alternativa",
+            text = "Se eliminara esta alternativa del ejercicio. Esta accion no se puede deshacer.",
+            confirmLabel = "Eliminar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onRemoveExerciseAlternative(dayIndex, exerciseIndex, alternativeIndex)
+                if (editingAlternativeIndex == alternativeIndex) editingAlternativeIndex = null
+                alternativePendingRemoval = null
+            },
+            onDismiss = { alternativePendingRemoval = null },
+            destructive = true
+        )
+    }
 
     if (showNotesDialog) {
         FitTrackInputDialog(
@@ -1011,11 +1049,11 @@ private fun RoutineExerciseEditor(
             exercise = exercise,
             editingAlternativeIndex = editingAlternativeIndex,
             onDismiss = {
-                finishInlineAlternativeEdit(
+                cancelInlineAlternativeEdit(
                     editingAlternativeIndex,
                     dayIndex,
                     exerciseIndex,
-                    onFinishExerciseAlternativeEdit
+                    onCancelExerciseAlternativeEdit
                 )
                 showAlternativesDialog = false
                 editingAlternativeIndex = null
@@ -1035,8 +1073,7 @@ private fun RoutineExerciseEditor(
                 editingAlternativeIndex = alternativeIndex
             },
             onRemoveAlternative = { alternativeIndex ->
-                onRemoveExerciseAlternative(dayIndex, exerciseIndex, alternativeIndex)
-                if (editingAlternativeIndex == alternativeIndex) editingAlternativeIndex = null
+                alternativePendingRemoval = alternativeIndex
             },
             onAlternativeNameChange = { alternativeIndex, value ->
                 onExerciseAlternativeNameChange(dayIndex, exerciseIndex, alternativeIndex, value)
@@ -1281,6 +1318,7 @@ private fun ExerciseAlternativesEditorDialog(
                                     label = { Text("Notas") },
                                     singleLine = false,
                                     minLines = 2,
+                                    selectAllOnFocus = false,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 FitTrackFormDialogActions(

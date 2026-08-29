@@ -8,6 +8,7 @@ import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryExercise
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryMetricDelta
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySet
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySummary
+import com.alvarocervantes.fittrackplus.domain.model.isWorkoutSetCompleted
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.data.repository.RoutineRepository
 import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHistoryDetailUseCase
@@ -214,6 +215,13 @@ class HistoryViewModel @Inject constructor(
 
     fun confirmSaveChanges() {
         val action = _uiState.value.pendingEditExit ?: return
+        changedSetEdits().forEach { edit ->
+            persistSetEdit(
+                setId = edit.setId,
+                weightText = edit.weightText,
+                repsText = edit.repsText
+            )
+        }
         finalizeEditExit(action)
     }
 
@@ -229,7 +237,6 @@ class HistoryViewModel @Inject constructor(
                     reps = repsText.toIntOrNull() ?: current.reps
                 )
             }
-            persistSetEdit(setId = setId, weightText = weightText, repsText = repsText)
         }
         finalizeEditExit(action)
     }
@@ -272,7 +279,7 @@ class HistoryViewModel @Inject constructor(
     fun updateSetWeight(setId: Long, weightText: String) {
         val set = findSelectedSet(setId) ?: return
         val sanitizedWeightText = sanitizeWorkoutWeightInput(weightText)
-        val completed = isEditedSetCompleted(sanitizedWeightText, set.repsText)
+        val completed = isWorkoutSetCompleted(set.repsText.toIntOrNull() ?: 0)
         updateSelectedSet(setId) { current ->
             current.copy(
                 weightText = sanitizedWeightText,
@@ -280,13 +287,12 @@ class HistoryViewModel @Inject constructor(
                 isCompleted = completed
             )
         }
-        persistSetEdit(setId = setId, weightText = sanitizedWeightText, repsText = set.repsText)
     }
 
     fun updateSetReps(setId: Long, repsText: String) {
         val set = findSelectedSet(setId) ?: return
         val sanitizedRepsText = repsText.filter { it.isDigit() }
-        val completed = isEditedSetCompleted(set.weightText, sanitizedRepsText)
+        val completed = isWorkoutSetCompleted(sanitizedRepsText.toIntOrNull() ?: 0)
         updateSelectedSet(setId) { current ->
             current.copy(
                 repsText = sanitizedRepsText,
@@ -294,14 +300,10 @@ class HistoryViewModel @Inject constructor(
                 isCompleted = completed
             )
         }
-        persistSetEdit(setId = setId, weightText = set.weightText, repsText = sanitizedRepsText)
     }
 
-    /** History mirror of the workout's completion rule: a set counts as done once it has real data. */
-    private fun isEditedSetCompleted(weightText: String, repsText: String): Boolean {
-        val weightKg = parseWorkoutWeightInput(weightText) ?: 0.0
-        val reps = repsText.toIntOrNull() ?: 0
-        return weightKg > 0.0 && reps > 0
+    private fun changedSetEdits(): List<HistorySetEdit> {
+        return changedHistorySetEdits(_uiState.value.selectedDetail, editSnapshot)
     }
 
     private fun findSelectedSet(setId: Long): HistorySetUiState? {
@@ -412,6 +414,34 @@ data class HistoryUiState(
 enum class HistoryEditExitAction {
     FinishEditing,
     BackToList
+}
+
+internal data class HistorySetEdit(
+    val setId: Long,
+    val weightText: String,
+    val repsText: String
+)
+
+internal fun changedHistorySetEdits(
+    detail: HistoryDetailUiState?,
+    snapshot: Map<Long, Pair<String, String>>
+): List<HistorySetEdit> {
+    return detail
+        ?.exercises
+        ?.flatMap { exercise -> exercise.sets }
+        ?.mapNotNull { set ->
+            val original = snapshot[set.setId] ?: return@mapNotNull null
+            if (original.first == set.weightText && original.second == set.repsText) {
+                null
+            } else {
+                HistorySetEdit(
+                    setId = set.setId,
+                    weightText = set.weightText,
+                    repsText = set.repsText
+                )
+            }
+        }
+        ?: emptyList()
 }
 
 enum class HistoryPeriodFilter(val label: String) {

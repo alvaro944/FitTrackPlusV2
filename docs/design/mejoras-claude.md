@@ -434,6 +434,18 @@ Al migrar las `QuickActionCard` de Home, las 4 acciones (rutinas, entrenar, hist
 
 ---
 
+## Nuevo - Deshacer real en acciones destructivas (2026-08-29)
+
+Encontrado durante la implementacion de `fix/data-loss` (P0-9 de `docs/design/auditoria-ronda-3.md`).
+
+### 38. No existe infraestructura para "Deshacer" de verdad
+
+`RoutinesViewModel.removeDay`/`removeExercise`/`removeExerciseAlternative` mutan el editor sin guardar ningun snapshot de lo eliminado, y el unico canal hacia el `SnackbarHost` es un mensaje de texto de una via (`viewModel.clearMessage()`), sin `actionLabel` ni logica de restauracion. `fix/data-loss` cerro el riesgo inmediato con confirmacion antes de borrar (dia, ejercicio, alternativa), pero un "Deshacer" real requiere: snapshot del elemento eliminado en el ViewModel, un canal de evento (no solo un `String`) hacia la UI, y logica de restauracion que reinserte el elemento en su posicion original si el usuario pulsa "Deshacer" antes de que expire el snackbar. Aplica igual a las demas instancias de `SnackbarHostState` del proyecto (7 en total, 0 con `actionLabel` a fecha de la auditoria).
+
+**Esfuerzo**: medio — no es un fix puntual, es una pieza de infraestructura compartida (probablemente un helper en `core/` reutilizable desde varias features).
+
+---
+
 ## Siguiente paso sugerido
 
 El usuario revisa entrada por entrada y marca cuales entran en el backlog real. Las descartadas se dejan aqui como registro. Las aceptadas se repriorizan en `docs/planning/roadmap-2.1.md` cuando pasan a ser direccion vigente.

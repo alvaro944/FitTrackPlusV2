@@ -965,6 +965,7 @@ private fun ExerciseAlternativesDialog(
                     label = { Text("Notas") },
                     singleLine = false,
                     minLines = 2,
+                    selectAllOnFocus = false,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -1000,7 +1001,6 @@ private fun WorkoutSetRow(
         mode = FitTrackSetRowMode.Edit,
         isCompleted = set.isCompleted,
         isReadyToComplete = isWorkoutSetReadyToComplete(
-            set.weightText,
             set.repsText,
             set.isCompleted
         ),
