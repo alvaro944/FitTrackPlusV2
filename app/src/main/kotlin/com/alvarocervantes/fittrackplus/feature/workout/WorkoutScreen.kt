@@ -5,8 +5,6 @@ package com.alvarocervantes.fittrackplus.feature.workout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +15,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,7 +22,6 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -46,8 +42,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.minimumInteractiveComponentSize
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -65,12 +59,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -91,11 +83,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeVariant
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import com.alvarocervantes.fittrackplus.core.design.components.ConfettiAnimation
-import com.alvarocervantes.fittrackplus.core.design.components.DisableNativeTextToolbar
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
-import com.alvarocervantes.fittrackplus.core.design.components.FitTrackStepper
-import com.alvarocervantes.fittrackplus.core.design.components.selectAllOnFocusValue
-import com.alvarocervantes.fittrackplus.core.design.components.syncTextFieldValue
 import com.alvarocervantes.fittrackplus.domain.model.PrType
 import com.alvarocervantes.fittrackplus.domain.model.ProgressionHint
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
@@ -111,6 +99,8 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
 import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
 import com.alvarocervantes.fittrackplus.core.design.FitTrackRadialTimer
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
+import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRow
+import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowMode
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
@@ -1005,81 +995,6 @@ private fun ExerciseAlternativesDialog(
 }
 
 @Composable
-private fun WeightFieldColumn(
-    setId: Long,
-    weightText: String,
-    previousWeight: String?,
-    isCompleted: Boolean,
-    onSetWeightChange: (Long, String) -> Unit,
-    onStepWeight: (Long, Double) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var fieldValue by remember(setId) { mutableStateOf(TextFieldValue(weightText)) }
-    val interactionSource = remember { MutableInteractionSource() }
-
-    LaunchedEffect(weightText) {
-        fieldValue = syncTextFieldValue(
-            current = fieldValue,
-            externalText = weightText
-        )
-    }
-
-    LaunchedEffect(interactionSource) {
-        interactionSource.interactions.collect { interaction ->
-            if (interaction is PressInteraction.Release) {
-                fieldValue = selectAllOnFocusValue(fieldValue)
-            }
-        }
-    }
-
-    Column(modifier = modifier) {
-        FitTrackStepper(
-            value = weightText,
-            onIncrement = { onStepWeight(setId, 2.5) },
-            onDecrement = { onStepWeight(setId, -2.5) },
-            onLongIncrement = { onStepWeight(setId, 5.0) },
-            onLongDecrement = { onStepWeight(setId, -5.0) },
-            compact = true,
-            spacing = FitSpacing.xs,
-            decrementContentDescription = "Bajar peso de la serie ${setId}",
-            incrementContentDescription = "Subir peso de la serie ${setId}",
-            buttonContainer = true
-        ) {
-            DisableNativeTextToolbar {
-                OutlinedTextField(
-                    value = fieldValue,
-                    onValueChange = { value ->
-                        fieldValue = value
-                        onSetWeightChange(setId, value.text)
-                    },
-                    placeholder = { Text("Kg") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    colors = workoutSetFieldColors(isCompleted = isCompleted),
-                    interactionSource = interactionSource,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 56.dp)
-                        .onFocusChanged { focusState ->
-                            if (focusState.isFocused) {
-                                fieldValue = selectAllOnFocusValue(fieldValue)
-                            }
-                        }
-                )
-            }
-        }
-        if (previousWeight != null) {
-            Text(
-                text = formatPreviousWeightLabel(previousWeight),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.padding(start = 4.dp, top = 2.dp)
-            )
-        }
-    }
-}
-
-@Composable
 private fun WorkoutSetRow(
     set: WorkoutSetUiState,
     onSetWeightChange: (Long, String) -> Unit,
@@ -1088,146 +1003,39 @@ private fun WorkoutSetRow(
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit
 ) {
-    val isReadyToComplete = isWorkoutSetReadyToComplete(set.weightText, set.repsText, set.isCompleted)
-    val rowBackground = when {
-        set.isCompleted -> MaterialTheme.colorScheme.primarySoft
-        isReadyToComplete -> MaterialTheme.colorScheme.primarySoft.copy(alpha = 0.45f)
-        else -> MaterialTheme.colorScheme.surfaceAlt
-    }
-    val rowBorderColor = if (isReadyToComplete) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-    } else {
-        Color.Transparent
-    }
-    var repsFieldValue by remember(set.id) { mutableStateOf(TextFieldValue(set.repsText)) }
-    val repsInteractionSource = remember { MutableInteractionSource() }
-
-    LaunchedEffect(set.repsText) {
-        repsFieldValue = syncTextFieldValue(
-            current = repsFieldValue,
-            externalText = set.repsText
-        )
-    }
-
-    LaunchedEffect(repsInteractionSource) {
-        repsInteractionSource.interactions.collect { interaction ->
-            if (interaction is PressInteraction.Release) {
-                repsFieldValue = selectAllOnFocusValue(repsFieldValue)
+    FitTrackSetRow(
+        setId = set.id,
+        setNumber = set.setNumber,
+        weightText = set.weightText,
+        repsText = set.repsText,
+        mode = FitTrackSetRowMode.Edit,
+        isCompleted = set.isCompleted,
+        isReadyToComplete = isWorkoutSetReadyToComplete(
+            set.weightText,
+            set.repsText,
+            set.isCompleted
+        ),
+        showCompletionControl = true,
+        previousWeight = set.previousWeight,
+        previousReps = set.previousReps,
+        onWeightChange = { onSetWeightChange(set.id, it) },
+        onRepsChange = { onSetRepsChange(set.id, it) },
+        onComplete = { onCompleteSet(set.id) },
+        onStepWeight = { onStepWeight(set.id, it) },
+        onStepReps = { onStepReps(set.id, it) },
+        footer = if (set.prType != null) {
+            {
+                FitTrackBadge(
+                    label = if (set.prType == PrType.MaxWeight) "PR PESO" else "PR VOLUMEN",
+                    tone = FitTrackBadgeTone.Warm,
+                    modifier = Modifier.padding(start = FitSpacing.smMd, top = 2.dp)
+                )
             }
-        }
-    }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(rowBackground, MaterialTheme.shapes.large)
-                .border(width = 1.dp, color = rowBorderColor, shape = MaterialTheme.shapes.large)
-                .padding(FitSpacing.smMd),
-            horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
-            verticalAlignment = Alignment.Top
-        ) {
-            WorkoutSetCompletionButton(
-                setNumber = set.setNumber,
-                isCompleted = set.isCompleted,
-                isReadyToComplete = isReadyToComplete,
-                onClick = { onCompleteSet(set.id) }
-            )
-            WeightFieldColumn(
-                setId = set.id,
-                weightText = set.weightText,
-                previousWeight = set.previousWeight,
-                isCompleted = set.isCompleted,
-                onSetWeightChange = onSetWeightChange,
-                onStepWeight = onStepWeight,
-                modifier = Modifier.weight(WORKOUT_WEIGHT_COLUMN_WEIGHT)
-            )
-            Column(
-                modifier = Modifier.weight(WORKOUT_REPS_COLUMN_WEIGHT),
-                verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-            ) {
-                FitTrackStepper(
-                    value = set.repsText,
-                    onIncrement = { onStepReps(set.id, 1) },
-                    onDecrement = { onStepReps(set.id, -1) },
-                    compact = true,
-                    decrementContentDescription = "Bajar repeticiones de la serie ${set.setNumber}",
-                    incrementContentDescription = "Subir repeticiones de la serie ${set.setNumber}",
-                    buttonContainer = true
-                ) {
-                    DisableNativeTextToolbar {
-                        OutlinedTextField(
-                            value = repsFieldValue,
-                            onValueChange = { value ->
-                                repsFieldValue = value
-                                onSetRepsChange(set.id, value.text)
-                            },
-                            placeholder = { Text("Reps") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            colors = workoutSetFieldColors(isCompleted = set.isCompleted),
-                            interactionSource = repsInteractionSource,
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(min = 56.dp)
-                                .onFocusChanged { focusState ->
-                                    if (focusState.isFocused) {
-                                        repsFieldValue = selectAllOnFocusValue(repsFieldValue)
-                                    }
-                                }
-                        )
-                    }
-                }
-                if (set.previousReps != null) {
-                    Text(
-                        text = formatPreviousRepsLabel(set.previousReps),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                }
-            }
-        }
-        if (set.prType != null) {
-            FitTrackBadge(
-                label = if (set.prType == PrType.MaxWeight) "PR PESO" else "PR VOLUMEN",
-                tone = FitTrackBadgeTone.Warm,
-                modifier = Modifier.padding(start = FitSpacing.smMd, top = 2.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun WorkoutSetCompletionButton(
-    setNumber: Int,
-    isCompleted: Boolean,
-    isReadyToComplete: Boolean,
-    onClick: () -> Unit
-) {
-    val contentDescription = when {
-        isCompleted -> "Serie $setNumber completada"
-        isReadyToComplete -> "Completar serie $setNumber"
-        else -> "Serie $setNumber pendiente"
-    }
-
-    FitTrackIconBadge(
-        variant = if (isCompleted) {
-            FitTrackIconBadgeVariant.Icon(Icons.Filled.Check)
         } else {
-            FitTrackIconBadgeVariant.Number(setNumber.toString())
-        },
-        tone = if (isCompleted) FitTrackIconBadgeTone.Filled else FitTrackIconBadgeTone.Outlined,
-        modifier = Modifier
-            .padding(top = 6.dp)
-            .clickable(enabled = isReadyToComplete, onClick = onClick)
-            .semantics { this.contentDescription = contentDescription }
+            null
+        }
     )
 }
-
-internal fun formatPreviousWeightLabel(previousWeight: String): String = "ant. $previousWeight kg"
-
-internal fun formatPreviousRepsLabel(previousReps: Int): String = "ant. $previousReps"
 
 @Composable
 private fun ProgressionHintButton(hint: ProgressionHint) {
@@ -1267,32 +1075,6 @@ private fun ProgressionHintButton(hint: ProgressionHint) {
         }
     }
 }
-
-@Composable
-private fun workoutSetFieldColors(isCompleted: Boolean) = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = MaterialTheme.colorScheme.primary,
-    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-    focusedLabelColor = MaterialTheme.colorScheme.primary,
-    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    focusedTextColor = if (isCompleted) {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    },
-    unfocusedTextColor = if (isCompleted) {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    },
-    cursorColor = MaterialTheme.colorScheme.primary,
-    focusedContainerColor = Color.Transparent,
-    unfocusedContainerColor = Color.Transparent
-)
-
-// El peso puede llegar a 5 caracteres ("120,5") mientras que las reps nunca pasan de 2 cifras,
-// asi que la columna de peso recibe algo mas de ancho que la de reps (empujon suave, no extremo).
-private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.15f
-private const val WORKOUT_REPS_COLUMN_WEIGHT = 1.0f
 
 @Composable
 private fun WorkoutLoadingSkeleton() {
@@ -1349,6 +1131,10 @@ private fun WorkoutLoadingSkeleton() {
         }
     }
 }
+
+internal fun formatPreviousWeightLabel(previousWeight: String): String = "ant. $previousWeight kg"
+
+internal fun formatPreviousRepsLabel(previousReps: Int): String = "ant. $previousReps"
 
 private fun formatStartedAt(timestamp: Long): String {
     return SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()).format(Date(timestamp))

@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -34,7 +33,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -51,7 +49,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -66,7 +63,6 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackDropdownField
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCardBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
-import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
@@ -75,6 +71,9 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRow
 import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRowStyle
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
+import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRow
+import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowEditFieldStyle
+import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowMode
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDeltaDirection
 import java.text.SimpleDateFormat
@@ -716,64 +715,17 @@ private fun HistorySetRow(
     onWeightChange: (Long, String) -> Unit,
     onRepsChange: (Long, String) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
-            .padding(FitSpacing.smMd),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .background(MaterialTheme.colorScheme.surface, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = set.setNumber.toString(),
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-            if (isEditMode) {
-                FitTrackSelectAllTextField(
-                    value = set.weightText,
-                    onValueChange = { onWeightChange(set.setId, it) },
-                    label = { Text("kg") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f)
-                )
-                FitTrackSelectAllTextField(
-                    value = set.repsText,
-                    onValueChange = { onRepsChange(set.setId, it) },
-                    label = { Text("reps") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f)
-                )
-            } else {
-                Text(
-                    text = "${set.weightKg.toDisplayText()} kg",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = "${set.reps} reps",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-        set.notes?.takeIf { it.isNotBlank() }?.let { notes ->
-            Text(
-                text = notes,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
+    FitTrackSetRow(
+        setId = set.setId,
+        setNumber = set.setNumber,
+        weightText = if (isEditMode) set.weightText else "${set.weightKg.toDisplayText()} kg",
+        repsText = if (isEditMode) set.repsText else "${set.reps} reps",
+        mode = if (isEditMode) FitTrackSetRowMode.Edit else FitTrackSetRowMode.ReadOnly,
+        notes = set.notes,
+        editFieldStyle = FitTrackSetRowEditFieldStyle.TextField,
+        onWeightChange = { onWeightChange(set.setId, it) },
+        onRepsChange = { onRepsChange(set.setId, it) }
+    )
 }
 
 private fun formatDate(timestamp: Long): String {
