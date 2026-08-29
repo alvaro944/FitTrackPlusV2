@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -96,6 +97,7 @@ fun HistoryScreen(
     val appShellViewModel: AppShellViewModel = hiltViewModel(appShellOwner)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val listState = rememberLazyListState()
 
     state.message?.let { message ->
         LaunchedEffect(message) {
@@ -108,11 +110,13 @@ fun HistoryScreen(
         viewModel.recoveredSessionEvent.collect { onGoToWorkout() }
     }
 
-    // Re-tapping the History tab while already on it should pop back to the list, not do nothing.
+    // Re-tapping the History tab while already on it should pop back to the list and scroll
+    // it to the top, matching the standard re-tap pattern used by the other tabs.
     LaunchedEffect(Unit) {
         appShellViewModel.activeTabReselected.collect { route ->
             if (route == AppRoute.History) {
                 viewModel.requestBackToList()
+                listState.animateScrollToItem(0)
             }
         }
     }
@@ -123,6 +127,7 @@ fun HistoryScreen(
         HistoryContent(
             state = state,
             contentPadding = padding,
+            listState = listState,
             onSessionClick = viewModel::selectSession,
             onBackToList = viewModel::requestBackToList,
             onPeriodFilterChange = viewModel::setPeriodFilter,
@@ -144,6 +149,7 @@ fun HistoryScreen(
 private fun HistoryContent(
     state: HistoryUiState,
     contentPadding: PaddingValues,
+    listState: LazyListState,
     onSessionClick: (Long) -> Unit,
     onBackToList: () -> Unit,
     onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
@@ -189,6 +195,7 @@ private fun HistoryContent(
             HistoryListContent(
                 state = state,
                 contentPadding = contentPadding,
+                listState = listState,
                 onSessionClick = onSessionClick,
                 onPeriodFilterChange = onPeriodFilterChange,
                 onSortOrderChange = onSortOrderChange,
@@ -202,12 +209,14 @@ private fun HistoryContent(
 private fun HistoryListContent(
     state: HistoryUiState,
     contentPadding: PaddingValues,
+    listState: LazyListState,
     onSessionClick: (Long) -> Unit,
     onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSortOrderChange: (HistorySortOrder) -> Unit,
     onRoutineFilterChange: (String?) -> Unit
 ) {
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
@@ -443,7 +452,7 @@ private fun HistoryDetailContent(
                 trailing = if (state.selectedDetail != null) {
                     {
                         Row {
-                            if (!state.isEditMode && state.selectedDetail.isComplete) {
+                            if (!state.isEditMode) {
                                 IconButton(onClick = { showDeleteSessionConfirm = true }) {
                                     Icon(
                                         imageVector = Icons.Filled.Delete,

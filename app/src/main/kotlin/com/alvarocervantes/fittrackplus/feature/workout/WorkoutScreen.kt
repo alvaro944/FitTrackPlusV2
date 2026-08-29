@@ -2,6 +2,10 @@
 
 package com.alvarocervantes.fittrackplus.feature.workout
 
+import androidx.activity.compose.LocalActivity
+import androidx.lifecycle.ViewModelStoreOwner
+import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
+import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,6 +30,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -127,6 +132,18 @@ fun WorkoutScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showFinishConfirmation by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
+    val activity = LocalActivity.current
+    val appShellOwner = requireNotNull(activity) as ViewModelStoreOwner
+    val appShellViewModel: AppShellViewModel = hiltViewModel(appShellOwner)
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        appShellViewModel.activeTabReselected.collect { route ->
+            if (route == AppRoute.Workout) {
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
 
     state.message?.let { message ->
         LaunchedEffect(message) {
@@ -203,6 +220,7 @@ fun WorkoutScreen(
             WorkoutContent(
                 state = state,
                 contentPadding = padding,
+                listState = listState,
                 onRefresh = viewModel::refresh,
                 onStartWorkout = viewModel::startWorkout,
                 onFinishWorkout = { showFinishConfirmation = true },
@@ -265,6 +283,7 @@ fun WorkoutScreen(
 private fun WorkoutContent(
     state: WorkoutUiState,
     contentPadding: PaddingValues,
+    listState: LazyListState,
     onRefresh: () -> Unit,
     onStartWorkout: () -> Unit,
     onFinishWorkout: () -> Unit,
@@ -283,7 +302,6 @@ private fun WorkoutContent(
     onToggleExerciseExpanded: (Long) -> Unit,
     onGoToRoutines: () -> Unit
 ) {
-    val listState = rememberLazyListState()
     val imeBottom = with(LocalDensity.current) {
         WindowInsets.ime.getBottom(this).toDp()
     }

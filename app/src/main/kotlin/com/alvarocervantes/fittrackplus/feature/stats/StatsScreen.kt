@@ -4,6 +4,10 @@
 
 package com.alvarocervantes.fittrackplus.feature.stats
 
+import androidx.activity.compose.LocalActivity
+import androidx.lifecycle.ViewModelStoreOwner
+import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
+import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -19,7 +23,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -79,11 +85,23 @@ fun StatsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val activity = LocalActivity.current
+    val appShellOwner = requireNotNull(activity) as ViewModelStoreOwner
+    val appShellViewModel: AppShellViewModel = hiltViewModel(appShellOwner)
+    val listState = rememberLazyListState()
 
     LaunchedEffect(state.message) {
         val msg = state.message ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(msg)
         viewModel.clearMessage()
+    }
+
+    LaunchedEffect(Unit) {
+        appShellViewModel.activeTabReselected.collect { route ->
+            if (route == AppRoute.Stats) {
+                listState.animateScrollToItem(0)
+            }
+        }
     }
 
     Scaffold(
@@ -92,6 +110,7 @@ fun StatsScreen(
         StatsContent(
             state = state,
             contentPadding = padding,
+            listState = listState,
             onPeriodFilterChange = viewModel::setPeriodFilter,
             onSelectRoutine = viewModel::selectRoutine,
             onSelectDay = viewModel::selectDay,
@@ -112,6 +131,7 @@ fun StatsScreen(
 private fun StatsContent(
     state: StatsUiState,
     contentPadding: PaddingValues,
+    listState: LazyListState,
     onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSelectRoutine: (String) -> Unit,
     onSelectDay: (String) -> Unit,
@@ -126,6 +146,7 @@ private fun StatsContent(
     onNextCalendarMonth: () -> Unit = {}
 ) {
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
