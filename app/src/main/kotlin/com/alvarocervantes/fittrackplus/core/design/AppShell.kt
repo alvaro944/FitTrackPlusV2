@@ -84,6 +84,7 @@ fun FitTrackAppShell(
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val weightUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
+    val menuHiddenForRoute by viewModel.menuHiddenForRoute.collectAsStateWithLifecycle()
     val bottomDestinations = remember { shellBottomDestinations() }
     val drawerItems = remember { shellDrawerItems() }
 
@@ -161,7 +162,11 @@ fun FitTrackAppShell(
                 content(innerPadding)
             }
 
-            if (currentRoute != AppRoute.Settings) {
+            // Floats over the content at the top end. It stays on the end side because the start
+            // side is where every screen header puts its title, and a floating button there would
+            // sit on top of it. Screens whose header shows trailing actions in this same corner
+            // hide it while those are up.
+            if (currentRoute != AppRoute.Settings && menuHiddenForRoute != currentRoute) {
                 ShellMenuButton(
                     onClick = {
                         coroutineScope.launch {

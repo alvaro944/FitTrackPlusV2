@@ -45,6 +45,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -121,6 +122,20 @@ fun HistoryScreen(
         }
     }
 
+    // The detail view puts its edit and delete actions in the header's trailing slot, the same
+    // top-end corner the floating shell menu button occupies, so hide the menu while it is open.
+    LaunchedEffect(state.selectedSessionId) {
+        appShellViewModel.setMenuButtonHidden(
+            route = AppRoute.History,
+            hidden = state.selectedSessionId != null
+        )
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            appShellViewModel.setMenuButtonHidden(AppRoute.History, hidden = false)
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
@@ -133,6 +148,7 @@ fun HistoryScreen(
             onPeriodFilterChange = viewModel::setPeriodFilter,
             onSortOrderChange = viewModel::setSortOrder,
             onRoutineFilterChange = viewModel::setRoutineFilter,
+            onClearFilters = viewModel::clearFilters,
             onToggleEditMode = viewModel::toggleEditMode,
             onSetWeightChange = viewModel::updateSetWeight,
             onSetRepsChange = viewModel::updateSetReps,
@@ -155,6 +171,7 @@ private fun HistoryContent(
     onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSortOrderChange: (HistorySortOrder) -> Unit,
     onRoutineFilterChange: (String?) -> Unit,
+    onClearFilters: () -> Unit,
     onToggleEditMode: () -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
@@ -199,7 +216,8 @@ private fun HistoryContent(
                 onSessionClick = onSessionClick,
                 onPeriodFilterChange = onPeriodFilterChange,
                 onSortOrderChange = onSortOrderChange,
-                onRoutineFilterChange = onRoutineFilterChange
+                onRoutineFilterChange = onRoutineFilterChange,
+                onClearFilters = onClearFilters
             )
         }
     }
@@ -213,7 +231,8 @@ private fun HistoryListContent(
     onSessionClick: (Long) -> Unit,
     onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSortOrderChange: (HistorySortOrder) -> Unit,
-    onRoutineFilterChange: (String?) -> Unit
+    onRoutineFilterChange: (String?) -> Unit,
+    onClearFilters: () -> Unit
 ) {
     LazyColumn(
         state = listState,
@@ -244,7 +263,8 @@ private fun HistoryListContent(
                     availableRoutineNames = state.availableRoutineNames,
                     onPeriodFilterChange = onPeriodFilterChange,
                     onSortOrderChange = onSortOrderChange,
-                    onRoutineFilterChange = onRoutineFilterChange
+                    onRoutineFilterChange = onRoutineFilterChange,
+                    onClearFilters = onClearFilters
                 )
             }
         }
@@ -302,10 +322,21 @@ private fun HistoryFilterControls(
     availableRoutineNames: List<String>,
     onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSortOrderChange: (HistorySortOrder) -> Unit,
-    onRoutineFilterChange: (String?) -> Unit
+    onRoutineFilterChange: (String?) -> Unit,
+    onClearFilters: () -> Unit
 ) {
+    val defaults = remember { HistoryUiState() }
+    val hasActiveFilters = selectedPeriod != defaults.selectedPeriod ||
+        selectedSort != defaults.selectedSort ||
+        selectedRoutineName != null
+
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            FitTrackSectionLabel(
+                label = "Filtros",
+                actionLabel = if (hasActiveFilters) "Limpiar" else null,
+                onAction = if (hasActiveFilters) onClearFilters else null
+            )
             FitTrackSectionLabel(label = "Periodo")
             Row(
                 modifier = Modifier

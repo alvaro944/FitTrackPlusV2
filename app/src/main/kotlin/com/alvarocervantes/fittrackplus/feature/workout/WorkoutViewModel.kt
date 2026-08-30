@@ -952,38 +952,42 @@ internal fun adjustWorkoutRepsInput(currentValue: String, delta: Int): String {
 }
 
 internal fun sanitizeWorkoutWeightInput(value: String): String {
-    val sanitized = buildString {
+    // 'e'/'E' signals scientific notation ("1.0E7"): everything from there on is an exponent, not
+    // more decimal digits. Dropping it avoids keeping the trailing digits and producing a
+    // wrong-but-plausible value like "1,07".
+    val withoutExponent = value.takeWhile { it != 'e' && it != 'E' }
+
+    return buildString {
         var hasDecimalSeparator = false
         var integerDigits = 0
         var decimalDigits = 0
-        for (char in value) {
+        for (char in withoutExponent) {
+            // Cap the digits on each side instead of the parsed value, so typing stays fluid and
+            // an accidental extra keystroke cannot log 999999999 kg.
+            val atDigitCap = if (hasDecimalSeparator) {
+                decimalDigits == MAX_WEIGHT_DECIMAL_DIGITS
+            } else {
+                integerDigits == MAX_WEIGHT_INTEGER_DIGITS
+            }
+            if (char.isDigit() && atDigitCap) break
+
             when {
-                char.isDigit() -> {
-                    // Cap the digits on each side instead of the parsed value, so typing stays
-                    // fluid and an accidental extra keystroke cannot log 999999999 kg.
-                    if (hasDecimalSeparator) {
-                        if (decimalDigits == MAX_WEIGHT_DECIMAL_DIGITS) break
-                        decimalDigits++
-                    } else {
-                        if (integerDigits == MAX_WEIGHT_INTEGER_DIGITS) break
-                        integerDigits++
-                    }
+                char.isDigit() && hasDecimalSeparator -> {
+                    decimalDigits++
                     append(char)
                 }
+                char.isDigit() -> {
+                    integerDigits++
+                    append(char)
+                }
+                // Any other stray character (e.g. a mistyped letter) is skipped so typing flows.
                 (char == '.' || char == ',') && !hasDecimalSeparator -> {
                     append(',')
                     hasDecimalSeparator = true
                 }
-                // 'e'/'E' signals scientific notation ("1.0E7"): everything from here on is an
-                // exponent, not more decimal digits, so stop instead of silently keeping the
-                // trailing digits and producing a wrong-but-plausible value like "1,07".
-                // Any other stray character (e.g. a mistyped letter) is just skipped, same as
-                // before, so typing keeps flowing.
-                char == 'e' || char == 'E' -> break
             }
         }
     }
-    return sanitized
 }
 
 /** Longest reps entry accepted: nobody logs four digits of repetitions. */
@@ -994,14 +998,7 @@ internal const val MAX_WEIGHT_INTEGER_DIGITS: Int = 4
 internal const val MAX_WEIGHT_DECIMAL_DIGITS: Int = 2
 
 internal fun sanitizeWorkoutRepsInput(value: String): String {
-    val sanitized = buildString {
-        for (char in value) {
-            if (!char.isDigit()) break
-            if (length == MAX_REPS_DIGITS) break
-            append(char)
-        }
-    }
-    return sanitized
+    return value.takeWhile { it.isDigit() }.take(MAX_REPS_DIGITS)
 }
 
 internal fun parseWorkoutWeightInput(value: String): Double? {

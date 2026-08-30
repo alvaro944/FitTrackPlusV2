@@ -401,6 +401,28 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Resets every filter back to its default. The routine filter defaults to the active routine,
+     * which is convenient but easy to mistake for missing history, so there has to be one obvious
+     * way back to seeing everything.
+     */
+    fun clearFilters() {
+        routineFilterInitialized = true
+        _uiState.update { state ->
+            state.copy(
+                selectedPeriod = HistoryUiState().selectedPeriod,
+                selectedSort = HistoryUiState().selectedSort,
+                selectedRoutineName = null,
+                sessions = state.allSessions.applyHistoryFilters(
+                    period = HistoryUiState().selectedPeriod,
+                    sort = HistoryUiState().selectedSort,
+                    selectedRoutineName = null,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
     fun setRoutineFilter(routineName: String?) {
         routineFilterInitialized = true
         _uiState.update { state ->

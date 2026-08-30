@@ -22,6 +22,7 @@ class AppShellViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _blockedRoute = MutableStateFlow<AppRoute?>(null)
+    private val _menuHiddenForRoute = MutableStateFlow<AppRoute?>(null)
     private val _pendingNavigation = MutableStateFlow<NavigationRequest?>(null)
     private val _message = MutableStateFlow<String?>(null)
     private val _approvedNavigation = MutableSharedFlow<NavigationRequest>(extraBufferCapacity = 1)
@@ -32,6 +33,7 @@ class AppShellViewModel @Inject constructor(
 
     val pendingNavigation: StateFlow<NavigationRequest?> = _pendingNavigation.asStateFlow()
     val message: StateFlow<String?> = _message.asStateFlow()
+    val menuHiddenForRoute: StateFlow<AppRoute?> = _menuHiddenForRoute.asStateFlow()
     val approvedNavigation: SharedFlow<NavigationRequest> = _approvedNavigation.asSharedFlow()
     val activeTabReselected: SharedFlow<AppRoute> = _activeTabReselected.asSharedFlow()
 
@@ -63,6 +65,19 @@ class AppShellViewModel @Inject constructor(
 
     fun showMessage(text: String) {
         _message.value = text
+    }
+
+    /**
+     * Screens that show their own leading back action (a detail view inside a tab) hide the shell
+     * menu button while they are up, so the two never sit in the same corner. Callers must clear
+     * this on dispose, the same way they clear a navigation blocker.
+     */
+    fun setMenuButtonHidden(route: AppRoute, hidden: Boolean) {
+        _menuHiddenForRoute.value = when {
+            hidden -> route
+            _menuHiddenForRoute.value == route -> null
+            else -> _menuHiddenForRoute.value
+        }
     }
 
     fun setNavigationBlocker(route: AppRoute, isBlocked: Boolean) {
