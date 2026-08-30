@@ -2180,3 +2180,23 @@ Pendiente:
 - Intentos descartados: drawables nativos `android:textSelectHandle*` y `LocalTextSelectionColors.handleColor = Color.Transparent`; ninguno eliminó el fondo blanco en dispositivo.
 - Estado: se revierten ambos intentos para no dejar cambios sin efecto.
 - Deuda futura: investigar la capa real que pinta ese fondo blanco (posible popup/superficie del sistema, OEM o composición del handle de Compose) y resolverlo con validación manual en dispositivo real. No aplicar más cambios sin una reproducción/control visual claro.
+
+## 2026-08-31 - Auditoria ronda 3 cerrada en main
+
+- Alcance: tercera auditoria del proyecto, esta vez sobre **comportamiento** en vez de
+  componentes. Cinco barridos en paralelo sobre las 5 pestañas mas uno transversal; unos 250
+  hallazgos crudos consolidados en 76, priorizados de P0 a P6.
+- Resultado: P0 8/9, P1 10/12, P2 8/8, P3 7/8, P4 9/11. P5 y P6 sin empezar.
+- Actualizacion de dependencias en tres etapas verificables (Gradle+AGP+SDK, Kotlin+KSP+detekt,
+  Compose BOM), no en un solo salto.
+- `main` actualizada con 142 commits. Repositorio limpio de ~23 ramas a 3.
+- Metodo que funciono: revision cruzada. Codex reviso mi P4 y encontro que el estado de error de
+  Datos compartia campo con el snackbar; al tirar de ese hilo aparecio que el flujo usaba `catch`
+  en vez de `retryWhen` y se congelaba tras un solo fallo. Y la pasada manual del usuario
+  encontro que el bloqueo del cambio de variante, aunque bien implementado, protegia una regla
+  equivocada.
+- Leccion de proceso: **todo hallazgo accionable tiene que ir en la tabla numerada**. El bug
+  original del usuario vivia solo en prosa destacada de la auditoria y por eso se quedo fuera de
+  la spec que ejecuto Codex.
+- Pendiente: terminar la pasada manual en dispositivo (checklist de 10 pasadas), P5, P6, y los
+  cuatro puntos de P4 que quedan.

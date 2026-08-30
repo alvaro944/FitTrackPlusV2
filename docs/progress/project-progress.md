@@ -2,6 +2,69 @@
 
 Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso.
 
+## 2026-08-31 - Auditoria ronda 3 en main: P0 a P4 y actualizacion de dependencias
+
+Estado:
+
+- **`main` actualizada desde `develop`**: 142 commits. Es el punto de control oficial de la app.
+- `test` + `build` en verde sobre `main` tras el merge.
+- Repositorio limpio: de ~23 ramas a 3 (`main`, `develop`, `new-desing`). Las ramas mergeadas
+  se borraron en local y remoto tras verificar commit a commit que su contenido estaba en
+  `develop`.
+- Auditoria completa y su verificacion en `docs/design/auditoria-ronda-3.md`.
+  Informe navegable: https://claude.ai/code/artifact/3ef4c46d-ff28-4e2a-af28-8552b8676ee7
+
+Cambios cerrados:
+
+- **P0 perdida de datos (8 de 9)**: un entrenamiento de peso corporal ya no se borra al
+  finalizar (la regla de completado exigia peso, y finalizar sin series completadas hacia
+  `deleteSession`); tocar una nota existente ya no la destruye; el historial deja de escribir
+  en cada tecla y su dialogo de guardado dice la verdad y tiene los botones en su sitio;
+  cerrar el dialogo de alternativas cancela en vez de confirmar; el badge de PR se limpia al
+  editar una serie completada; el doble toque en el FAB ya no duplica rutinas; las listas del
+  editor llevan ids estables, asi que reordenar ya no reasigna dialogos a otro ejercicio;
+  eliminar dia y alternativa piden confirmacion.
+- **P1 funciones rotas (10 de 12)**: el selector kg/lb ya lo lee toda la app y convierte; las
+  notas de sesion, serie y ejercicio funcionan de punta a punta; el filtro de periodo de Datos
+  afecta a graficas y marcas, no solo a tres numeros; las tarjetas de resumen cuentan lo que
+  dicen contar; el temporizador usa reloj de pared, sobrevive al proceso y su vibracion llega
+  aunque hayas hecho scroll; el confeti deja de repetirse para siempre; Home ya no se congela
+  tras un error; el widget se actualiza al terminar un entrenamiento; salir de una sesion
+  activa avisa; exportacion de datos; desconectar Health Connect revoca de verdad.
+- **P2 entrada de texto (8 de 8)**: capitalizacion nativa (antes `KeyboardCapitalization`
+  aparecia cero veces en el proyecto), encadenado de teclado en los tres formularios incluida
+  la fila de serie del entrenamiento en vivo, select-all una vez por visita de foco para poder
+  corregir un decimal, saneado de repeticiones, y topes de longitud y de digitos.
+- **P3 navegacion (7 de 8)**: boton de atras a la izquierda y sin solaparse con el menu,
+  scroll en el drawer, re-toque de pestaña activa, onboarding con atras y repetible desde
+  Ajustes, borrado de sesiones, un solo enum de periodo, accion de limpiar filtros, y estado
+  que sobrevive al giro.
+- **P4 sistema visual (9 de 11)**: editor de rutinas rehecho sobre el design system existente
+  (sin componentes nuevos salvo un tamaño de badge); `surfaceCard` deja de ser identico a
+  `surface`; roles `onHero`/`onHeroMuted` en vez de blanco literal; `primarySoft` con contraste
+  usable en oscuro; `surfaceAlt` eliminado por ser alias de `surfaceVariant`; insets duplicados
+  corregidos en cuatro pantallas; `FitTrackErrorState`; el calendario cuenta dias de peso
+  corporal; y el color de deltas significa lo mismo en todas las pestañas.
+- **Actualizacion de dependencias**: Compose BOM 2024.04.01 a 2026.08.00 (material3 1.2.1 a
+  1.4.0), AGP 8.5.1 a 9.3.2, Gradle 8.7 a 9.7.1, Kotlin 2.1.0 a 2.1.20, compileSdk 37,
+  targetSdk 36. **minSdk sube de 23 a 26**: deja fuera Android por debajo de 8.0, decision
+  documentada en la spec de la actualizacion.
+- **Encontrado durante la pasada manual**: bloquear el cambio de variante en cuanto habia
+  series registradas era la regla equivocada. Ahora se conservan las series y solo cambia la
+  variante a la que se atribuyen, para el caso de haber registrado en la maquina equivocada.
+
+Pendiente:
+
+- **Terminar la pasada manual**. Checklist de 10 pasadas en
+  https://claude.ai/code/artifact/083ab293-efb2-4973-b9e4-a8e31d13dc86 — el usuario iba por la
+  02 cuando encontro lo del cambio de variante.
+- De P4 quedan: unificar las tres cabeceras, los esqueletos de carga, el eje y la semantica de
+  las graficas, y la pantalla de inicio (paleta duplicada solo clara, 1.240 ms fijos).
+- **P5 accesibilidad y P6 idioma sin empezar.**
+- Backlog diferido con su porque en `docs/design/mejoras-claude.md`: deshacer real (38),
+  avisos del temporizador en segundo plano (39), importacion y borrado total (40), y el lado
+  del boton del menu lateral (41).
+
 ## 2026-07-06 - Rama develop, JDK local y confirmacion de borrado de ejercicio
 
 Estado:
