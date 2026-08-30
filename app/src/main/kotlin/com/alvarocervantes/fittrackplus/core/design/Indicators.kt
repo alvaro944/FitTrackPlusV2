@@ -94,7 +94,7 @@ fun FitTrackProgressBar(
                     range = 0f..1f
                 )
             }
-            .background(MaterialTheme.colorScheme.surfaceAlt, CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
     ) {
         Box(
             modifier = Modifier
@@ -119,7 +119,7 @@ fun FitTrackRadialTimer(
     } else {
         1f - (remainingSeconds.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
     }
-    val trackColor = MaterialTheme.colorScheme.surfaceAlt
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant
     val progressColor = if (isUrgent) {
         MaterialTheme.colorScheme.accentWarm
     } else {

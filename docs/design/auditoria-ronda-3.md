@@ -383,3 +383,47 @@ La P3-2 proponia "mover el boton a TopStart, o anclar el drawer a la derecha". S
 lo primero y **se revirtio**: `TopStart` es donde `FitTrackScreenHeader` dibuja el titulo
 de todas las pantallas, asi que cambiaba un solapamiento por otro peor. El arreglo real
 es sacar el boton del overlay y meterlo en la cabecera; queda en la entrada 41.
+
+---
+
+## P4 — sistema visual (2026-08-30)
+
+Rama `refactor/design-system-round-3`, partiendo de `refactor/input-and-nav`.
+`test` + `build` en verde en cada commit.
+
+### El editor de rutinas: lo que originó la auditoria
+
+Rehecho sobre el design system, **sin componentes nuevos** salvo un tamaño mas del badge:
+
+- La cabecera del dia ya no pinta un bloque relleno de radio 16dp dentro de una tarjeta
+  de radio 16dp con 16dp de margen. La tarjeta es la superficie del dia, asi que vuelve a
+  cumplirse la regla de radios concentricos.
+- Fuera la barra de acento de 6dp de ancho con radio 8dp. El ordinal es un
+  `FitTrackIconBadge`, el mismo marcador que ya usan Home y `SetRow`.
+- El bloque de ejercicio era el unico contenedor relleno-sin-borde de la app: ahora es una
+  `FitTrackCard`. Y "Ejercicio N" a `labelLarge` en fuerza completa pasa a badge pequeño,
+  para dejar de competir con el campo de nombre que tiene justo debajo.
+- Nombre del dia a `titleMedium`, un escalon por debajo del nombre de la rutina.
+- La expansion se señala solo con el chevron, no cambiando todo el fondo a `primarySoft`.
+- La variante predeterminada usa el badge `PREDET.` igual que Entrenar, y "Usar por
+  defecto" solo aparece cuando cambiaria algo.
+- `FitTrackIconBadgeSize.Small` es lo unico nuevo del design system.
+
+### Estado de P4
+
+| # | Estado | Nota |
+|---|---|---|
+| P4-1 | OK | `surfaceCard` ya no es identico a `surface`, asi que `FitTrackCard(highlighted = true)` hace algo. Y `surfaceAlt`, que era un alias byte a byte de `surfaceVariant`, se elimina: dos nombres para un mismo color son justo lo que las rondas 1 y 2 vinieron a quitar |
+| P4-2 | OK | Roles `onHero` y `onHeroMuted` resueltos por esquema, en lugar de `Color.White` literal sobre un fondo que en oscuro es verde claro |
+| P4-3 | OK | Insets zerados en Home, Ajustes, Historial y Datos. Home y Ajustes adoptan la receta compartida de `contentPadding` |
+| P4-4 | Pendiente | Siguen tres idiomas de cabecera: `FitTrackScreenHeader`, la pila propia de Home y el `TopAppBar` de Ajustes |
+| P4-5 | Pendiente | Los esqueletos siguen sin parecerse a lo que cargan, y falta el esqueleto de lista compartido |
+| P4-6 | OK | `FitTrackErrorState` en `core/design`. Arregla ademas la rama de Historial que dejaba los esqueletos brillando para siempre. Corregido tras revision de Codex: el error de Datos compartia campo con el snackbar, asi que la tarjeta desaparecia al cerrarse este; ahora hay un `error` separado de `message`, `retryWhen` en vez de `catch` (que terminaba el flujo) y un reintento real |
+| P4-7 | OK | `fitTrackDeltaTone` como fuente unica, con `FitTrackDeltaMeaning.Neutral` para duracion. "Objetivo cumplido" usa el rol `success` que estaba sin usar |
+| P4-8 | Parcial | Las etiquetas ya usan sp y siguen el ajuste de fuente. Faltan eje Y, linea base y semantica para lector de pantalla |
+| P4-9 | OK | `HeatmapDay.sessionCount`: una sesion de peso corporal cuenta como dia entrenado aunque su volumen sea 0 |
+| P4-10 | Pendiente | `LaunchIntroScreen` sigue con paleta duplicada, solo clara, y 1.240 ms fijos |
+| P4-11 | OK | El widget usa `LightColors`/`DarkColors` de la app en vez de la paleta dinamica del sistema |
+
+De P5 entra por el camino: `primarySoft` en oscuro daba ~1.1:1 contra `surface`, lo que
+hacia indistinguible un dia entrenado de uno vacio. Subido.

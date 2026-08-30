@@ -364,7 +364,7 @@ private fun DrawerActionRow(
                 .clip(MaterialTheme.shapes.medium)
                 .background(
                     if (selected) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.surfaceAlt
+                    else MaterialTheme.colorScheme.surfaceVariant
                 ),
             contentAlignment = Alignment.Center
         ) {

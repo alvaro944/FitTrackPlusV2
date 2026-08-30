@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -66,8 +67,12 @@ import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackDeltaDirection
+import com.alvarocervantes.fittrackplus.core.design.FitTrackDeltaMeaning
+import com.alvarocervantes.fittrackplus.core.design.fitTrackDeltaTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackErrorState
 import com.alvarocervantes.fittrackplus.core.design.FitTrackDropdownField
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCardBadge
@@ -83,7 +88,6 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRow
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowEditFieldStyle
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowMode
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDeltaDirection
 import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
@@ -140,6 +144,9 @@ fun HistoryScreen(
     }
 
     Scaffold(
+        // The app shell already applies the system bar insets; without this the
+        // status bar padding lands twice and leaves a dead band above the content.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         HistoryContent(
@@ -554,9 +561,19 @@ private fun HistoryDetailContent(
                 }
             }
 
+            // A session is selected, nothing is loading, and no detail arrived: the read failed
+            // or the session is gone. Showing skeletons here left them shimmering forever with
+            // the back button as the only way out.
             else -> {
-                item { HistoryDetailSummarySkeleton() }
-                item { HistoryComparisonSkeleton() }
+                item {
+                    FitTrackErrorState(
+                        title = "No se pudo abrir la sesion",
+                        message = "No hemos podido cargar los detalles de este entrenamiento. " +
+                            "Puede que ya no exista.",
+                        onRetry = onBackToList,
+                        retryLabel = "Volver al historial"
+                    )
+                }
             }
         }
     }
@@ -729,7 +746,9 @@ private fun HistoryComparisonCard(comparison: HistoryComparisonUiState?, weightU
                     label = "Duracion",
                     currentText = formatDuration(comparison.durationMillisDelta.currentValue.toLong()),
                     delta = comparison.durationMillisDelta,
-                    deltaText = comparison.durationMillisDelta.deltaValue.toDurationDeltaText()
+                    deltaText = comparison.durationMillisDelta.deltaValue.toDurationDeltaText(),
+                    // A longer session is not an improvement, so it stays neutral.
+                    meaning = FitTrackDeltaMeaning.Neutral
                 )
                 HistoryDeltaRow(
                     label = "Series",
@@ -755,7 +774,8 @@ private fun HistoryDeltaRow(
     label: String,
     currentText: String,
     delta: HistoryMetricDeltaUiState,
-    deltaText: String
+    deltaText: String,
+    meaning: FitTrackDeltaMeaning = FitTrackDeltaMeaning.HigherIsBetter
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -778,12 +798,15 @@ private fun HistoryDeltaRow(
         }
         FitTrackBadge(
             label = delta.direction.toDeltaLabel(deltaText),
-            tone = when (delta.direction) {
-                WorkoutHistoryDeltaDirection.Up -> FitTrackBadgeTone.Active
-                WorkoutHistoryDeltaDirection.Down -> FitTrackBadgeTone.Warm
-                WorkoutHistoryDeltaDirection.Same,
-                WorkoutHistoryDeltaDirection.Unavailable -> FitTrackBadgeTone.Neutral
-            }
+            tone = fitTrackDeltaTone(
+                direction = when (delta.direction) {
+                    WorkoutHistoryDeltaDirection.Up -> FitTrackDeltaDirection.Up
+                    WorkoutHistoryDeltaDirection.Down -> FitTrackDeltaDirection.Down
+                    WorkoutHistoryDeltaDirection.Same,
+                    WorkoutHistoryDeltaDirection.Unavailable -> FitTrackDeltaDirection.Flat
+                },
+                meaning = meaning
+            )
         )
     }
 }

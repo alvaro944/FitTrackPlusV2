@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -58,6 +59,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackErrorState
 import com.alvarocervantes.fittrackplus.core.design.FitTrackDropdownField
 import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRow
 import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRowStyle
@@ -71,8 +73,8 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.accentSoft
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
+import com.alvarocervantes.fittrackplus.core.design.success
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.YearMonth
@@ -106,12 +108,16 @@ fun StatsScreen(
     }
 
     Scaffold(
+        // The app shell already applies the system bar insets; without this the
+        // status bar padding lands twice and leaves a dead band above the content.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         StatsContent(
             state = state,
             contentPadding = padding,
             listState = listState,
+            onRetry = viewModel::retry,
             onPeriodFilterChange = viewModel::setPeriodFilter,
             onSelectRoutine = viewModel::selectRoutine,
             onSelectDay = viewModel::selectDay,
@@ -133,6 +139,7 @@ private fun StatsContent(
     state: StatsUiState,
     contentPadding: PaddingValues,
     listState: LazyListState,
+    onRetry: () -> Unit,
     onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSelectRoutine: (String) -> Unit,
     onSelectDay: (String) -> Unit,
@@ -180,20 +187,13 @@ private fun StatsContent(
                 item { StatsLoadingSkeleton() }
             }
 
-            state.message != null -> {
+            state.error != null -> {
                 item {
-                    FitTrackCard {
-                        Text(
-                            text = "No se pudieron cargar los datos",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Text(
-                            text = state.message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    FitTrackErrorState(
+                        title = "No se pudieron cargar los datos",
+                        message = state.error,
+                        onRetry = onRetry
+                    )
                 }
             }
 
@@ -398,7 +398,7 @@ private fun ConsistencyCalendarCard(
     val currentMonth = YearMonth.now()
     val activeDays = remember(days) {
         days
-            .filter { day -> day.totalVolumeKg > 0.0 }
+            .filter { day -> day.sessionCount > 0 }
             .associateBy { day -> LocalDate.ofEpochDay(day.epochDay) }
     }
 
@@ -508,7 +508,7 @@ private fun ConsistencyDayCell(
     val backgroundColor = when {
         hasWorkout -> MaterialTheme.colorScheme.primary
         isToday -> MaterialTheme.colorScheme.primarySoft
-        date != null -> MaterialTheme.colorScheme.surfaceAlt
+        date != null -> MaterialTheme.colorScheme.surfaceVariant
         else -> MaterialTheme.colorScheme.surface.copy(alpha = 0f)
     }
     val textColor = when {
@@ -614,8 +614,13 @@ private fun SessionVolumeTrendCard(
                     else -> "sin cambio"
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = if (delta >= 0.0) MaterialTheme.colorScheme.accentWarm
-                else MaterialTheme.colorScheme.onSurfaceVariant
+                // Aligned with History: rising volume is the positive tone, falling is the warm
+                // one. Before, a rise was orange here and green there for the same movement.
+                color = when {
+                    delta > 0.0 -> MaterialTheme.colorScheme.success
+                    delta < 0.0 -> MaterialTheme.colorScheme.accentWarm
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
             )
         }
     }
@@ -1000,10 +1005,10 @@ private fun DayBarColumn(
     val fraction = if (maxSteps > 0) (steps.toFloat() / maxSteps).coerceIn(0f, 1f) else 0f
     val goalMet = steps >= dailyGoal
     val barColor = when {
-        goalMet -> MaterialTheme.colorScheme.accentWarm
+        goalMet -> MaterialTheme.colorScheme.success
         isToday -> MaterialTheme.colorScheme.primary
         steps > 0 -> MaterialTheme.colorScheme.primarySoft
-        else -> MaterialTheme.colorScheme.surfaceAlt
+        else -> MaterialTheme.colorScheme.surfaceVariant
     }
     val labelColor = if (isSelected || isToday) MaterialTheme.colorScheme.primary
     else MaterialTheme.colorScheme.onSurfaceVariant
@@ -1034,7 +1039,7 @@ private fun DayBarColumn(
             Text(
                 text = abbrev,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (goalMet) MaterialTheme.colorScheme.accentWarm
+                color = if (goalMet) MaterialTheme.colorScheme.success
                 else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
         }
@@ -1082,7 +1087,7 @@ private fun SelectedDayDetail(
             }
             FitTrackProgressBar(
                 progress = progress,
-                color = if (steps >= dailyGoal) MaterialTheme.colorScheme.accentWarm
+                color = if (steps >= dailyGoal) MaterialTheme.colorScheme.success
                 else MaterialTheme.colorScheme.primary,
                 contentDescription = "Progreso de pasos"
             )

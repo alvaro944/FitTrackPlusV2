@@ -82,6 +82,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModelStoreOwner
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
+import com.alvarocervantes.fittrackplus.core.design.onHero
+import com.alvarocervantes.fittrackplus.core.design.onHeroMuted
 import com.alvarocervantes.fittrackplus.core.design.success
 import com.alvarocervantes.fittrackplus.core.design.primaryMid
 import com.alvarocervantes.fittrackplus.core.design.accentSoft
@@ -117,7 +119,6 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowMode
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTargetPrescriptionFields
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
 import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import java.text.SimpleDateFormat
@@ -524,7 +525,7 @@ private fun WorkoutPreviewCard(
             Text(
                 text = preview.routineName,
                 style = MaterialTheme.typography.headlineMedium,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onHero,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -537,7 +538,7 @@ private fun WorkoutPreviewCard(
             Text(
                 text = preview.dayName,
                 style = MaterialTheme.typography.titleLarge,
-                color = Color.White.copy(alpha = 0.92f)
+                color = MaterialTheme.colorScheme.onHeroMuted
             )
             Row(
                 horizontalArrangement = Arrangement.spacedBy(FitSpacing.smMd)

@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import com.alvarocervantes.fittrackplus.core.design.textTertiary
 
 @Composable
@@ -68,7 +67,7 @@ private fun ThemeModeTile(
                 if (selected) {
                     MaterialTheme.colorScheme.primarySoft
                 } else {
-                    MaterialTheme.colorScheme.surfaceAlt
+                    MaterialTheme.colorScheme.surfaceVariant
                 }
             )
             .then(

@@ -7,6 +7,9 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.material3.ColorProviders
+import com.alvarocervantes.fittrackplus.core.design.DarkColors
+import com.alvarocervantes.fittrackplus.core.design.LightColors
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.actionStartActivity
@@ -52,7 +55,9 @@ class FitTrackPlusWidget : GlanceAppWidget() {
         val launchIntent = Intent(context, MainActivity::class.java)
 
         provideContent {
-            GlanceTheme {
+            // Without explicit colours GlanceTheme falls back to the system dynamic palette on
+            // API 31+, so the widget rendered in Material You purple next to an emerald app.
+            GlanceTheme(colors = FitTrackWidgetColors) {
                 Column(
                     modifier = GlanceModifier
                         .fillMaxSize()
@@ -81,3 +86,8 @@ class FitTrackPlusWidget : GlanceAppWidget() {
         }
     }
 }
+
+private val FitTrackWidgetColors = ColorProviders(
+    light = LightColors,
+    dark = DarkColors
+)

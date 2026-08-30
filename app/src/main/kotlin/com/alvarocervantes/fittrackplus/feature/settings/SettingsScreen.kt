@@ -5,7 +5,9 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -98,6 +100,9 @@ fun SettingsScreen(
     }
 
     Scaffold(
+        // Settings hides the shell chrome but still sits inside the shell Scaffold, so
+        // its own insets would double up on the top bar.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
@@ -117,9 +122,13 @@ fun SettingsScreen(
         }
     ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(horizontal = FitSpacing.screenHorizontal),
+            modifier = Modifier.padding(innerPadding),
+            contentPadding = PaddingValues(
+                start = FitSpacing.screenHorizontal,
+                top = FitSpacing.screenTop,
+                end = FitSpacing.screenHorizontal,
+                bottom = FitSpacing.screenBottom
+            ),
             verticalArrangement = Arrangement.spacedBy(FitSpacing.card)
         ) {
 
