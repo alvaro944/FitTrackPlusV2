@@ -53,6 +53,8 @@ class FitTrackPlusWidget : GlanceAppWidget() {
         }
 
         val launchIntent = Intent(context, MainActivity::class.java)
+        val streakDaysLabel = if (streak == 1) "dia" else "dias"
+        val sessionsLabel = if (weekSessions == 1) "sesion" else "sesiones"
 
         provideContent {
             // Without explicit colours GlanceTheme falls back to the system dynamic palette on
@@ -67,7 +69,7 @@ class FitTrackPlusWidget : GlanceAppWidget() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Racha: $streak dias",
+                        text = "Racha: $streak $streakDaysLabel",
                         style = TextStyle(
                             color = GlanceTheme.colors.primary,
                             fontWeight = FontWeight.Bold,
@@ -75,7 +77,7 @@ class FitTrackPlusWidget : GlanceAppWidget() {
                         )
                     )
                     Text(
-                        text = "Esta semana: $weekSessions sesiones",
+                        text = "Esta semana: $weekSessions $sessionsLabel",
                         style = TextStyle(
                             color = GlanceTheme.colors.onSurface,
                             fontSize = 12.sp
