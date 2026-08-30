@@ -427,3 +427,34 @@ Rehecho sobre el design system, **sin componentes nuevos** salvo un tamaño mas 
 
 De P5 entra por el camino: `primarySoft` en oscuro daba ~1.1:1 contra `surface`, lo que
 hacia indistinguible un dia entrenado de uno vacio. Subido.
+
+---
+
+## Correccion tras pasada manual (2026-08-31)
+
+Probando la pasada 02 de la checklist, el usuario encontro que el arreglo del bug de
+variantes era correcto pero **la regla de negocio que protegia era la equivocada**.
+
+**Caso real**: dos maquinas con el mismo patron de movimiento pero de distinta marca
+("maquina antigua" y "maquina nueva"), con placas en unidades distintas. Registras 12
+repeticiones a 60 kg, y despues ves que la maquina no es esa: en la otra el equivalente
+son 57 kg. Quieres cambiar de variante conservando lo que ya has hecho, y la app no te
+dejaba. Borrar los valores tampoco desbloqueaba.
+
+Dos causas:
+
+1. `replaceWorkoutExerciseVariant` reconstruia las series desde la prescripcion de la
+   variante destino, asi que rechazaba el cambio en cuanto habia datos para no
+   destruirlos. Ahora acepta `keepLoggedSets`: en `false` reconstruye (correcto antes de
+   entrenar), en `true` solo cambia etiquetas y objetivos y **conserva las series**. El
+   picker expone `hasLoggedSets` en vez de `canSwapVariant`: ya no se deshabilita nada,
+   se avisa y se confirma.
+2. `updateWorkoutExercisesForSet` volvia a aplicar la sugerencia de repeticiones despues
+   de **cada** edicion, asi que un campo vaciado se rellenaba solo, y la siguiente
+   edicion de esa fila persistia la sugerencia como si la hubieras escrito tu. Por eso
+   "desmarcar los valores" no servia de nada. Las sugerencias ahora saltan la fila que se
+   esta editando y siguen llegando a las demas.
+
+**Leccion**: al arreglar el bug original hice honesto el pre-chequeo, pero no cuestione
+la regla que estaba protegiendo. Un bloqueo correctamente implementado sigue siendo un
+bloqueo equivocado si impide el caso en el que mas falta hace.
