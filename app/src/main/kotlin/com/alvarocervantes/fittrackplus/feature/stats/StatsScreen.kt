@@ -73,6 +73,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.accentSoft
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
+import com.alvarocervantes.fittrackplus.core.design.success
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import java.text.SimpleDateFormat
@@ -611,8 +612,13 @@ private fun SessionVolumeTrendCard(
                     else -> "sin cambio"
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = if (delta >= 0.0) MaterialTheme.colorScheme.accentWarm
-                else MaterialTheme.colorScheme.onSurfaceVariant
+                // Aligned with History: rising volume is the positive tone, falling is the warm
+                // one. Before, a rise was orange here and green there for the same movement.
+                color = when {
+                    delta > 0.0 -> MaterialTheme.colorScheme.success
+                    delta < 0.0 -> MaterialTheme.colorScheme.accentWarm
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
             )
         }
     }
@@ -997,7 +1003,7 @@ private fun DayBarColumn(
     val fraction = if (maxSteps > 0) (steps.toFloat() / maxSteps).coerceIn(0f, 1f) else 0f
     val goalMet = steps >= dailyGoal
     val barColor = when {
-        goalMet -> MaterialTheme.colorScheme.accentWarm
+        goalMet -> MaterialTheme.colorScheme.success
         isToday -> MaterialTheme.colorScheme.primary
         steps > 0 -> MaterialTheme.colorScheme.primarySoft
         else -> MaterialTheme.colorScheme.surfaceAlt
@@ -1031,7 +1037,7 @@ private fun DayBarColumn(
             Text(
                 text = abbrev,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (goalMet) MaterialTheme.colorScheme.accentWarm
+                color = if (goalMet) MaterialTheme.colorScheme.success
                 else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
         }
@@ -1079,7 +1085,7 @@ private fun SelectedDayDetail(
             }
             FitTrackProgressBar(
                 progress = progress,
-                color = if (steps >= dailyGoal) MaterialTheme.colorScheme.accentWarm
+                color = if (steps >= dailyGoal) MaterialTheme.colorScheme.success
                 else MaterialTheme.colorScheme.primary,
                 contentDescription = "Progreso de pasos"
             )

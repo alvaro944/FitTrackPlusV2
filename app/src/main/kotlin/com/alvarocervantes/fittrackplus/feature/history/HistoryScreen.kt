@@ -67,6 +67,9 @@ import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackDeltaDirection
+import com.alvarocervantes.fittrackplus.core.design.FitTrackDeltaMeaning
+import com.alvarocervantes.fittrackplus.core.design.fitTrackDeltaTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
 import com.alvarocervantes.fittrackplus.core.design.FitTrackErrorState
@@ -744,7 +747,9 @@ private fun HistoryComparisonCard(comparison: HistoryComparisonUiState?, weightU
                     label = "Duracion",
                     currentText = formatDuration(comparison.durationMillisDelta.currentValue.toLong()),
                     delta = comparison.durationMillisDelta,
-                    deltaText = comparison.durationMillisDelta.deltaValue.toDurationDeltaText()
+                    deltaText = comparison.durationMillisDelta.deltaValue.toDurationDeltaText(),
+                    // A longer session is not an improvement, so it stays neutral.
+                    meaning = FitTrackDeltaMeaning.Neutral
                 )
                 HistoryDeltaRow(
                     label = "Series",
@@ -770,7 +775,8 @@ private fun HistoryDeltaRow(
     label: String,
     currentText: String,
     delta: HistoryMetricDeltaUiState,
-    deltaText: String
+    deltaText: String,
+    meaning: FitTrackDeltaMeaning = FitTrackDeltaMeaning.HigherIsBetter
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -793,12 +799,15 @@ private fun HistoryDeltaRow(
         }
         FitTrackBadge(
             label = delta.direction.toDeltaLabel(deltaText),
-            tone = when (delta.direction) {
-                WorkoutHistoryDeltaDirection.Up -> FitTrackBadgeTone.Active
-                WorkoutHistoryDeltaDirection.Down -> FitTrackBadgeTone.Warm
-                WorkoutHistoryDeltaDirection.Same,
-                WorkoutHistoryDeltaDirection.Unavailable -> FitTrackBadgeTone.Neutral
-            }
+            tone = fitTrackDeltaTone(
+                direction = when (delta.direction) {
+                    WorkoutHistoryDeltaDirection.Up -> FitTrackDeltaDirection.Up
+                    WorkoutHistoryDeltaDirection.Down -> FitTrackDeltaDirection.Down
+                    WorkoutHistoryDeltaDirection.Same,
+                    WorkoutHistoryDeltaDirection.Unavailable -> FitTrackDeltaDirection.Flat
+                },
+                meaning = meaning
+            )
         )
     }
 }
