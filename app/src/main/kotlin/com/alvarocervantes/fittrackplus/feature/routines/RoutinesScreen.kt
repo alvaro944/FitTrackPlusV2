@@ -4,6 +4,12 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +25,7 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -94,6 +101,8 @@ import com.alvarocervantes.fittrackplus.core.design.borderLight
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 
+private const val MAX_NAME_LENGTH = 60
+private const val MAX_NOTES_LENGTH = 500
 
 @Composable
 fun RoutinesScreen(
@@ -106,6 +115,15 @@ fun RoutinesScreen(
     val pendingNavigation by appShellViewModel.pendingNavigation.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var routinePendingArchive by remember { mutableStateOf<RoutineListItemUiState?>(null) }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        appShellViewModel.activeTabReselected.collect { route ->
+            if (route == AppRoute.Routines && state.editor == null) {
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
 
     LaunchedEffect(state.editor?.hasUnsavedChanges) {
         appShellViewModel.setNavigationBlocker(
@@ -179,6 +197,7 @@ fun RoutinesScreen(
             RoutineListContent(
                 state = state,
                 contentPadding = padding,
+                listState = listState,
                 onCreateRoutine = viewModel::startCreateRoutine,
                 onUseTemplate = viewModel::startCreateRoutineFromTemplate,
                 onEditRoutine = viewModel::startEditRoutine,
@@ -265,6 +284,7 @@ fun RoutinesScreen(
 private fun RoutineListContent(
     state: RoutinesUiState,
     contentPadding: PaddingValues,
+    listState: LazyListState,
     onCreateRoutine: () -> Unit,
     onUseTemplate: (String) -> Unit,
     onEditRoutine: (Long) -> Unit,
@@ -277,6 +297,7 @@ private fun RoutineListContent(
     val activeRoutine = state.routines.firstOrNull { it.isActive }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
@@ -701,6 +722,11 @@ private fun RoutineEditorContent(
                     },
                     singleLine = true,
                     selectAllOnFocus = false,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Done
+                    ),
+                    maxLength = MAX_NAME_LENGTH,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -913,6 +939,9 @@ private fun RoutineDayEditor(
                 )
             }
 
+            var awaitingNewExerciseFocus by remember { mutableStateOf(false) }
+            var focusExerciseDraftId by remember { mutableStateOf<String?>(null) }
+
             FitTrackSelectAllTextField(
                 value = day.name,
                 onValueChange = { onDayNameChange(dayIndex, it) },
@@ -923,8 +952,23 @@ private fun RoutineDayEditor(
                 },
                 singleLine = true,
                 selectAllOnFocus = false,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusExerciseDraftId = day.exercises.firstOrNull()?.draftId }
+                ),
+                maxLength = MAX_NAME_LENGTH,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            LaunchedEffect(day.exercises.size) {
+                if (awaitingNewExerciseFocus) {
+                    focusExerciseDraftId = day.exercises.lastOrNull()?.draftId
+                    awaitingNewExerciseFocus = false
+                }
+            }
 
             day.exercises.forEachIndexed { exerciseIndex, exercise ->
                 key(exercise.draftId) {
@@ -935,6 +979,8 @@ private fun RoutineDayEditor(
                     canRemove = day.exercises.size > 1,
                     canMoveUp = exerciseIndex > 0,
                     canMoveDown = exerciseIndex < day.exercises.lastIndex,
+                    requestNameFocus = exercise.draftId == focusExerciseDraftId,
+                    onNameFocusRequested = { focusExerciseDraftId = null },
                     onExerciseNameChange = onExerciseNameChange,
                     onExerciseSetsChange = onExerciseSetsChange,
                     onExerciseRepsChange = onExerciseRepsChange,
@@ -958,7 +1004,10 @@ private fun RoutineDayEditor(
 
             FitTrackAddButton(
                 label = "Anadir ejercicio",
-                onClick = { onAddExercise(dayIndex) },
+                onClick = {
+                    awaitingNewExerciseFocus = true
+                    onAddExercise(dayIndex)
+                },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -973,6 +1022,8 @@ private fun RoutineExerciseEditor(
     canRemove: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
+    requestNameFocus: Boolean,
+    onNameFocusRequested: () -> Unit,
     onExerciseNameChange: (Int, Int, String) -> Unit,
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
@@ -996,6 +1047,7 @@ private fun RoutineExerciseEditor(
     var showAlternativesDialog by remember { mutableStateOf(false) }
     var editingAlternativeIndex by remember { mutableStateOf<Int?>(null) }
     var alternativePendingRemoval by remember { mutableStateOf<Int?>(null) }
+    var showDeleteNoteConfirm by remember { mutableStateOf(false) }
 
     alternativePendingRemoval?.let { alternativeIndex ->
         FitTrackConfirmDialog(
@@ -1022,6 +1074,7 @@ private fun RoutineExerciseEditor(
             singleLine = false,
             minLines = 3,
             maxLines = 5,
+            maxLength = MAX_NOTES_LENGTH,
             confirmLabel = "Guardar",
             dismissLabel = "Cancelar",
             onConfirm = {
@@ -1031,16 +1084,27 @@ private fun RoutineExerciseEditor(
             onDismiss = { showNotesDialog = false },
             extraContent = {
                 if (exercise.notes.isNotBlank()) {
-                    TextButton(
-                        onClick = {
-                            onExerciseNotesChange(dayIndex, exerciseIndex, "")
-                            showNotesDialog = false
-                        }
-                    ) {
+                    TextButton(onClick = { showDeleteNoteConfirm = true }) {
                         Text("Eliminar nota")
                     }
                 }
             }
+        )
+    }
+
+    if (showDeleteNoteConfirm) {
+        FitTrackConfirmDialog(
+            title = "Eliminar nota",
+            text = "Se eliminara la nota de este ejercicio. Esta accion no se puede deshacer.",
+            confirmLabel = "Eliminar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onExerciseNotesChange(dayIndex, exerciseIndex, "")
+                showDeleteNoteConfirm = false
+                showNotesDialog = false
+            },
+            onDismiss = { showDeleteNoteConfirm = false },
+            destructive = true
         )
     }
 
@@ -1150,6 +1214,13 @@ private fun RoutineExerciseEditor(
             )
         }
 
+        val nameFocusRequester = remember { FocusRequester() }
+        LaunchedEffect(requestNameFocus) {
+            if (requestNameFocus) {
+                nameFocusRequester.requestFocus()
+                onNameFocusRequested()
+            }
+        }
         FitTrackSelectAllTextField(
             value = exercise.name,
             onValueChange = { onExerciseNameChange(dayIndex, exerciseIndex, it) },
@@ -1160,7 +1231,14 @@ private fun RoutineExerciseEditor(
             },
             singleLine = true,
             selectAllOnFocus = false,
-            modifier = Modifier.fillMaxWidth()
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
+                imeAction = ImeAction.Done
+            ),
+            maxLength = MAX_NAME_LENGTH,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(nameFocusRequester)
         )
 
         FitTrackTargetPrescriptionFields(
@@ -1291,12 +1369,21 @@ private fun ExerciseAlternativesEditorDialog(
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
                             if (isEditing) {
+                                val notesFocusRequester = remember { FocusRequester() }
                                 FitTrackSelectAllTextField(
                                     value = alternative.name,
                                     onValueChange = { onAlternativeNameChange(index, it) },
                                     label = { Text("Nombre") },
                                     singleLine = true,
                                     selectAllOnFocus = false,
+                                    keyboardOptions = KeyboardOptions(
+                                        capitalization = KeyboardCapitalization.Words,
+                                        imeAction = ImeAction.Next
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onNext = { notesFocusRequester.requestFocus() }
+                                    ),
+                                    maxLength = MAX_NAME_LENGTH,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 FitTrackTargetPrescriptionFields(
@@ -1319,7 +1406,14 @@ private fun ExerciseAlternativesEditorDialog(
                                     singleLine = false,
                                     minLines = 2,
                                     selectAllOnFocus = false,
-                                    modifier = Modifier.fillMaxWidth()
+                                    keyboardOptions = KeyboardOptions(
+                                        capitalization = KeyboardCapitalization.Sentences,
+                                        imeAction = ImeAction.Done
+                                    ),
+                                    maxLength = MAX_NOTES_LENGTH,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusRequester(notesFocusRequester)
                                 )
                                 FitTrackFormDialogActions(
                                     cancelLabel = "Cancelar",

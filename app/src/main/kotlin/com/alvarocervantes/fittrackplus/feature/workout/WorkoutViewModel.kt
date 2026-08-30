@@ -205,7 +205,7 @@ class WorkoutViewModel @Inject constructor(
     }
 
     fun updateAlternativeDraftName(name: String) {
-        updateAlternativeDraft { draft -> draft.copy(name = normalizeWorkoutAlternativeNameInput(name)) }
+        updateAlternativeDraft { draft -> draft.copy(name = name) }
     }
 
     fun updateAlternativeDraftSets(targetSets: String) {
@@ -420,13 +420,14 @@ class WorkoutViewModel @Inject constructor(
 
     fun updateSetReps(setId: Long, repsText: String) {
         val set = _uiState.value.activeSession?.findSet(setId) ?: return
+        val sanitizedRepsText = sanitizeWorkoutRepsInput(repsText)
         updateSetState(setId) {
-            updateWorkoutSetRepsInput(it, repsText)
+            updateWorkoutSetRepsInput(it, sanitizedRepsText)
         }
         persistSet(
             setId = setId,
             weightText = set.weightText,
-            repsText = repsText,
+            repsText = sanitizedRepsText,
             isCompleted = false
         )
     }
@@ -1027,11 +1028,16 @@ private fun WorkoutExerciseUiState.withSuggestedInputs(): WorkoutExerciseUiState
     return copy(sets = applyWorkoutSetInputSuggestions(sets = sets, targetRepsText = targetRepsText))
 }
 
-private fun Double.toInputText(): String {
+internal fun Double.toInputText(): String {
     return if (this % 1.0 == 0.0) {
         toInt().toString()
     } else {
-        toString().replace('.', ',')
+        // Double.toString() can emit scientific notation for extreme magnitudes (e.g. "1.0E7").
+        // "%.2f" never does, so format explicitly instead of relying on toString().
+        String.format(java.util.Locale.US, "%.2f", this)
+            .trimEnd('0')
+            .trimEnd('.')
+            .replace('.', ',')
     }
 }
 
@@ -1064,13 +1070,6 @@ private fun RoutineExerciseSnapshot.toVariantOptions(currentVariantKey: String):
                 )
             )
         }
-    }
-}
-
-private fun normalizeWorkoutAlternativeNameInput(value: String): String {
-    if (value.isEmpty()) return value
-    return value.replaceFirstChar { char ->
-        if (char.isLowerCase()) char.titlecase() else char.toString()
     }
 }
 
@@ -1132,11 +1131,35 @@ internal fun adjustWorkoutRepsInput(currentValue: String, delta: Int): String {
 }
 
 internal fun sanitizeWorkoutWeightInput(value: String): String {
-    val sanitized = buildString {
+    // 'e'/'E' signals scientific notation ("1.0E7"): everything from there on is an exponent, not
+    // more decimal digits. Dropping it avoids keeping the trailing digits and producing a
+    // wrong-but-plausible value like "1,07".
+    val withoutExponent = value.takeWhile { it != 'e' && it != 'E' }
+
+    return buildString {
         var hasDecimalSeparator = false
-        value.forEach { char ->
+        var integerDigits = 0
+        var decimalDigits = 0
+        for (char in withoutExponent) {
+            // Cap the digits on each side instead of the parsed value, so typing stays fluid and
+            // an accidental extra keystroke cannot log 999999999 kg.
+            val atDigitCap = if (hasDecimalSeparator) {
+                decimalDigits == MAX_WEIGHT_DECIMAL_DIGITS
+            } else {
+                integerDigits == MAX_WEIGHT_INTEGER_DIGITS
+            }
+            if (char.isDigit() && atDigitCap) break
+
             when {
-                char.isDigit() -> append(char)
+                char.isDigit() && hasDecimalSeparator -> {
+                    decimalDigits++
+                    append(char)
+                }
+                char.isDigit() -> {
+                    integerDigits++
+                    append(char)
+                }
+                // Any other stray character (e.g. a mistyped letter) is skipped so typing flows.
                 (char == '.' || char == ',') && !hasDecimalSeparator -> {
                     append(',')
                     hasDecimalSeparator = true
@@ -1144,7 +1167,17 @@ internal fun sanitizeWorkoutWeightInput(value: String): String {
             }
         }
     }
-    return sanitized
+}
+
+/** Longest reps entry accepted: nobody logs four digits of repetitions. */
+internal const val MAX_REPS_DIGITS: Int = 3
+
+/** Digits accepted on each side of the decimal separator for a weight. */
+internal const val MAX_WEIGHT_INTEGER_DIGITS: Int = 4
+internal const val MAX_WEIGHT_DECIMAL_DIGITS: Int = 2
+
+internal fun sanitizeWorkoutRepsInput(value: String): String {
+    return value.takeWhile { it.isDigit() }.take(MAX_REPS_DIGITS)
 }
 
 internal fun parseWorkoutWeightInput(value: String): Double? {

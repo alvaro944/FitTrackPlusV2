@@ -2,9 +2,16 @@
 
 package com.alvarocervantes.fittrackplus.feature.workout
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -116,6 +124,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private const val MAX_NAME_LENGTH = 60
+private const val MAX_NOTES_LENGTH = 500
+
 @Composable
 fun WorkoutScreen(
     onGoToRoutines: () -> Unit,
@@ -130,6 +141,15 @@ fun WorkoutScreen(
     var showFinishConfirmation by remember { mutableStateOf(false) }
     var finishNotes by remember { mutableStateOf("") }
     val haptic = LocalHapticFeedback.current
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        appShellViewModel.activeTabReselected.collect { route ->
+            if (route == AppRoute.Workout) {
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
 
     LaunchedEffect(state.activeSession?.sessionId) {
         appShellViewModel.setNavigationBlocker(
@@ -240,6 +260,7 @@ fun WorkoutScreen(
             WorkoutContent(
                 state = state,
                 contentPadding = padding,
+                listState = listState,
                 onRefresh = viewModel::refresh,
                 onStartWorkout = viewModel::startWorkout,
                 onFinishWorkout = { showFinishConfirmation = true },
@@ -344,6 +365,7 @@ private fun FinishWorkoutDialog(
 private fun WorkoutContent(
     state: WorkoutUiState,
     contentPadding: PaddingValues,
+    listState: LazyListState,
     onRefresh: () -> Unit,
     onStartWorkout: () -> Unit,
     onFinishWorkout: () -> Unit,
@@ -363,7 +385,6 @@ private fun WorkoutContent(
     onToggleExerciseExpanded: (Long) -> Unit,
     onGoToRoutines: () -> Unit
 ) {
-    val listState = rememberLazyListState()
     val imeBottom = with(LocalDensity.current) {
         WindowInsets.ime.getBottom(this).toDp()
     }
@@ -976,6 +997,54 @@ private fun ExerciseCompletionLabel(
 }
 
 @Composable
+private fun ExerciseVariantOptionCard(
+    option: ExerciseVariantOptionUiState,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    FitTrackCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled || option.isCurrent, onClick = onClick)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = option.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                if (option.isDefault) {
+                    FitTrackBadge(label = "PREDET.", tone = FitTrackBadgeTone.Active)
+                }
+            }
+            Text(
+                text = "${option.targetSets} series · ${option.targetRepsText} reps",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            // Only label the row as actionable when tapping it would actually do something.
+            if (option.isCurrent || enabled) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Text(
+                        text = if (option.isCurrent) "Usando ahora" else "Usar ahora",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun ExerciseAlternativesDialog(
     picker: ExerciseAlternativesUiState,
     onDismiss: () -> Unit,
@@ -988,6 +1057,24 @@ private fun ExerciseAlternativesDialog(
     onDraftNotesChange: (String) -> Unit,
     onSaveAlternative: () -> Unit
 ) {
+    var pendingVariantKey by remember { mutableStateOf<String?>(null) }
+
+    pendingVariantKey?.let { variantKey ->
+        FitTrackConfirmDialog(
+            title = "Cambiar variante",
+            text = "Cambiaras el ejercicio activo de esta sesion. Las series objetivo se actualizaran " +
+                "segun la nueva variante.",
+            confirmLabel = "Cambiar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onApplyVariant(variantKey)
+                pendingVariantKey = null
+            },
+            onDismiss = { pendingVariantKey = null },
+            destructive = false
+        )
+    }
+
     FitTrackDialog(
         title = "Ejercicios alternativos",
         onDismissRequest = onDismiss,
@@ -1006,60 +1093,15 @@ private fun ExerciseAlternativesDialog(
                         color = MaterialTheme.colorScheme.error
                     )
                 }
+                val optionsEnabled = picker.canSwapVariant && !picker.isSaving
                 picker.options.forEach { option ->
-                    val onOptionClick = {
-                        if (option.variantKey == picker.currentVariantKey) {
-                            onDismiss()
-                        } else {
-                            onApplyVariant(option.variantKey)
+                    ExerciseVariantOptionCard(
+                        option = option,
+                        enabled = optionsEnabled,
+                        onClick = {
+                            if (option.isCurrent) onDismiss() else pendingVariantKey = option.variantKey
                         }
-                    }
-                    val optionEnabled = picker.canSwapVariant && !picker.isSaving
-                    FitTrackCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(
-                                enabled = optionEnabled || option.isCurrent,
-                                onClick = onOptionClick
-                            )
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = option.name,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                if (option.isDefault) {
-                                    FitTrackBadge(
-                                        label = "PREDET.",
-                                        tone = FitTrackBadgeTone.Active
-                                    )
-                                }
-                            }
-                            Text(
-                                text = "${option.targetSets} series · ${option.targetRepsText} reps",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (option.isCurrent || optionEnabled) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    Text(
-                                        text = if (option.isCurrent) "Usando ahora" else "Usar ahora",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    )
                 }
                 FitTrackTonalButton(
                     label = "Crear alternativa",
@@ -1068,12 +1110,21 @@ private fun ExerciseAlternativesDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {
+                val notesFocusRequester = remember { FocusRequester() }
                 FitTrackSelectAllTextField(
                     value = picker.draft.name,
                     onValueChange = onDraftNameChange,
                     label = { Text("Nombre") },
                     singleLine = true,
                     selectAllOnFocus = false,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { notesFocusRequester.requestFocus() }
+                    ),
+                    maxLength = MAX_NAME_LENGTH,
                     modifier = Modifier.fillMaxWidth()
                 )
                 FitTrackTargetPrescriptionFields(
@@ -1090,7 +1141,14 @@ private fun ExerciseAlternativesDialog(
                     singleLine = false,
                     minLines = 2,
                     selectAllOnFocus = false,
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        imeAction = ImeAction.Done
+                    ),
+                    maxLength = MAX_NOTES_LENGTH,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(notesFocusRequester)
                 )
             }
         },

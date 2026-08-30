@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -30,16 +31,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.alvarocervantes.fittrackplus.core.design.components.DisableNativeTextToolbar
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackStepper
+import com.alvarocervantes.fittrackplus.core.design.components.rememberSelectAllArming
 import com.alvarocervantes.fittrackplus.core.design.components.selectAllOnFocusValue
 import com.alvarocervantes.fittrackplus.core.design.components.syncTextFieldValue
 
@@ -215,14 +221,17 @@ private fun SetRowContent(
         when (mode) {
             FitTrackSetRowMode.Edit -> when (editFieldStyle) {
                 FitTrackSetRowEditFieldStyle.Stepper -> {
+                    val repsFocusRequester = remember(setId) { FocusRequester() }
                     SetRowWeightField(
                         setId = setId,
+                        setNumber = setNumber,
                         weightText = weightText,
                         previousWeight = previousWeight,
                         isCompleted = isCompleted,
                         weightUnitLabel = weightUnitLabel,
                         onWeightChange = onWeightChange,
                         onStepWeight = onStepWeight,
+                        onNext = { repsFocusRequester.requestFocus() },
                         modifier = Modifier.weight(1.15f)
                     )
                     SetRowRepsField(
@@ -233,24 +242,37 @@ private fun SetRowContent(
                         isCompleted = isCompleted,
                         onRepsChange = onRepsChange,
                         onStepReps = onStepReps,
+                        focusRequester = repsFocusRequester,
                         modifier = Modifier.weight(1f)
                     )
                 }
 
                 FitTrackSetRowEditFieldStyle.TextField -> {
+                    val repsFocusRequester = remember(setId) { FocusRequester() }
                     FitTrackSelectAllTextField(
                         value = weightText,
                         onValueChange = onWeightChange,
                         label = { Text(weightUnitLabel) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { repsFocusRequester.requestFocus() }
+                        ),
                         modifier = Modifier.weight(1f)
                     )
                     FitTrackSelectAllTextField(
                         value = repsText,
                         onValueChange = onRepsChange,
                         label = { Text("reps") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(repsFocusRequester)
                     )
                 }
             }
@@ -316,23 +338,26 @@ private fun SetCompletionControl(
 @Composable
 private fun SetRowWeightField(
     setId: Long,
+    setNumber: Int,
     weightText: String,
     previousWeight: String?,
     isCompleted: Boolean,
     weightUnitLabel: String,
     onWeightChange: (String) -> Unit,
     onStepWeight: (Double) -> Unit,
+    onNext: () -> Unit,
     modifier: Modifier
 ) {
     var fieldValue by remember(setId) { mutableStateOf(TextFieldValue(weightText)) }
     val interactionSource = remember { MutableInteractionSource() }
+    val arming = rememberSelectAllArming(setId)
 
     LaunchedEffect(weightText) {
         fieldValue = syncTextFieldValue(fieldValue, weightText)
     }
     LaunchedEffect(interactionSource) {
         interactionSource.interactions.collect { interaction ->
-            if (interaction is PressInteraction.Release) {
+            if (interaction is PressInteraction.Release && arming.consume()) {
                 fieldValue = selectAllOnFocusValue(fieldValue)
             }
         }
@@ -347,8 +372,8 @@ private fun SetRowWeightField(
             onLongDecrement = { onStepWeight(-5.0) },
             compact = true,
             spacing = FitSpacing.xs,
-            decrementContentDescription = "Bajar peso de la serie $setId",
-            incrementContentDescription = "Subir peso de la serie $setId",
+            decrementContentDescription = "Bajar peso de la serie $setNumber",
+            incrementContentDescription = "Subir peso de la serie $setNumber",
             buttonContainer = true
         ) {
             DisableNativeTextToolbar {
@@ -360,14 +385,22 @@ private fun SetRowWeightField(
                     },
                     placeholder = { Text(weightUnitLabel) },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(onNext = { onNext() }),
                     colors = setFieldColors(isCompleted),
                     interactionSource = interactionSource,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 56.dp)
                         .onFocusChanged {
-                            if (it.isFocused) fieldValue = selectAllOnFocusValue(fieldValue)
+                            if (it.isFocused) {
+                                if (arming.consume()) fieldValue = selectAllOnFocusValue(fieldValue)
+                            } else {
+                                arming.rearm()
+                            }
                         }
                 )
             }
@@ -392,17 +425,20 @@ private fun SetRowRepsField(
     isCompleted: Boolean,
     onRepsChange: (String) -> Unit,
     onStepReps: (Int) -> Unit,
+    focusRequester: FocusRequester,
     modifier: Modifier
 ) {
     var fieldValue by remember(setId) { mutableStateOf(TextFieldValue(repsText)) }
     val interactionSource = remember { MutableInteractionSource() }
+    val focusManager = LocalFocusManager.current
+    val arming = rememberSelectAllArming(setId)
 
     LaunchedEffect(repsText) {
         fieldValue = syncTextFieldValue(fieldValue, repsText)
     }
     LaunchedEffect(interactionSource) {
         interactionSource.interactions.collect { interaction ->
-            if (interaction is PressInteraction.Release) {
+            if (interaction is PressInteraction.Release && arming.consume()) {
                 fieldValue = selectAllOnFocusValue(fieldValue)
             }
         }
@@ -430,14 +466,23 @@ private fun SetRowRepsField(
                     },
                     placeholder = { Text("Reps") },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                     colors = setFieldColors(isCompleted),
                     interactionSource = interactionSource,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 56.dp)
+                        .focusRequester(focusRequester)
                         .onFocusChanged {
-                            if (it.isFocused) fieldValue = selectAllOnFocusValue(fieldValue)
+                            if (it.isFocused) {
+                                if (arming.consume()) fieldValue = selectAllOnFocusValue(fieldValue)
+                            } else {
+                                arming.rearm()
+                            }
                         }
                 )
             }

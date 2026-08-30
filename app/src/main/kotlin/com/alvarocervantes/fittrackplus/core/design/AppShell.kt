@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -87,6 +89,7 @@ fun FitTrackAppShell(
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val weightUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
+    val menuHiddenForRoute by viewModel.menuHiddenForRoute.collectAsStateWithLifecycle()
     val bottomDestinations = remember { shellBottomDestinations() }
     val drawerItems = remember { shellDrawerItems() }
     var pendingExport by remember { mutableStateOf<UserDataExport?>(null) }
@@ -138,8 +141,9 @@ fun FitTrackAppShell(
                                 kind = NavigationRequestKind.Secondary
                             )
                         },
-                        onFutureAction = viewModel::showFutureActionMessage,
-                        onAction = { title -> if (title == "Exportar datos") viewModel.requestDataExport() },
+                        onNonNavigationItem = { drawerItem ->
+                            viewModel.handleNonNavigationDrawerItem(drawerItem)
+                        },
                         drawerScope = coroutineScope,
                         closeDrawer = { drawerState.close() }
                     )
@@ -156,13 +160,17 @@ fun FitTrackAppShell(
                             currentRoute = currentRoute,
                             destinations = bottomDestinations,
                             onNavigate = { targetRoute ->
-                                val intercepted = viewModel.requestNavigation(
-                                    currentRoute = currentRoute,
-                                    targetRoute = targetRoute,
-                                    kind = NavigationRequestKind.TopLevel
-                                )
-                                if (!intercepted) {
-                                    onNavigateToTopLevel(targetRoute)
+                                if (targetRoute == currentRoute) {
+                                    viewModel.notifyActiveTabReselected(targetRoute)
+                                } else {
+                                    val intercepted = viewModel.requestNavigation(
+                                        currentRoute = currentRoute,
+                                        targetRoute = targetRoute,
+                                        kind = NavigationRequestKind.TopLevel
+                                    )
+                                    if (!intercepted) {
+                                        onNavigateToTopLevel(targetRoute)
+                                    }
                                 }
                             }
                         )
@@ -172,7 +180,11 @@ fun FitTrackAppShell(
                 content(innerPadding)
             }
 
-            if (currentRoute != AppRoute.Settings) {
+            // Floats over the content at the top end. It stays on the end side because the start
+            // side is where every screen header puts its title, and a floating button there would
+            // sit on top of it. Screens whose header shows trailing actions in this same corner
+            // hide it while those are up.
+            if (currentRoute != AppRoute.Settings && menuHiddenForRoute != currentRoute) {
                 ShellMenuButton(
                     onClick = {
                         coroutineScope.launch {
@@ -248,6 +260,7 @@ private fun DrawerContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = FitSpacing.lg)
                 .padding(top = 28.dp, bottom = FitSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(FitSpacing.lg)
@@ -418,25 +431,35 @@ private fun ShellMenuButton(
     }
 }
 
+/** Dispatches the drawer entries that do not navigate anywhere. */
+private fun AppShellViewModel.handleNonNavigationDrawerItem(item: DrawerItem) {
+    when (item.kind) {
+        DrawerItemKind.FutureAction -> showFutureActionMessage(item.title)
+        DrawerItemKind.InfoAction -> showMessage(item.message ?: item.title)
+        DrawerItemKind.Action -> if (item.title == EXPORT_DATA_ITEM_TITLE) requestDataExport()
+        DrawerItemKind.Navigation -> Unit
+    }
+}
+
+private const val EXPORT_DATA_ITEM_TITLE = "Exportar datos"
+
 private fun handleDrawerItemClick(
     item: DrawerItem,
     onNavigateToSecondary: (AppRoute) -> Unit,
     onRequestNavigation: (AppRoute) -> Boolean,
-    onFutureAction: (String) -> Unit,
-    onAction: (String) -> Unit,
+    onNonNavigationItem: (DrawerItem) -> Unit,
     drawerScope: CoroutineScope,
     closeDrawer: suspend () -> Unit
 ) {
     drawerScope.launch {
         closeDrawer()
-        when (item.kind) {
-            DrawerItemKind.Navigation -> item.route?.let { route ->
-                if (!onRequestNavigation(route)) {
-                    onNavigateToSecondary(route)
-                }
+        val route = item.route
+        if (item.kind == DrawerItemKind.Navigation && route != null) {
+            if (!onRequestNavigation(route)) {
+                onNavigateToSecondary(route)
             }
-            DrawerItemKind.FutureAction -> onFutureAction(item.title)
-            DrawerItemKind.Action -> onAction(item.title)
+        } else {
+            onNonNavigationItem(item)
         }
     }
 }

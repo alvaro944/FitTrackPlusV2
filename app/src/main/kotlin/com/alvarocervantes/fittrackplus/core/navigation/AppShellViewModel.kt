@@ -29,14 +29,21 @@ class AppShellViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _blockedRoute = MutableStateFlow<AppRoute?>(null)
+    private val _menuHiddenForRoute = MutableStateFlow<AppRoute?>(null)
     private val _pendingNavigation = MutableStateFlow<NavigationRequest?>(null)
     private val _message = MutableStateFlow<String?>(null)
     private val _approvedNavigation = MutableSharedFlow<NavigationRequest>(extraBufferCapacity = 1)
+    // Fires when the user taps the bottom-nav item for the tab they're already on, so that
+    // tab's screen can pop its own internal state back to the top (e.g. History closing a
+    // detail view back to the list) instead of the tap doing nothing.
+    private val _activeTabReselected = MutableSharedFlow<AppRoute>(extraBufferCapacity = 1)
     private val _exportRequests = MutableSharedFlow<UserDataExport>(extraBufferCapacity = 1)
 
     val pendingNavigation: StateFlow<NavigationRequest?> = _pendingNavigation.asStateFlow()
     val message: StateFlow<String?> = _message.asStateFlow()
+    val menuHiddenForRoute: StateFlow<AppRoute?> = _menuHiddenForRoute.asStateFlow()
     val approvedNavigation: SharedFlow<NavigationRequest> = _approvedNavigation.asSharedFlow()
+    val activeTabReselected: SharedFlow<AppRoute> = _activeTabReselected.asSharedFlow()
     val exportRequests: SharedFlow<UserDataExport> = _exportRequests.asSharedFlow()
 
     val weightUnit: StateFlow<String> = userPreferencesRepository.weightUnit
@@ -63,6 +70,23 @@ class AppShellViewModel @Inject constructor(
 
     fun showFutureActionMessage(title: String) {
         _message.value = "$title disponible en una fase futura."
+    }
+
+    fun showMessage(text: String) {
+        _message.value = text
+    }
+
+    /**
+     * Screens whose header shows trailing actions in the top-end corner hide the floating shell
+     * menu button while they are up, so the two never overlap. Callers must clear this on dispose,
+     * the same way they clear a navigation blocker.
+     */
+    fun setMenuButtonHidden(route: AppRoute, hidden: Boolean) {
+        _menuHiddenForRoute.value = when {
+            hidden -> route
+            _menuHiddenForRoute.value == route -> null
+            else -> _menuHiddenForRoute.value
+        }
     }
 
     fun requestDataExport() {
@@ -118,6 +142,10 @@ class AppShellViewModel @Inject constructor(
 
     fun dismissPendingNavigation() {
         _pendingNavigation.value = null
+    }
+
+    fun notifyActiveTabReselected(route: AppRoute) {
+        _activeTabReselected.tryEmit(route)
     }
 
     fun clearMessage() {

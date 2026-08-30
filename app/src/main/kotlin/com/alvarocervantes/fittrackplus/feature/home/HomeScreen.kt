@@ -1,5 +1,6 @@
 package com.alvarocervantes.fittrackplus.feature.home
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.lifecycle.ViewModelStoreOwner
+import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
+import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.BarChart
@@ -70,6 +75,10 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val activity = LocalActivity.current
+    val appShellOwner = requireNotNull(activity) as ViewModelStoreOwner
+    val appShellViewModel: AppShellViewModel = hiltViewModel(appShellOwner)
+    val listState = rememberLazyListState()
 
     val hasActiveRoutine = uiState.activeRoutineId != null
 
@@ -77,6 +86,14 @@ fun HomeScreen(
         val message = uiState.message ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(message)
         viewModel.clearMessage()
+    }
+
+    LaunchedEffect(Unit) {
+        appShellViewModel.activeTabReselected.collect { route ->
+            if (route == AppRoute.Home) {
+                listState.animateScrollToItem(0)
+            }
+        }
     }
 
     val quickActions = listOf(
@@ -110,6 +127,7 @@ fun HomeScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .padding(innerPadding)
                 .padding(horizontal = FitSpacing.screenHorizontal),

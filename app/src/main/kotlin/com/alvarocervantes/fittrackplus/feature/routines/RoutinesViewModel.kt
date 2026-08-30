@@ -137,7 +137,7 @@ class RoutinesViewModel @Inject constructor(
     }
 
     fun updateRoutineName(name: String) {
-        updateEditor { editor -> editor.copy(name = normalizeEditorNameInput(name)) }
+        updateEditor { editor -> editor.copy(name = name, hasInteractedWithName = true) }
     }
 
     fun addDay() {
@@ -153,7 +153,7 @@ class RoutinesViewModel @Inject constructor(
         updateEditor { editor ->
             editor.copy(
                 days = editor.days.replaceAt(dayIndex) {
-                    it.copy(name = normalizeEditorNameInput(name))
+                    it.copy(name = name)
                 }
             )
         }
@@ -185,7 +185,7 @@ class RoutinesViewModel @Inject constructor(
     fun updateExerciseName(dayIndex: Int, exerciseIndex: Int, name: String) {
         updateEditor { editor ->
             editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
-                exercise.copy(name = normalizeEditorNameInput(name))
+                exercise.copy(name = name, hasInteractedWithName = true)
             }
         }
     }
@@ -264,7 +264,7 @@ class RoutinesViewModel @Inject constructor(
             editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
                 exercise.copy(
                     alternatives = exercise.alternatives.replaceAt(alternativeIndex) { alternative ->
-                        alternative.copy(name = normalizeEditorNameInput(name))
+                        alternative.copy(name = name)
                     }
                 )
             }
@@ -478,6 +478,7 @@ data class RoutineListItemUiState(
 data class RoutineEditorUiState(
     val routineId: Long? = null,
     val name: String = "",
+    val hasInteractedWithName: Boolean = false,
     val days: List<RoutineDayEditorUiState> = listOf(RoutineDayEditorUiState()),
     val isDirty: Boolean = false,
     val showCloseConfirmation: Boolean = false,
@@ -486,8 +487,12 @@ data class RoutineEditorUiState(
     val title: String = if (routineId == null) "Nueva rutina" else "Editar rutina"
     val hasUnsavedChanges: Boolean
         get() = isDirty
+    private val nameBlank: Boolean
+        get() = name.isBlank()
+    // Only surfaced once the user has actually touched the field - otherwise a brand new
+    // routine shows a validation error before anyone has typed anything.
     val routineNameError: String?
-        get() = if (name.isBlank()) "Pon un nombre para la rutina." else null
+        get() = if (hasInteractedWithName && nameBlank) "Pon un nombre para la rutina." else null
     val validationMessage: String?
         get() = when {
             routineNameError != null -> routineNameError
@@ -508,13 +513,17 @@ data class RoutineEditorUiState(
             else -> null
         }
     val canSave: Boolean
-        get() = routineNameError == null &&
+        // Uses the raw check, not routineNameError: a blank name must block saving even if the
+        // user never touched the field (routineNameError is gated on hasInteractedWithName so
+        // it doesn't show an error before any interaction, but that gating must not let an
+        // invalid, untouched routine be saved).
+        get() = !nameBlank &&
             days.isNotEmpty() &&
             days.all { day ->
                 day.nameError == null &&
                 day.exercises.isNotEmpty() &&
                     day.exercises.all { exercise ->
-                        exercise.nameError == null &&
+                        !exercise.isNameBlank &&
                             exercise.targetSetsError == null &&
                             exercise.targetRepsError == null &&
                             exercise.alternatives.all { alternative ->
@@ -548,13 +557,18 @@ data class RoutineExerciseEditorUiState(
     val variantKey: String? = null,
     val defaultVariantKey: String? = null,
     val name: String = "",
+    val hasInteractedWithName: Boolean = false,
     val targetSets: String = "3",
     val targetRepsText: String = "8-12",
     val notes: String = "",
     val alternatives: List<RoutineExerciseAlternativeEditorUiState> = emptyList()
 ) {
+    val isNameBlank: Boolean
+        get() = name.isBlank()
+    // Only surfaced once the user has actually touched the field - otherwise a brand new
+    // exercise shows a validation error before anyone has typed anything.
     val nameError: String?
-        get() = if (name.isBlank()) "Pon un nombre para el ejercicio." else null
+        get() = if (hasInteractedWithName && isNameBlank) "Pon un nombre para el ejercicio." else null
     val targetSetsError: String?
         get() = if (targetSets.toIntOrNull()?.let { it in 1..99 } == true) {
             null
@@ -636,17 +650,6 @@ internal fun isValidTargetReps(value: String): Boolean {
                 rpeMatch != null -> rpeMatch.groupValues[1].toInt() in 1..10
                 else -> false
             }
-        }
-    }
-}
-
-internal fun normalizeEditorNameInput(value: String): String {
-    if (value.isEmpty()) return value
-    return value.replaceFirstChar { char ->
-        if (char.isLowerCase()) {
-            char.titlecase()
-        } else {
-            char.toString()
         }
     }
 }

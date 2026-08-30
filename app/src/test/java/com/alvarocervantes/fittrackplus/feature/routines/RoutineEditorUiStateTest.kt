@@ -8,20 +8,6 @@ import org.junit.Test
 class RoutineEditorUiStateTest {
 
     @Test
-    fun normalizeEditorNameInputCapitalizesOnlyFirstLetter() {
-        assertEquals("Pecho", normalizeEditorNameInput("pecho"))
-        assertEquals("Bench press", normalizeEditorNameInput("bench press"))
-        assertEquals("BENCH press", normalizeEditorNameInput("bENCH press"))
-    }
-
-    @Test
-    fun normalizeEditorNameInputKeepsEmptyAndNonLetterStartsUntouched() {
-        assertEquals("", normalizeEditorNameInput(""))
-        assertEquals("  press banca", normalizeEditorNameInput("  press banca"))
-        assertEquals("1rm test", normalizeEditorNameInput("1rm test"))
-    }
-
-    @Test
     fun canSaveAcceptsReasonableTargetRepsFormats() {
         listOf("8", "8-12", "AMRAP", "RPE 8").forEach { targetReps ->
             val editor = validEditor(targetReps = targetReps)
@@ -46,6 +32,18 @@ class RoutineEditorUiStateTest {
         assertFalse(validEditor(exerciseName = "").canSave)
         assertFalse(validEditor(targetSets = "0").canSave)
         assertFalse(validEditor(targetSets = "abc").canSave)
+    }
+
+    @Test
+    fun routineNameErrorStaysHiddenUntilTheFieldIsTouchedButStillBlocksSaving() {
+        val untouchedBlank = validEditor(routineName = "")
+
+        assertEquals(null, untouchedBlank.routineNameError)
+        assertFalse("A blank name must not be saveable even if untouched", untouchedBlank.canSave)
+
+        val touchedBlank = untouchedBlank.copy(hasInteractedWithName = true)
+        assertEquals("Pon un nombre para la rutina.", touchedBlank.routineNameError)
+        assertFalse(touchedBlank.canSave)
     }
 
     @Test

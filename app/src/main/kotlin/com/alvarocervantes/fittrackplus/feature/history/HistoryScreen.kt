@@ -1,6 +1,10 @@
 package com.alvarocervantes.fittrackplus.feature.history
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
+import androidx.lifecycle.ViewModelStoreOwner
+import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
+import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -20,13 +24,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Visibility
@@ -41,6 +47,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,6 +86,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowMode
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDeltaDirection
 import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -88,8 +96,12 @@ fun HistoryScreen(
     onGoToWorkout: () -> Unit = {},
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
+    val activity = LocalActivity.current
+    val appShellOwner = requireNotNull(activity) as ViewModelStoreOwner
+    val appShellViewModel: AppShellViewModel = hiltViewModel(appShellOwner)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val listState = rememberLazyListState()
 
     state.message?.let { message ->
         LaunchedEffect(message) {
@@ -102,24 +114,52 @@ fun HistoryScreen(
         viewModel.recoveredSessionEvent.collect { onGoToWorkout() }
     }
 
+    // Re-tapping the History tab while already on it should pop back to the list and scroll
+    // it to the top, matching the standard re-tap pattern used by the other tabs.
+    LaunchedEffect(Unit) {
+        appShellViewModel.activeTabReselected.collect { route ->
+            if (route == AppRoute.History) {
+                viewModel.requestBackToList()
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
+
+    // The detail view puts its edit and delete actions in the header's trailing slot, the same
+    // top-end corner the floating shell menu button occupies, so hide the menu while it is open.
+    LaunchedEffect(state.selectedSessionId) {
+        appShellViewModel.setMenuButtonHidden(
+            route = AppRoute.History,
+            hidden = state.selectedSessionId != null
+        )
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            appShellViewModel.setMenuButtonHidden(AppRoute.History, hidden = false)
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         HistoryContent(
             state = state,
             contentPadding = padding,
+            listState = listState,
             onSessionClick = viewModel::selectSession,
             onBackToList = viewModel::requestBackToList,
             onPeriodFilterChange = viewModel::setPeriodFilter,
             onSortOrderChange = viewModel::setSortOrder,
             onRoutineFilterChange = viewModel::setRoutineFilter,
+            onClearFilters = viewModel::clearFilters,
             onToggleEditMode = viewModel::toggleEditMode,
             onSetWeightChange = viewModel::updateSetWeight,
             onSetRepsChange = viewModel::updateSetReps,
             onConfirmSaveChanges = viewModel::confirmSaveChanges,
             onConfirmDiscardChanges = viewModel::confirmDiscardChanges,
             onCancelPendingEditExit = viewModel::cancelPendingEditExit,
-            onRecoverSession = viewModel::recoverSession
+            onRecoverSession = viewModel::recoverSession,
+            onDeleteSession = viewModel::deleteSession
         )
     }
 }
@@ -128,18 +168,21 @@ fun HistoryScreen(
 private fun HistoryContent(
     state: HistoryUiState,
     contentPadding: PaddingValues,
+    listState: LazyListState,
     onSessionClick: (Long) -> Unit,
     onBackToList: () -> Unit,
-    onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
+    onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSortOrderChange: (HistorySortOrder) -> Unit,
     onRoutineFilterChange: (String?) -> Unit,
+    onClearFilters: () -> Unit,
     onToggleEditMode: () -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
     onConfirmSaveChanges: () -> Unit,
     onConfirmDiscardChanges: () -> Unit,
     onCancelPendingEditExit: () -> Unit,
-    onRecoverSession: () -> Unit
+    onRecoverSession: () -> Unit,
+    onDeleteSession: () -> Unit
 ) {
     val showingDetail = state.selectedSessionId != null || state.isDetailLoading
 
@@ -165,16 +208,19 @@ private fun HistoryContent(
                 onConfirmSaveChanges = onConfirmSaveChanges,
                 onConfirmDiscardChanges = onConfirmDiscardChanges,
                 onCancelPendingEditExit = onCancelPendingEditExit,
-                onRecoverSession = onRecoverSession
+                onRecoverSession = onRecoverSession,
+                onDeleteSession = onDeleteSession
             )
         } else {
             HistoryListContent(
                 state = state,
                 contentPadding = contentPadding,
+                listState = listState,
                 onSessionClick = onSessionClick,
                 onPeriodFilterChange = onPeriodFilterChange,
                 onSortOrderChange = onSortOrderChange,
-                onRoutineFilterChange = onRoutineFilterChange
+                onRoutineFilterChange = onRoutineFilterChange,
+                onClearFilters = onClearFilters
             )
         }
     }
@@ -184,12 +230,15 @@ private fun HistoryContent(
 private fun HistoryListContent(
     state: HistoryUiState,
     contentPadding: PaddingValues,
+    listState: LazyListState,
     onSessionClick: (Long) -> Unit,
-    onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
+    onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSortOrderChange: (HistorySortOrder) -> Unit,
-    onRoutineFilterChange: (String?) -> Unit
+    onRoutineFilterChange: (String?) -> Unit,
+    onClearFilters: () -> Unit
 ) {
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
@@ -217,7 +266,8 @@ private fun HistoryListContent(
                     availableRoutineNames = state.availableRoutineNames,
                     onPeriodFilterChange = onPeriodFilterChange,
                     onSortOrderChange = onSortOrderChange,
-                    onRoutineFilterChange = onRoutineFilterChange
+                    onRoutineFilterChange = onRoutineFilterChange,
+                    onClearFilters = onClearFilters
                 )
             }
         }
@@ -270,16 +320,27 @@ private fun HistoryListContent(
 
 @Composable
 private fun HistoryFilterControls(
-    selectedPeriod: HistoryPeriodFilter,
+    selectedPeriod: WorkoutStatsPeriod,
     selectedSort: HistorySortOrder,
     selectedRoutineName: String?,
     availableRoutineNames: List<String>,
-    onPeriodFilterChange: (HistoryPeriodFilter) -> Unit,
+    onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSortOrderChange: (HistorySortOrder) -> Unit,
-    onRoutineFilterChange: (String?) -> Unit
+    onRoutineFilterChange: (String?) -> Unit,
+    onClearFilters: () -> Unit
 ) {
+    val defaults = remember { HistoryUiState() }
+    val hasActiveFilters = selectedPeriod != defaults.selectedPeriod ||
+        selectedSort != defaults.selectedSort ||
+        selectedRoutineName != null
+
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+            FitTrackSectionLabel(
+                label = "Filtros",
+                actionLabel = if (hasActiveFilters) "Limpiar" else null,
+                onAction = if (hasActiveFilters) onClearFilters else null
+            )
             FitTrackSectionLabel(label = "Periodo")
             Row(
                 modifier = Modifier
@@ -287,7 +348,7 @@ private fun HistoryFilterControls(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
             ) {
-                HistoryPeriodFilter.entries.forEach { period ->
+                WorkoutStatsPeriod.entries.forEach { period ->
                     FilterChip(
                         selected = selectedPeriod == period,
                         onClick = { onPeriodFilterChange(period) },
@@ -348,9 +409,42 @@ private fun HistoryDetailContent(
     onConfirmSaveChanges: () -> Unit,
     onConfirmDiscardChanges: () -> Unit,
     onCancelPendingEditExit: () -> Unit,
-    onRecoverSession: () -> Unit
+    onRecoverSession: () -> Unit,
+    onDeleteSession: () -> Unit
 ) {
     val listState = rememberLazyListState()
+    var showRecoverConfirm by remember { mutableStateOf(false) }
+    var showDeleteSessionConfirm by remember { mutableStateOf(false) }
+
+    if (showRecoverConfirm) {
+        FitTrackConfirmDialog(
+            title = "Recuperar entrenamiento",
+            text = "Se reabrira esta sesion en la pestana Entrenar para que sigas donde lo dejaste.",
+            confirmLabel = "Recuperar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                showRecoverConfirm = false
+                onRecoverSession()
+            },
+            onDismiss = { showRecoverConfirm = false },
+            destructive = false
+        )
+    }
+
+    if (showDeleteSessionConfirm) {
+        FitTrackConfirmDialog(
+            title = "Eliminar sesion",
+            text = "Se eliminara esta sesion del historial de forma permanente. Esta accion no se puede deshacer.",
+            confirmLabel = "Eliminar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                showDeleteSessionConfirm = false
+                onDeleteSession()
+            },
+            onDismiss = { showDeleteSessionConfirm = false },
+            destructive = true
+        )
+    }
 
     if (state.pendingEditExit != null) {
         FitTrackConfirmDialog(
@@ -382,9 +476,25 @@ private fun HistoryDetailContent(
             FitTrackScreenHeader(
                 title = "Historial",
                 subtitle = if (state.isEditMode) "Editando series" else "Detalle historico",
-                trailing = {
-                    Row {
-                        if (state.selectedDetail != null) {
+                leading = {
+                    IconButton(onClick = onBackToList) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver al listado de historial"
+                        )
+                    }
+                },
+                trailing = if (state.selectedDetail != null) {
+                    {
+                        Row {
+                            if (!state.isEditMode) {
+                                IconButton(onClick = { showDeleteSessionConfirm = true }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = "Eliminar sesion"
+                                    )
+                                }
+                            }
                             IconButton(onClick = onToggleEditMode) {
                                 Icon(
                                     imageVector = if (state.isEditMode) Icons.Filled.Check else Icons.Filled.Edit,
@@ -396,13 +506,9 @@ private fun HistoryDetailContent(
                                 )
                             }
                         }
-                        IconButton(onClick = onBackToList) {
-                            Icon(
-                                imageVector = Icons.Filled.ArrowBack,
-                                contentDescription = "Volver al listado de historial"
-                            )
-                        }
                     }
+                } else {
+                    null
                 }
             )
         }
@@ -422,7 +528,7 @@ private fun HistoryDetailContent(
                 }
                 if (!state.selectedDetail.isComplete) {
                     item {
-                        HistoryIncompleteCard(onRecoverSession = onRecoverSession)
+                        HistoryIncompleteCard(onRecoverSession = { showRecoverConfirm = true })
                     }
                 }
                 item {

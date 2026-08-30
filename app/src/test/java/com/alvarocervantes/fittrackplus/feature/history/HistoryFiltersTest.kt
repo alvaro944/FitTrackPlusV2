@@ -1,5 +1,6 @@
 package com.alvarocervantes.fittrackplus.feature.history
 
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -10,7 +11,7 @@ class HistoryFiltersTest {
         val sessions = sampleSessions()
 
         val result = sessions.applyHistoryFilters(
-            period = HistoryPeriodFilter.All,
+            period = WorkoutStatsPeriod.All,
             sort = HistorySortOrder.Recent,
             nowMillis = NOW
         )
@@ -23,7 +24,7 @@ class HistoryFiltersTest {
         val sessions = sampleSessions()
 
         val result = sessions.applyHistoryFilters(
-            period = HistoryPeriodFilter.LastFourWeeks,
+            period = WorkoutStatsPeriod.LastFourWeeks,
             sort = HistorySortOrder.Recent,
             nowMillis = NOW
         )
@@ -36,7 +37,7 @@ class HistoryFiltersTest {
         val sessions = sampleSessions()
 
         val result = sessions.applyHistoryFilters(
-            period = HistoryPeriodFilter.LastTwelveWeeks,
+            period = WorkoutStatsPeriod.LastTwelveWeeks,
             sort = HistorySortOrder.Recent,
             nowMillis = NOW
         )
@@ -50,17 +51,17 @@ class HistoryFiltersTest {
 
         assertEquals(
             listOf(1L, 2L, 3L),
-            sessions.applyHistoryFilters(HistoryPeriodFilter.All, HistorySortOrder.Recent, NOW)
+            sessions.applyHistoryFilters(WorkoutStatsPeriod.All, HistorySortOrder.Recent, NOW)
                 .map { it.sessionId }
         )
         assertEquals(
             listOf(3L, 2L, 1L),
-            sessions.applyHistoryFilters(HistoryPeriodFilter.All, HistorySortOrder.Oldest, NOW)
+            sessions.applyHistoryFilters(WorkoutStatsPeriod.All, HistorySortOrder.Oldest, NOW)
                 .map { it.sessionId }
         )
         assertEquals(
             listOf(2L, 1L, 3L),
-            sessions.applyHistoryFilters(HistoryPeriodFilter.All, HistorySortOrder.HighestVolume, NOW)
+            sessions.applyHistoryFilters(WorkoutStatsPeriod.All, HistorySortOrder.HighestVolume, NOW)
                 .map { it.sessionId }
         )
     }
@@ -74,7 +75,7 @@ class HistoryFiltersTest {
         )
 
         val result = sessions.applyHistoryFilters(
-            period = HistoryPeriodFilter.All,
+            period = WorkoutStatsPeriod.All,
             sort = HistorySortOrder.Recent,
             selectedRoutineName = "Rutina Álvaro",
             nowMillis = NOW

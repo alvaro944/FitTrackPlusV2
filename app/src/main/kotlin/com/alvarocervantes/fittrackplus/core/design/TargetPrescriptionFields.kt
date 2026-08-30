@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackStepper
 
 private val targetRepsPresetOptions = listOf("5", "6-8", "8-12", "10-15")
+private const val TARGET_SETS_LONG_PRESS_STEP = 5
 
 /** Shared target sets and reps selector for routine exercises and alternatives. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -61,7 +62,8 @@ fun FitTrackTargetPrescriptionFields(
                 showCustomRepsDialog = false
             },
             onDismiss = { showCustomRepsDialog = false },
-            confirmEnabled = isValidTargetReps(customRepsDraft)
+            confirmEnabled = isValidTargetReps(customRepsDraft),
+            selectAllOnFocus = true
         )
     }
 
@@ -90,6 +92,12 @@ fun FitTrackTargetPrescriptionFields(
                     },
                     onIncrement = {
                         onTargetSetsChange((currentSets + 1).coerceAtMost(99).toString())
+                    },
+                    onLongDecrement = {
+                        onTargetSetsChange((currentSets - TARGET_SETS_LONG_PRESS_STEP).coerceAtLeast(1).toString())
+                    },
+                    onLongIncrement = {
+                        onTargetSetsChange((currentSets + TARGET_SETS_LONG_PRESS_STEP).coerceAtMost(99).toString())
                     },
                     decrementEnabled = currentSets > 1,
                     incrementEnabled = currentSets < 99

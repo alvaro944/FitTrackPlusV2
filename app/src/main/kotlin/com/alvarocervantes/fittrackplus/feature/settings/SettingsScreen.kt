@@ -47,6 +47,8 @@ import com.alvarocervantes.fittrackplus.core.design.components.FitTrackStepper
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackThemeModeSelector
 import com.alvarocervantes.fittrackplus.core.design.textTertiary
 
+private const val MAX_DAILY_STEP_GOAL = 50_000
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -163,6 +165,27 @@ fun SettingsScreen(
             }
 
             item {
+                FitTrackSectionLabel(label = "Ayuda")
+            }
+
+            item {
+                FitTrackCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                        Text(
+                            text = "Repite la introduccion que viste al abrir la app por primera vez.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        FitTrackOutlinedButton(
+                            label = "Volver a ver la introduccion",
+                            onClick = viewModel::replayOnboarding,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+
+            item {
                 FitTrackSectionLabel(label = "Salud y actividad")
             }
 
@@ -225,10 +248,13 @@ fun SettingsScreen(
                                             }
                                         },
                                         onIncrement = {
-                                            viewModel.setDailyStepGoal(dailyStepGoal + 1_000)
+                                            if (dailyStepGoal < MAX_DAILY_STEP_GOAL) {
+                                                viewModel.setDailyStepGoal(dailyStepGoal + 1_000)
+                                            }
                                         },
                                         compact = true,
-                                        decrementEnabled = dailyStepGoal > 1_000
+                                        decrementEnabled = dailyStepGoal > 1_000,
+                                        incrementEnabled = dailyStepGoal < MAX_DAILY_STEP_GOAL
                                     )
                                 }
                                 FitTrackOutlinedButton(
