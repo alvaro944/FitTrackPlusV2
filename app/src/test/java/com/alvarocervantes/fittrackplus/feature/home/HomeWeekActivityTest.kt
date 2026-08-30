@@ -5,9 +5,33 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 
 class HomeWeekActivityTest {
+
+    @Test
+    fun keepHomeSourceAliveRetriesAfterATransientError() = runBlocking {
+        val attempts = AtomicInteger()
+        val errors = mutableListOf<Throwable>()
+
+        val values = flow {
+            if (attempts.getAndIncrement() == 0) error("transient")
+            emit(7)
+        }.keepHomeSourceAlive(
+            fallback = 0,
+            retryDelayMillis = 0,
+            onError = errors::add
+        ).take(2).toList()
+
+        assertEquals(listOf(0, 7), values)
+        assertTrue(errors.single().message == "transient")
+    }
 
     @Test
     fun trainedDaysThisWeek_mapsWednesdayToIndexTwo() {

@@ -21,7 +21,7 @@ data class WorkoutHistoryDetail(
     val startedAt: Long,
     val finishedAt: Long,
     val weekNumber: Int,
-    val notes: String?,
+    val notes: String? = null,
     val pausedMillis: Long,
     val exercises: List<WorkoutHistoryExercise>,
     val comparison: WorkoutHistoryComparison? = null
@@ -31,6 +31,7 @@ data class WorkoutHistoryExercise(
     val exerciseId: Long,
     val name: String,
     val targetRepsText: String,
+    val notes: String? = null,
     val sets: List<WorkoutHistorySet>
 )
 

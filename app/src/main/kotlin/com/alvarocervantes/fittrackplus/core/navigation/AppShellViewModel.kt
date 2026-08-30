@@ -2,8 +2,13 @@ package com.alvarocervantes.fittrackplus.core.navigation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
+import android.net.Uri
 import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
+import com.alvarocervantes.fittrackplus.domain.usecase.ExportUserDataUseCase
+import com.alvarocervantes.fittrackplus.domain.usecase.UserDataExport
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -18,7 +23,9 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class AppShellViewModel @Inject constructor(
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val exportUserData: ExportUserDataUseCase,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _blockedRoute = MutableStateFlow<AppRoute?>(null)
@@ -30,12 +37,14 @@ class AppShellViewModel @Inject constructor(
     // tab's screen can pop its own internal state back to the top (e.g. History closing a
     // detail view back to the list) instead of the tap doing nothing.
     private val _activeTabReselected = MutableSharedFlow<AppRoute>(extraBufferCapacity = 1)
+    private val _exportRequests = MutableSharedFlow<UserDataExport>(extraBufferCapacity = 1)
 
     val pendingNavigation: StateFlow<NavigationRequest?> = _pendingNavigation.asStateFlow()
     val message: StateFlow<String?> = _message.asStateFlow()
     val menuHiddenForRoute: StateFlow<AppRoute?> = _menuHiddenForRoute.asStateFlow()
     val approvedNavigation: SharedFlow<NavigationRequest> = _approvedNavigation.asSharedFlow()
     val activeTabReselected: SharedFlow<AppRoute> = _activeTabReselected.asSharedFlow()
+    val exportRequests: SharedFlow<UserDataExport> = _exportRequests.asSharedFlow()
 
     val weightUnit: StateFlow<String> = userPreferencesRepository.weightUnit
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "kg")
@@ -68,15 +77,38 @@ class AppShellViewModel @Inject constructor(
     }
 
     /**
-     * Screens that show their own leading back action (a detail view inside a tab) hide the shell
-     * menu button while they are up, so the two never sit in the same corner. Callers must clear
-     * this on dispose, the same way they clear a navigation blocker.
+     * Screens whose header shows trailing actions in the top-end corner hide the floating shell
+     * menu button while they are up, so the two never overlap. Callers must clear this on dispose,
+     * the same way they clear a navigation blocker.
      */
     fun setMenuButtonHidden(route: AppRoute, hidden: Boolean) {
         _menuHiddenForRoute.value = when {
             hidden -> route
             _menuHiddenForRoute.value == route -> null
             else -> _menuHiddenForRoute.value
+        }
+    }
+
+    fun requestDataExport() {
+        viewModelScope.launch {
+            runCatching { exportUserData() }
+                .onSuccess { _exportRequests.emit(it) }
+                .onFailure { throwable ->
+                    _message.value = throwable.message ?: "No se pudieron preparar los datos para exportar."
+                }
+        }
+    }
+
+    fun saveDataExport(uri: Uri, export: UserDataExport) {
+        viewModelScope.launch {
+            runCatching {
+                requireNotNull(context.contentResolver.openOutputStream(uri))
+                    .bufferedWriter().use { it.write(export.content) }
+            }.onSuccess {
+                _message.value = "Datos exportados correctamente."
+            }.onFailure { throwable ->
+                _message.value = throwable.message ?: "No se pudieron guardar los datos exportados."
+            }
         }
     }
 

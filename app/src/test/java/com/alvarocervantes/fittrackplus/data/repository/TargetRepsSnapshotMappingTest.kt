@@ -23,6 +23,18 @@ class TargetRepsSnapshotMappingTest {
     }
 
     @Test
+    fun snapshotsBaseExerciseNotes() {
+        val entity = routineExercise(
+            targetRepsText = "8-12",
+            targetRepsMin = 8,
+            targetRepsMax = 12
+        ).copy(notes = "Pause at the bottom")
+            .toWorkoutExerciseEntity(sessionId = 42)
+
+        assertEquals("Pause at the bottom", entity.notes)
+    }
+
+    @Test
     fun preservesUnstructuredSnapshotText() {
         val entity = routineExercise(
             targetRepsText = "AMRAP",
@@ -52,7 +64,7 @@ class TargetRepsSnapshotMappingTest {
                     targetSets = 4,
                     targetRepsText = "6-8",
                     position = 0,
-                    notes = null,
+                    notes = "Use a shallow incline",
                     targetRepsMin = 6,
                     targetRepsMax = 8
                 )
@@ -65,6 +77,7 @@ class TargetRepsSnapshotMappingTest {
         assertEquals("6-8", entity.targetRepsSnapshot)
         assertEquals(6, entity.targetRepsMinSnapshot)
         assertEquals(8, entity.targetRepsMaxSnapshot)
+        assertEquals("Use a shallow incline", entity.notes)
     }
 
     private fun routineExercise(

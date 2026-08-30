@@ -1,11 +1,19 @@
 package com.alvarocervantes.fittrackplus.core.navigation
 
+import com.alvarocervantes.fittrackplus.routeFromOpenTab
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NavigationShellConfigTest {
+
+    @Test
+    fun routeFromOpenTabMapsSupportedShortcutTargets() {
+        assertEquals(AppRoute.Workout, routeFromOpenTab("workout"))
+        assertEquals(AppRoute.Stats, routeFromOpenTab("stats"))
+        assertEquals(null, routeFromOpenTab("unknown"))
+    }
 
     @Test
     fun `bottom navigation keeps five primary tabs and excludes settings`() {
@@ -25,7 +33,7 @@ class NavigationShellConfigTest {
     }
 
     @Test
-    fun `drawer contains real settings entry and future actions`() {
+    fun `drawer entries are all real actions with nothing left as coming soon`() {
         val items = shellDrawerItems()
 
         assertTrue(
@@ -35,11 +43,24 @@ class NavigationShellConfigTest {
                     !item.isFuture
             }
         )
+        // The widget already ships, so this entry explains how to add it instead of
+        // claiming the feature is still to come.
         assertTrue(
             items.any { item ->
-                item.title == "Exportar datos" && item.isFuture
+                item.title == "Widget & atajos" &&
+                    item.kind == DrawerItemKind.InfoAction &&
+                    !item.message.isNullOrBlank() &&
+                    !item.isFuture
             }
         )
+        assertTrue(
+            items.any { item ->
+                item.title == "Exportar datos" &&
+                    item.kind == DrawerItemKind.Action &&
+                    !item.isFuture
+            }
+        )
+        assertFalse(items.any { item -> item.isFuture })
     }
 
     @Test

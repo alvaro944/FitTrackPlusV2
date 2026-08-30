@@ -7,7 +7,12 @@ data class ShellBottomDestination(
 
 enum class DrawerItemKind {
     Navigation,
+
+    /** Runs a shell action identified by the item title (e.g. exporting data). */
+    Action,
     FutureAction,
+
+    /** Shows [DrawerItem.message] as a snackbar, for items that only explain something. */
     InfoAction
 }
 
@@ -44,8 +49,7 @@ fun shellDrawerItems(): List<DrawerItem> {
         ),
         DrawerItem(
             title = "Exportar datos",
-            kind = DrawerItemKind.FutureAction,
-            isFuture = true
+            kind = DrawerItemKind.Action
         )
     )
 }

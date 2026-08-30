@@ -33,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.Lifecycle
 import com.alvarocervantes.fittrackplus.core.app.AppVersion
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
@@ -57,10 +59,16 @@ fun SettingsScreen(
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val healthConnectConnected by viewModel.healthConnectConnected.collectAsStateWithLifecycle()
+    val isHealthConnectAvailable by viewModel.isHealthConnectAvailable.collectAsStateWithLifecycle()
+    val healthConnectNeedsInstallation by viewModel.healthConnectNeedsInstallation.collectAsStateWithLifecycle()
     val dailyStepGoal by viewModel.dailyStepGoal.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showDemoDataDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.refreshHealthConnectAvailability()
+    }
 
     val permissionsLauncher = rememberLauncherForActivityResult(
         contract = viewModel.permissionsContract(),
@@ -192,7 +200,7 @@ fun SettingsScreen(
                         )
 
                         when {
-                            !viewModel.isHealthConnectAvailable && !viewModel.healthConnectNeedsInstallation -> {
+                            !isHealthConnectAvailable && !healthConnectNeedsInstallation -> {
                                 Text(
                                     text = "Health Connect no esta disponible en este dispositivo.",
                                     style = MaterialTheme.typography.bodySmall,
@@ -200,7 +208,7 @@ fun SettingsScreen(
                                 )
                             }
 
-                            viewModel.healthConnectNeedsInstallation -> {
+                            healthConnectNeedsInstallation -> {
                                 Text(
                                     text = "Instala Health Connect desde Play Store para conectar tu app de actividad.",
                                     style = MaterialTheme.typography.bodyMedium,

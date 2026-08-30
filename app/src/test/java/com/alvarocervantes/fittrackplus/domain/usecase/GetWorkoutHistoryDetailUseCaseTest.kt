@@ -47,6 +47,7 @@ class GetWorkoutHistoryDetailUseCaseTest {
                     position = 0,
                     name = "First Snapshot Exercise",
                     targetReps = "6-8",
+                    notes = "Touch the chest",
                     sets = listOf(
                         set(id = 12, setNumber = 2, weightKg = 82.5, reps = 7),
                         set(id = 11, setNumber = 1, weightKg = 80.0, reps = 8)
@@ -64,6 +65,7 @@ class GetWorkoutHistoryDetailUseCaseTest {
         assertEquals("Snapshot Day", result?.dayName)
         assertEquals("First Snapshot Exercise", result?.exercises?.first()?.name)
         assertEquals("6-8", result?.exercises?.first()?.targetRepsText)
+        assertEquals("Touch the chest", result?.exercises?.first()?.notes)
         assertEquals(1, result?.exercises?.first()?.sets?.first()?.setNumber)
         assertEquals(80.0, result?.exercises?.first()?.sets?.first()?.weightKg ?: -1.0, 0.0)
         assertEquals(8, result?.exercises?.first()?.sets?.first()?.reps)
@@ -215,6 +217,7 @@ class GetWorkoutHistoryDetailUseCaseTest {
         position: Int,
         name: String,
         targetReps: String,
+        notes: String? = null,
         sets: List<WorkoutSetEntity>
     ): WorkoutExerciseWithSets {
         return WorkoutExerciseWithSets(
@@ -224,6 +227,7 @@ class GetWorkoutHistoryDetailUseCaseTest {
                 exerciseTemplateId = 100 + id,
                 exerciseNameSnapshot = name,
                 targetRepsSnapshot = targetReps,
+                notes = notes,
                 position = position
             ),
             sets = sets

@@ -217,6 +217,8 @@ Las mejoras de abajo son las que propuse antes de ver la Fase 6. Mantenidas por 
 
 ### 3. Export local de historial (CSV o JSON)
 
+**Actualizacion (2026-08-30):** la exportacion JSON de rutinas e historial ya esta disponible. Importar una copia y borrar todos los datos siguen fuera de esta ronda: requieren validacion/migracion de formatos y una confirmacion destructiva con recuperacion, respectivamente.
+
 - **Problema**: no hay forma de llevarse los datos. Firebase/sync queda lejos y mientras tanto el usuario depende de un unico dispositivo. Si se pierde la instalacion, se pierde el historial.
 - **Propuesta**: accion en Settings que exporte `WorkoutSession` + `WorkoutExercise` + `WorkoutSet` a JSON (mas simple) o CSV (mas amigable para Excel) usando `ActivityResultContracts.CreateDocument` + `ContentResolver`. Sin import todavia (YAGNI hasta que haya dos devices).
 - **Esfuerzo**: medio. Valor alto para portfolio (APIs de Storage Access Framework) y utilidad real.
@@ -443,6 +445,40 @@ Encontrado durante la implementacion de `fix/data-loss` (P0-9 de `docs/design/au
 `RoutinesViewModel.removeDay`/`removeExercise`/`removeExerciseAlternative` mutan el editor sin guardar ningun snapshot de lo eliminado, y el unico canal hacia el `SnackbarHost` es un mensaje de texto de una via (`viewModel.clearMessage()`), sin `actionLabel` ni logica de restauracion. `fix/data-loss` cerro el riesgo inmediato con confirmacion antes de borrar (dia, ejercicio, alternativa), pero un "Deshacer" real requiere: snapshot del elemento eliminado en el ViewModel, un canal de evento (no solo un `String`) hacia la UI, y logica de restauracion que reinserte el elemento en su posicion original si el usuario pulsa "Deshacer" antes de que expire el snackbar. Aplica igual a las demas instancias de `SnackbarHostState` del proyecto (7 en total, 0 con `actionLabel` a fecha de la auditoria).
 
 **Esfuerzo**: medio — no es un fix puntual, es una pieza de infraestructura compartida (probablemente un helper en `core/` reutilizable desde varias features).
+
+---
+
+### 39. Avisos de finalizacion del temporizador fuera de la pantalla
+
+El temporizador de descanso conserva su estado mediante `DataStore` y calcula el tiempo restante contra un instante absoluto, por lo que sobrevive a un cierre del proceso. Esta iteracion solo da respuesta haptica mientras `WorkoutScreen` sigue compuesta. Las notificaciones y el sonido al terminar con la app en segundo plano se posponen: requieren definir un canal de notificacion, su permiso en Android 13+, la politica de alertas y el ciclo de vida de un trabajo/alarma fiable. Deben disenar e implementarse juntos como una feature de alertas de fondo, no como un añadido aislado al temporizador.
+
+**Esfuerzo**: medio — afecta a permisos, notificaciones y comportamiento en segundo plano.
+
+---
+
+### 40. Importacion de datos y borrado total
+
+Encontrado al verificar P1-10 de `docs/design/auditoria-ronda-3.md` (2026-08-30).
+
+`fix/broken-features` cerro la mitad del hueco: `ExportUserDataUseCase` genera el volcado y
+`AppShellViewModel.saveDataExport` lo escribe via `ACTION_CREATE_DOCUMENT`. Con eso, un usuario
+puede sacar sus datos antes de perder el movil. Quedan las dos operaciones que **escriben o
+destruyen**, y por eso se posponen a proposito:
+
+- **Importacion** (`ACTION_OPEN_DOCUMENT`): no es el reflejo de la exportacion. Hay que decidir
+  la politica de colision (¿reemplazar todo, fusionar, duplicar?), validar y versionar el formato
+  del fichero, y respetar el invariante de snapshots — una sesion importada arrastra nombres y
+  reps objetivo historicos que **no** deben reescribirse con las rutinas actuales. Sin eso, una
+  importacion corrompe el historial en silencio, que es justo la clase de bug que cerro `fix/data-loss`.
+- **Borrado total**: hoy la unica operacion destructiva global es la recarga de datos demo, y es
+  solo de debug. Un usuario de release no puede resetear la app. Necesita confirmacion reforzada
+  (no un `FitTrackConfirmDialog` normal) y deberia ofrecer exportar antes de borrar.
+
+Ambas conviene hacerlas juntas y con calma: comparten el formato de fichero y el modelo de
+"estado completo de la app". No son un añadido a la exportacion.
+
+**Esfuerzo**: alto — formato versionado, politica de colision, invariante de snapshots y una
+ruta destructiva irreversible.
 
 ---
 

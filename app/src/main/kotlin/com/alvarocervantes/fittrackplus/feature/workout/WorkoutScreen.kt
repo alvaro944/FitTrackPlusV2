@@ -3,9 +3,6 @@
 package com.alvarocervantes.fittrackplus.feature.workout
 
 import androidx.activity.compose.LocalActivity
-import androidx.lifecycle.ViewModelStoreOwner
-import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
-import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -45,6 +42,8 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
@@ -59,6 +58,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,6 +71,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -79,6 +80,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.ViewModelStoreOwner
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.success
 import com.alvarocervantes.fittrackplus.core.design.primaryMid
@@ -116,6 +118,8 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTargetPrescriptionFields
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
+import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
+import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -128,13 +132,15 @@ fun WorkoutScreen(
     onGoToRoutines: () -> Unit,
     viewModel: WorkoutViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-    var showFinishConfirmation by remember { mutableStateOf(false) }
-    val haptic = LocalHapticFeedback.current
     val activity = LocalActivity.current
     val appShellOwner = requireNotNull(activity) as ViewModelStoreOwner
     val appShellViewModel: AppShellViewModel = hiltViewModel(appShellOwner)
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val pendingNavigation by appShellViewModel.pendingNavigation.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    var showFinishConfirmation by remember { mutableStateOf(false) }
+    var finishNotes by remember { mutableStateOf("") }
+    val haptic = LocalHapticFeedback.current
     val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
@@ -145,11 +151,36 @@ fun WorkoutScreen(
         }
     }
 
+    LaunchedEffect(state.activeSession?.sessionId) {
+        appShellViewModel.setNavigationBlocker(
+            route = AppRoute.Workout,
+            isBlocked = state.activeSession != null
+        )
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            appShellViewModel.setNavigationBlocker(AppRoute.Workout, isBlocked = false)
+        }
+    }
+
     state.message?.let { message ->
         LaunchedEffect(message) {
             snackbarHostState.showSnackbar(message)
             viewModel.clearMessage()
         }
+    }
+
+    if (pendingNavigation != null) {
+        FitTrackConfirmDialog(
+            title = "Entrenamiento en curso",
+            text = "Tienes una sesion activa. ¿Quieres salir sin finalizarla?",
+            confirmLabel = "Salir",
+            dismissLabel = "Seguir entrenando",
+            onConfirm = appShellViewModel::confirmPendingNavigation,
+            onDismiss = appShellViewModel::dismissPendingNavigation,
+            destructive = true
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -164,6 +195,16 @@ fun WorkoutScreen(
         viewModel.setCompletionHapticEvent.collect {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.restTimerFinishedHapticEvent.collect {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
+
+    LaunchedEffect(state.activeSession?.sessionId) {
+        finishNotes = ""
     }
 
     // Pick up a session reopened from History when returning to this tab (only when idle).
@@ -182,18 +223,17 @@ fun WorkoutScreen(
             else ->
                 "Se guardara la sesion en el historial con las series registradas hasta ahora."
         }
-        FitTrackConfirmDialog(
+        FinishWorkoutDialog(
             title = "Finalizar entrenamiento",
             text = finishDialogText,
-            confirmLabel = "Finalizar",
-            dismissLabel = "Seguir entrenando",
+            notes = finishNotes,
+            onNotesChange = { finishNotes = it },
             onConfirm = {
                 showFinishConfirmation = false
-                viewModel.finishWorkout()
+                viewModel.finishWorkout(finishNotes)
             },
             onDismiss = { showFinishConfirmation = false },
             confirmEnabled = !state.isFinishing,
-            destructive = false
         )
     }
 
@@ -226,6 +266,7 @@ fun WorkoutScreen(
                 onFinishWorkout = { showFinishConfirmation = true },
                 onSetWeightChange = viewModel::updateSetWeight,
                 onSetRepsChange = viewModel::updateSetReps,
+                onSetNotesChange = viewModel::updateSetNotes,
                 onCompleteSet = viewModel::completeSet,
                 onStepWeight = viewModel::stepSetWeight,
                 onStepReps = viewModel::stepSetReps,
@@ -278,6 +319,47 @@ fun WorkoutScreen(
     }
 }
 
+@Composable
+private fun FinishWorkoutDialog(
+    title: String,
+    text: String,
+    notes: String,
+    onNotesChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    confirmEnabled: Boolean
+) {
+    FitTrackDialog(
+        title = title,
+        onDismissRequest = onDismiss,
+        content = {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            FitTrackSelectAllTextField(
+                value = notes,
+                onValueChange = onNotesChange,
+                label = { Text("Notas de la sesion") },
+                singleLine = false,
+                minLines = 3,
+                selectAllOnFocus = false,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        actions = {
+            FitTrackFormDialogActions(
+                cancelLabel = "Seguir entrenando",
+                confirmLabel = "Finalizar",
+                onCancel = onDismiss,
+                onConfirm = onConfirm,
+                confirmEnabled = confirmEnabled
+            )
+        }
+    )
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WorkoutContent(
@@ -289,6 +371,7 @@ private fun WorkoutContent(
     onFinishWorkout: () -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onSetNotesChange: (Long, String) -> Unit,
     onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit,
@@ -369,12 +452,14 @@ private fun WorkoutContent(
                 ) { exercise ->
                     WorkoutExerciseCard(
                         exercise = exercise,
+                        weightUnitLabel = state.weightUnit.label,
                         hint = state.hints[exercise.id] ?: ProgressionHint.NONE,
                         isExpanded = state.expandedExerciseId == exercise.id,
                         onOpenAlternatives = onOpenExerciseAlternatives,
                         onToggleExpanded = onToggleExerciseExpanded,
                         onSetWeightChange = onSetWeightChange,
                         onSetRepsChange = onSetRepsChange,
+                        onSetNotesChange = onSetNotesChange,
                         onCompleteSet = onCompleteSet,
                         onStepWeight = onStepWeight,
                         onStepReps = onStepReps
@@ -548,14 +633,6 @@ private fun RestTimerCard(
     onCancelRestTimer: () -> Unit,
     onAutoStartRestTimerChange: (Boolean) -> Unit
 ) {
-    val haptic = LocalHapticFeedback.current
-
-    LaunchedEffect(timer.status) {
-        if (timer.status == RestTimerStatus.Finished) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        }
-    }
-
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         RestTimerHeader(
             timer = timer,
@@ -751,12 +828,14 @@ private fun isRestTimerUrgent(timer: RestTimerUiState): Boolean {
 @Composable
 private fun WorkoutExerciseCard(
     exercise: WorkoutExerciseUiState,
+    weightUnitLabel: String,
     hint: ProgressionHint,
     isExpanded: Boolean,
     onOpenAlternatives: (Long) -> Unit,
     onToggleExpanded: (Long) -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onSetNotesChange: (Long, String) -> Unit,
     onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit
@@ -764,6 +843,7 @@ private fun WorkoutExerciseCard(
     val showProgressionHint = hint != ProgressionHint.NONE && exercise.sets.none { it.isCompleted }
     val completedSetCount = exercise.sets.count { it.isCompleted }
     val isExerciseCompleted = completedSetCount == exercise.sets.size && exercise.sets.isNotEmpty()
+    var showSetNotes by remember(exercise.id) { mutableStateOf(false) }
 
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -801,6 +881,13 @@ private fun WorkoutExerciseCard(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        exercise.notes?.takeIf { showSetNotes && it.isNotBlank() }?.let { notes ->
+                            Text(
+                                text = "Notas: $notes",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         ExerciseCompletionLabel(
                             isExpanded = isExpanded,
                             isCompleted = isExerciseCompleted,
@@ -812,6 +899,19 @@ private fun WorkoutExerciseCard(
                         horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        IconButton(
+                            onClick = { showSetNotes = !showSetNotes },
+                            modifier = Modifier.minimumInteractiveComponentSize()
+                        ) {
+                            Icon(
+                                imageVector = if (showSetNotes) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (showSetNotes) {
+                                    "Ocultar notas de las series de ${exercise.name}"
+                                } else {
+                                    "Mostrar notas de las series de ${exercise.name}"
+                                }
+                            )
+                        }
                         Icon(
                             imageVector = if (isExpanded) {
                                 Icons.Filled.KeyboardArrowUp
@@ -848,8 +948,11 @@ private fun WorkoutExerciseCard(
                     exercise.sets.forEach { set ->
                         WorkoutSetRow(
                             set = set,
+                            weightUnitLabel = weightUnitLabel,
+                            showNotes = showSetNotes,
                             onSetWeightChange = onSetWeightChange,
                             onSetRepsChange = onSetRepsChange,
+                            onSetNotesChange = onSetNotesChange,
                             onCompleteSet = onCompleteSet,
                             onStepWeight = onStepWeight,
                             onStepReps = onStepReps
@@ -894,6 +997,54 @@ private fun ExerciseCompletionLabel(
 }
 
 @Composable
+private fun ExerciseVariantOptionCard(
+    option: ExerciseVariantOptionUiState,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    FitTrackCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled || option.isCurrent, onClick = onClick)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = option.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                if (option.isDefault) {
+                    FitTrackBadge(label = "PREDET.", tone = FitTrackBadgeTone.Active)
+                }
+            }
+            Text(
+                text = "${option.targetSets} series · ${option.targetRepsText} reps",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            // Only label the row as actionable when tapping it would actually do something.
+            if (option.isCurrent || enabled) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Text(
+                        text = if (option.isCurrent) "Usando ahora" else "Usar ahora",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun ExerciseAlternativesDialog(
     picker: ExerciseAlternativesUiState,
     onDismiss: () -> Unit,
@@ -934,58 +1085,28 @@ private fun ExerciseAlternativesDialog(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (picker.draft == null) {
+                if (!picker.canSwapVariant) {
+                    Text(
+                        text = "Ya has registrado series en este ejercicio, asi que no se puede " +
+                            "cambiar la variante en esta sesion. Puedes editarlas desde Rutinas.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                val optionsEnabled = picker.canSwapVariant && !picker.isSaving
                 picker.options.forEach { option ->
-                    val onOptionClick = {
-                        if (option.variantKey == picker.currentVariantKey) {
-                            onDismiss()
-                        } else {
-                            pendingVariantKey = option.variantKey
+                    ExerciseVariantOptionCard(
+                        option = option,
+                        enabled = optionsEnabled,
+                        onClick = {
+                            if (option.isCurrent) onDismiss() else pendingVariantKey = option.variantKey
                         }
-                    }
-                    FitTrackCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onOptionClick)
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = option.name,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                if (option.isDefault) {
-                                    FitTrackBadge(
-                                        label = "PREDET.",
-                                        tone = FitTrackBadgeTone.Active
-                                    )
-                                }
-                            }
-                            Text(
-                                text = "${option.targetSets} series · ${option.targetRepsText} reps",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                Text(
-                                    text = if (option.isCurrent) "Usando ahora" else "Usar ahora",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
+                    )
                 }
                 FitTrackTonalButton(
                     label = "Crear alternativa",
                     onClick = onStartCreating,
+                    enabled = picker.canSwapVariant && !picker.isSaving,
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {
@@ -1048,8 +1169,11 @@ private fun ExerciseAlternativesDialog(
 @Composable
 private fun WorkoutSetRow(
     set: WorkoutSetUiState,
+    weightUnitLabel: String,
+    showNotes: Boolean,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onSetNotesChange: (Long, String) -> Unit,
     onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit
@@ -1059,6 +1183,8 @@ private fun WorkoutSetRow(
         setNumber = set.setNumber,
         weightText = set.weightText,
         repsText = set.repsText,
+        notes = set.notes,
+        showNotes = showNotes,
         mode = FitTrackSetRowMode.Edit,
         isCompleted = set.isCompleted,
         isReadyToComplete = isWorkoutSetReadyToComplete(
@@ -1067,9 +1193,11 @@ private fun WorkoutSetRow(
         ),
         showCompletionControl = true,
         previousWeight = set.previousWeight,
+        weightUnitLabel = weightUnitLabel,
         previousReps = set.previousReps,
         onWeightChange = { onSetWeightChange(set.id, it) },
         onRepsChange = { onSetRepsChange(set.id, it) },
+        onNotesChange = { onSetNotesChange(set.id, it) },
         onComplete = { onCompleteSet(set.id) },
         onStepWeight = { onStepWeight(set.id, it) },
         onStepReps = { onStepReps(set.id, it) },

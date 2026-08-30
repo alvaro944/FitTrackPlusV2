@@ -19,6 +19,14 @@ private val Context.userPreferencesDataStore by preferencesDataStore(
     name = "fittrackplus_user_preferences"
 )
 
+data class RestTimerPreferences(
+    val durationSeconds: Int = 0,
+    val remainingSeconds: Int = 0,
+    val status: String = "Stopped",
+    val endsAtMillis: Long? = null,
+    val autoStartEnabled: Boolean = false
+)
+
 @Singleton
 class UserPreferencesRepository @Inject constructor(
     @ApplicationContext private val context: Context
@@ -49,6 +57,16 @@ class UserPreferencesRepository @Inject constructor(
 
     val healthConnectConnected: Flow<Boolean> = context.userPreferencesDataStore.data.map { preferences ->
         preferences[Keys.HEALTH_CONNECT_CONNECTED] ?: false
+    }
+
+    val restTimerPreferences: Flow<RestTimerPreferences> = context.userPreferencesDataStore.data.map { preferences ->
+        RestTimerPreferences(
+            durationSeconds = preferences[Keys.REST_TIMER_DURATION_SECONDS] ?: 0,
+            remainingSeconds = preferences[Keys.REST_TIMER_REMAINING_SECONDS] ?: 0,
+            status = preferences[Keys.REST_TIMER_STATUS] ?: "Stopped",
+            endsAtMillis = preferences[Keys.REST_TIMER_ENDS_AT_MILLIS],
+            autoStartEnabled = preferences[Keys.REST_TIMER_AUTO_START_ENABLED] ?: false
+        )
     }
 
     suspend fun setActiveRoutineId(routineId: Long?) {
@@ -97,6 +115,20 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    suspend fun setRestTimerPreferences(timer: RestTimerPreferences) {
+        context.userPreferencesDataStore.edit { preferences ->
+            preferences[Keys.REST_TIMER_DURATION_SECONDS] = timer.durationSeconds
+            preferences[Keys.REST_TIMER_REMAINING_SECONDS] = timer.remainingSeconds
+            preferences[Keys.REST_TIMER_STATUS] = timer.status
+            preferences[Keys.REST_TIMER_AUTO_START_ENABLED] = timer.autoStartEnabled
+            if (timer.endsAtMillis == null) {
+                preferences.remove(Keys.REST_TIMER_ENDS_AT_MILLIS)
+            } else {
+                preferences[Keys.REST_TIMER_ENDS_AT_MILLIS] = timer.endsAtMillis
+            }
+        }
+    }
+
     private object Keys {
         val ACTIVE_ROUTINE_ID: Preferences.Key<Long> = longPreferencesKey("active_routine_id")
         val WEIGHT_UNIT: Preferences.Key<String> = stringPreferencesKey("weight_unit")
@@ -105,5 +137,10 @@ class UserPreferencesRepository @Inject constructor(
         val HAS_SEEN_ONBOARDING: Preferences.Key<Boolean> = booleanPreferencesKey("has_seen_onboarding")
         val DAILY_STEP_GOAL: Preferences.Key<Int> = intPreferencesKey("daily_step_goal")
         val HEALTH_CONNECT_CONNECTED: Preferences.Key<Boolean> = booleanPreferencesKey("health_connect_connected")
+        val REST_TIMER_DURATION_SECONDS: Preferences.Key<Int> = intPreferencesKey("rest_timer_duration_seconds")
+        val REST_TIMER_REMAINING_SECONDS: Preferences.Key<Int> = intPreferencesKey("rest_timer_remaining_seconds")
+        val REST_TIMER_STATUS: Preferences.Key<String> = stringPreferencesKey("rest_timer_status")
+        val REST_TIMER_ENDS_AT_MILLIS: Preferences.Key<Long> = longPreferencesKey("rest_timer_ends_at_millis")
+        val REST_TIMER_AUTO_START_ENABLED: Preferences.Key<Boolean> = booleanPreferencesKey("rest_timer_auto_start_enabled")
     }
 }
