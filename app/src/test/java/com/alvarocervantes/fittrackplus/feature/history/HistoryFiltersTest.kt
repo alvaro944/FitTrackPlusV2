@@ -1,5 +1,6 @@
 package com.alvarocervantes.fittrackplus.feature.history
 
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -10,7 +11,7 @@ class HistoryFiltersTest {
         val sessions = sampleSessions()
 
         val result = sessions.applyHistoryFilters(
-            period = HistoryPeriodFilter.All,
+            period = WorkoutStatsPeriod.All,
             sort = HistorySortOrder.Recent,
             nowMillis = NOW
         )
@@ -23,7 +24,7 @@ class HistoryFiltersTest {
         val sessions = sampleSessions()
 
         val result = sessions.applyHistoryFilters(
-            period = HistoryPeriodFilter.LastFourWeeks,
+            period = WorkoutStatsPeriod.LastFourWeeks,
             sort = HistorySortOrder.Recent,
             nowMillis = NOW
         )
@@ -36,7 +37,7 @@ class HistoryFiltersTest {
         val sessions = sampleSessions()
 
         val result = sessions.applyHistoryFilters(
-            period = HistoryPeriodFilter.LastTwelveWeeks,
+            period = WorkoutStatsPeriod.LastTwelveWeeks,
             sort = HistorySortOrder.Recent,
             nowMillis = NOW
         )
@@ -50,18 +51,50 @@ class HistoryFiltersTest {
 
         assertEquals(
             listOf(1L, 2L, 3L),
-            sessions.applyHistoryFilters(HistoryPeriodFilter.All, HistorySortOrder.Recent, NOW)
+            sessions.applyHistoryFilters(WorkoutStatsPeriod.All, HistorySortOrder.Recent, NOW)
                 .map { it.sessionId }
         )
         assertEquals(
             listOf(3L, 2L, 1L),
-            sessions.applyHistoryFilters(HistoryPeriodFilter.All, HistorySortOrder.Oldest, NOW)
+            sessions.applyHistoryFilters(WorkoutStatsPeriod.All, HistorySortOrder.Oldest, NOW)
                 .map { it.sessionId }
         )
         assertEquals(
             listOf(2L, 1L, 3L),
-            sessions.applyHistoryFilters(HistoryPeriodFilter.All, HistorySortOrder.HighestVolume, NOW)
+            sessions.applyHistoryFilters(WorkoutStatsPeriod.All, HistorySortOrder.HighestVolume, NOW)
                 .map { it.sessionId }
+        )
+    }
+
+    @Test
+    fun routineFilterKeepsOnlySessionsForSelectedRoutine() {
+        val sessions = listOf(
+            session(id = 1, finishedAt = NOW, volume = 1_000.0, routineName = "Rutina Álvaro"),
+            session(id = 2, finishedAt = NOW - TWO_WEEKS, volume = 1_500.0, routineName = "Rutina prueba"),
+            session(id = 3, finishedAt = NOW - EIGHT_WEEKS, volume = 500.0, routineName = "Rutina Álvaro")
+        )
+
+        val result = sessions.applyHistoryFilters(
+            period = WorkoutStatsPeriod.All,
+            sort = HistorySortOrder.Recent,
+            selectedRoutineName = "Rutina Álvaro",
+            nowMillis = NOW
+        )
+
+        assertEquals(listOf(1L, 3L), result.map { it.sessionId })
+    }
+
+    @Test
+    fun availableRoutineNamesAreUniqueAndAlphabetical() {
+        val sessions = listOf(
+            session(id = 1, finishedAt = NOW, volume = 1_000.0, routineName = "Rutina prueba"),
+            session(id = 2, finishedAt = NOW - TWO_WEEKS, volume = 1_500.0, routineName = "Rutina Álvaro"),
+            session(id = 3, finishedAt = NOW - EIGHT_WEEKS, volume = 500.0, routineName = "Rutina prueba")
+        )
+
+        assertEquals(
+            listOf("Rutina Álvaro", "Rutina prueba"),
+            sessions.availableRoutineNames()
         )
     }
 
@@ -73,17 +106,23 @@ class HistoryFiltersTest {
         )
     }
 
-    private fun session(id: Long, finishedAt: Long, volume: Double): HistorySessionUiState {
+    private fun session(
+        id: Long,
+        finishedAt: Long,
+        volume: Double,
+        routineName: String = "Routine $id"
+    ): HistorySessionUiState {
         return HistorySessionUiState(
             sessionId = id,
-            routineName = "Routine $id",
+            routineName = routineName,
             dayName = "Day $id",
             startedAt = finishedAt - 60_000,
             finishedAt = finishedAt,
             weekNumber = id.toInt(),
             totalVolumeKg = volume,
             durationMillis = 60_000,
-            setCount = id.toInt()
+            setCount = id.toInt(),
+            isComplete = true
         )
     }
 

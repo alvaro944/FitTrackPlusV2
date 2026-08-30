@@ -15,7 +15,17 @@ class RoutineEditorOperationsTest {
 
         assertTrue(result.isDirty)
         assertEquals(listOf("Push", "Push copia", "Pull"), result.days.map { it.name })
-        assertEquals(editor.days.first().exercises, result.days[1].exercises)
+        assertFalse(editor.days.first().draftId == result.days[1].draftId)
+        editor.days.first().exercises.zip(result.days[1].exercises).forEach { (original, copy) ->
+            assertFalse(original.draftId == copy.draftId)
+            assertEquals(original.routineExerciseId, copy.routineExerciseId)
+            assertEquals(original.variantKey, copy.variantKey)
+            assertEquals(original.defaultVariantKey, copy.defaultVariantKey)
+            assertEquals(original.targetSets, copy.targetSets)
+            assertEquals(original.targetRepsText, copy.targetRepsText)
+            assertEquals(original.notes, copy.notes)
+            assertEquals(original.alternatives, copy.alternatives)
+        }
     }
 
     @Test
@@ -29,6 +39,7 @@ class RoutineEditorOperationsTest {
         assertEquals("3", result.days[0].exercises[1].targetSets)
         assertEquals("8-12", result.days[0].exercises[1].targetRepsText)
         assertEquals("Use spotter", result.days[0].exercises[1].notes)
+        assertFalse(editor.days[0].exercises[0].draftId == result.days[0].exercises[1].draftId)
     }
 
     @Test

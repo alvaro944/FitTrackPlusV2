@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -54,7 +55,7 @@ fun FitTrackBadge(
     val background = when (tone) {
         FitTrackBadgeTone.Primary -> MaterialTheme.colorScheme.primarySoft
         FitTrackBadgeTone.Warm -> MaterialTheme.colorScheme.accentSoft
-        FitTrackBadgeTone.Neutral -> MaterialTheme.colorScheme.surfaceAlt
+        FitTrackBadgeTone.Neutral -> MaterialTheme.colorScheme.surfaceVariant
         FitTrackBadgeTone.Error -> MaterialTheme.colorScheme.errorSoft
         FitTrackBadgeTone.Active -> MaterialTheme.colorScheme.primary
     }
@@ -84,6 +85,7 @@ fun FitTrackScreenHeader(
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
+    leading: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null
 ) {
     Row(
@@ -91,6 +93,14 @@ fun FitTrackScreenHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top
     ) {
+        if (leading != null) {
+            Box(
+                modifier = Modifier.padding(end = FitSpacing.md),
+                contentAlignment = Alignment.TopStart
+            ) {
+                leading()
+            }
+        }
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
@@ -113,5 +123,20 @@ fun FitTrackScreenHeader(
                 trailing()
             }
         }
+    }
+}
+
+@Composable
+fun FitTrackHeroTag(text: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.onHero.copy(alpha = 0.12f), CircleShape)
+            .padding(horizontal = FitSpacing.smMd, vertical = FitSpacing.tiny)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onHeroMuted
+        )
     }
 }

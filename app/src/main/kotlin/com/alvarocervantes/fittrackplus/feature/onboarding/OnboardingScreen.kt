@@ -1,5 +1,6 @@
 package com.alvarocervantes.fittrackplus.feature.onboarding
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import kotlinx.coroutines.launch
 
@@ -64,6 +65,13 @@ fun OnboardingScreen(onComplete: () -> Unit) {
     val pagerState = rememberPagerState(pageCount = { onboardingPages.size })
     val scope = rememberCoroutineScope()
     val isLastPage = pagerState.currentPage == onboardingPages.lastIndex
+    val isFirstPage = pagerState.currentPage == 0
+
+    BackHandler(enabled = !isFirstPage) {
+        scope.launch {
+            pagerState.animateScrollToPage(pagerState.currentPage - 1)
+        }
+    }
 
     Scaffold { innerPadding ->
         Column(
@@ -106,23 +114,39 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     currentPage = pagerState.currentPage
                 )
 
-                if (isLastPage) {
-                    Button(
-                        onClick = onComplete,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Empezar")
-                    }
-                } else {
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (!isFirstPage) {
+                        TextButton(
+                            onClick = {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                                }
                             }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Siguiente")
+                        ) {
+                            Text("Atras")
+                        }
+                    }
+
+                    if (isLastPage) {
+                        FitTrackPrimaryButton(
+                            label = "Empezar",
+                            onClick = onComplete,
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        FitTrackPrimaryButton(
+                            label = "Siguiente",
+                            onClick = {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }

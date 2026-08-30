@@ -1,5 +1,6 @@
 package com.alvarocervantes.fittrackplus.feature.history
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDetail
@@ -8,37 +9,117 @@ import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryExercise
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryMetricDelta
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySet
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistorySummary
+import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
+import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
+import com.alvarocervantes.fittrackplus.domain.model.isWorkoutSetCompleted
+import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
+import com.alvarocervantes.fittrackplus.data.repository.RoutineRepository
+import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
 import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHistoryDetailUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutHistoryUseCase
+import com.alvarocervantes.fittrackplus.domain.usecase.ReopenWorkoutSessionResult
+import com.alvarocervantes.fittrackplus.domain.usecase.ReopenWorkoutSessionUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.UpdateWorkoutSetUseCase
 import com.alvarocervantes.fittrackplus.feature.workout.parseWorkoutWeightInput
+import com.alvarocervantes.fittrackplus.feature.workout.sanitizeWorkoutRepsInput
 import com.alvarocervantes.fittrackplus.feature.workout.sanitizeWorkoutWeightInput
+import com.alvarocervantes.fittrackplus.feature.workout.toInputText
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.text.Collator
+import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val DAY_MILLIS: Long = 86_400_000
+private const val SELECTED_SESSION_ID_KEY = "selected_session_id"
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     private val observeWorkoutHistory: ObserveWorkoutHistoryUseCase,
     private val getWorkoutHistoryDetail: GetWorkoutHistoryDetailUseCase,
-    private val updateWorkoutSet: UpdateWorkoutSetUseCase
+    private val updateWorkoutSet: UpdateWorkoutSetUseCase,
+    private val reopenWorkoutSession: ReopenWorkoutSessionUseCase,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val routineRepository: RoutineRepository,
+    private val workoutRepository: WorkoutRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
+    /** One-shot signal to navigate to the Workout tab after a session is reopened. */
+    private val _recoveredSessionEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val recoveredSessionEvent: SharedFlow<Unit> = _recoveredSessionEvent.asSharedFlow()
+
     private var editSnapshot: Map<Long, Pair<String, String>> = emptyMap()
 
+    /** Once the user (or the active-routine default) has set the routine filter, we stop auto-applying the default. */
+    private var routineFilterInitialized = false
+
     init {
+        userPreferencesRepository.weightUnit
+            .onEach { preference ->
+                val weightUnit = WeightUnit.fromPreference(preference)
+                val previousWeightUnit = _uiState.value.weightUnit
+                if (previousWeightUnit == weightUnit) return@onEach
+                if (_uiState.value.isEditMode) {
+                    editSnapshot = editSnapshot.mapValues { (_, snapshot) ->
+                        val storedKg = parseWorkoutWeightInput(snapshot.first)
+                            ?.let(previousWeightUnit::toKilograms)
+                        val displayWeight = storedKg
+                            ?.let(weightUnit::fromKilograms)
+                            ?.toHistoryInputText()
+                            ?: snapshot.first
+                        displayWeight to snapshot.second
+                    }
+                }
+                _uiState.update { state ->
+                    state.copy(
+                        weightUnit = weightUnit,
+                        selectedDetail = state.selectedDetail?.withWeightUnit(weightUnit)
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+
+        // Default the routine filter to the currently active routine's current name, only once and
+        // only while the user hasn't chosen a filter themselves (including choosing "Todas las rutinas").
+        combine(
+            userPreferencesRepository.activeRoutineId,
+            routineRepository.observeRoutines()
+        ) { activeRoutineId, routines ->
+            activeRoutineId?.let { id -> routines.firstOrNull { it.id == id }?.name }
+        }
+            .onEach { activeRoutineName ->
+                if (!routineFilterInitialized && activeRoutineName != null) {
+                    routineFilterInitialized = true
+                    _uiState.update { state ->
+                        state.copy(
+                            selectedRoutineName = activeRoutineName,
+                            sessions = state.allSessions.applyHistoryFilters(
+                                period = state.selectedPeriod,
+                                sort = state.selectedSort,
+                                selectedRoutineName = activeRoutineName,
+                                nowMillis = System.currentTimeMillis()
+                            )
+                        )
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
+
         observeWorkoutHistory()
             .onEach { sessions ->
                 val selectedId = _uiState.value.selectedSessionId
@@ -54,6 +135,7 @@ class HistoryViewModel @Inject constructor(
                         sessions = allSessions.applyHistoryFilters(
                             period = state.selectedPeriod,
                             sort = state.selectedSort,
+                            selectedRoutineName = state.selectedRoutineName,
                             nowMillis = System.currentTimeMillis()
                         ),
                         selectedSessionId = nextSelectedId,
@@ -71,9 +153,14 @@ class HistoryViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+
+        savedStateHandle.get<Long>(SELECTED_SESSION_ID_KEY)?.let { restoredSessionId ->
+            selectSession(restoredSessionId)
+        }
     }
 
     fun selectSession(sessionId: Long) {
+        savedStateHandle[SELECTED_SESSION_ID_KEY] = sessionId
         viewModelScope.launch {
             editSnapshot = emptyMap()
             _uiState.update { state ->
@@ -92,7 +179,7 @@ class HistoryViewModel @Inject constructor(
                 _uiState.update { state ->
                     state.copy(
                         isDetailLoading = false,
-                        selectedDetail = detail?.toUiState(),
+                        selectedDetail = detail?.toUiState(_uiState.value.weightUnit),
                         message = if (detail == null) {
                             "No se encontro la sesion finalizada."
                         } else {
@@ -112,6 +199,7 @@ class HistoryViewModel @Inject constructor(
     }
 
     fun clearSelection() {
+        savedStateHandle[SELECTED_SESSION_ID_KEY] = null
         editSnapshot = emptyMap()
         _uiState.update { state ->
             state.copy(
@@ -126,6 +214,33 @@ class HistoryViewModel @Inject constructor(
 
     fun clearMessage() {
         _uiState.update { state -> state.copy(message = null) }
+    }
+
+    /** Reopens the currently selected incomplete session so it can be continued from the Workout tab. */
+    fun recoverSession() {
+        val sessionId = _uiState.value.selectedSessionId ?: return
+        viewModelScope.launch {
+            when (reopenWorkoutSession(sessionId)) {
+                ReopenWorkoutSessionResult.Reopened -> {
+                    clearSelection()
+                    _recoveredSessionEvent.tryEmit(Unit)
+                }
+                ReopenWorkoutSessionResult.BlockedByActiveSession -> {
+                    _uiState.update { state ->
+                        state.copy(message = "Termina primero tu entrenamiento en curso.")
+                    }
+                }
+            }
+        }
+    }
+
+    /** Permanently deletes the currently selected session from history. */
+    fun deleteSession() {
+        val sessionId = _uiState.value.selectedSessionId ?: return
+        viewModelScope.launch {
+            workoutRepository.discardSession(sessionId)
+            clearSelection()
+        }
     }
 
     /** Toggles edit mode on, or requests to exit it (with confirmation if there are unsaved changes). */
@@ -149,6 +264,13 @@ class HistoryViewModel @Inject constructor(
 
     fun confirmSaveChanges() {
         val action = _uiState.value.pendingEditExit ?: return
+        changedSetEdits().forEach { edit ->
+            persistSetEdit(
+                setId = edit.setId,
+                weightText = edit.weightText,
+                repsText = edit.repsText
+            )
+        }
         finalizeEditExit(action)
     }
 
@@ -160,11 +282,12 @@ class HistoryViewModel @Inject constructor(
                 current.copy(
                     weightText = weightText,
                     repsText = repsText,
-                    weightKg = parseWorkoutWeightInput(weightText) ?: current.weightKg,
+                    weightKg = parseWorkoutWeightInput(weightText)
+                        ?.let(_uiState.value.weightUnit::toKilograms)
+                        ?: current.weightKg,
                     reps = repsText.toIntOrNull() ?: current.reps
                 )
             }
-            persistSetEdit(setId = setId, weightText = weightText, repsText = repsText)
         }
         finalizeEditExit(action)
     }
@@ -207,25 +330,33 @@ class HistoryViewModel @Inject constructor(
     fun updateSetWeight(setId: Long, weightText: String) {
         val set = findSelectedSet(setId) ?: return
         val sanitizedWeightText = sanitizeWorkoutWeightInput(weightText)
+        val completed = isWorkoutSetCompleted(set.repsText.toIntOrNull() ?: 0)
         updateSelectedSet(setId) { current ->
             current.copy(
                 weightText = sanitizedWeightText,
-                weightKg = parseWorkoutWeightInput(sanitizedWeightText) ?: current.weightKg
+                weightKg = parseWorkoutWeightInput(sanitizedWeightText)
+                    ?.let(_uiState.value.weightUnit::toKilograms)
+                    ?: current.weightKg,
+                isCompleted = completed
             )
         }
-        persistSetEdit(setId = setId, weightText = sanitizedWeightText, repsText = set.repsText)
     }
 
     fun updateSetReps(setId: Long, repsText: String) {
         val set = findSelectedSet(setId) ?: return
-        val sanitizedRepsText = repsText.filter { it.isDigit() }
+        val sanitizedRepsText = sanitizeWorkoutRepsInput(repsText)
+        val completed = isWorkoutSetCompleted(sanitizedRepsText.toIntOrNull() ?: 0)
         updateSelectedSet(setId) { current ->
             current.copy(
                 repsText = sanitizedRepsText,
-                reps = sanitizedRepsText.toIntOrNull() ?: current.reps
+                reps = sanitizedRepsText.toIntOrNull() ?: current.reps,
+                isCompleted = completed
             )
         }
-        persistSetEdit(setId = setId, weightText = set.weightText, repsText = sanitizedRepsText)
+    }
+
+    private fun changedSetEdits(): List<HistorySetEdit> {
+        return changedHistorySetEdits(_uiState.value.selectedDetail, editSnapshot)
     }
 
     private fun findSelectedSet(setId: Long): HistorySetUiState? {
@@ -258,7 +389,13 @@ class HistoryViewModel @Inject constructor(
     private fun persistSetEdit(setId: Long, weightText: String, repsText: String) {
         viewModelScope.launch {
             runCatching {
-                updateWorkoutSet(setId = setId, weightText = weightText, repsText = repsText)
+                updateWorkoutSet(
+                    setId = setId,
+                    weightText = weightText,
+                    repsText = repsText,
+                    weightUnit = _uiState.value.weightUnit,
+                    markCompletionFromData = true
+                )
             }.onFailure { throwable ->
                 _uiState.update { state ->
                     state.copy(message = throwable.message ?: "No se pudo guardar el cambio.")
@@ -267,13 +404,14 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
-    fun setPeriodFilter(period: HistoryPeriodFilter) {
+    fun setPeriodFilter(period: WorkoutStatsPeriod) {
         _uiState.update { state ->
             state.copy(
                 selectedPeriod = period,
                 sessions = state.allSessions.applyHistoryFilters(
                     period = period,
                     sort = state.selectedSort,
+                    selectedRoutineName = state.selectedRoutineName,
                     nowMillis = System.currentTimeMillis()
                 )
             )
@@ -287,6 +425,44 @@ class HistoryViewModel @Inject constructor(
                 sessions = state.allSessions.applyHistoryFilters(
                     period = state.selectedPeriod,
                     sort = sort,
+                    selectedRoutineName = state.selectedRoutineName,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    /**
+     * Resets every filter back to its default. The routine filter defaults to the active routine,
+     * which is convenient but easy to mistake for missing history, so there has to be one obvious
+     * way back to seeing everything.
+     */
+    fun clearFilters() {
+        routineFilterInitialized = true
+        _uiState.update { state ->
+            state.copy(
+                selectedPeriod = HistoryUiState().selectedPeriod,
+                selectedSort = HistoryUiState().selectedSort,
+                selectedRoutineName = null,
+                sessions = state.allSessions.applyHistoryFilters(
+                    period = HistoryUiState().selectedPeriod,
+                    sort = HistoryUiState().selectedSort,
+                    selectedRoutineName = null,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    fun setRoutineFilter(routineName: String?) {
+        routineFilterInitialized = true
+        _uiState.update { state ->
+            state.copy(
+                selectedRoutineName = routineName,
+                sessions = state.allSessions.applyHistoryFilters(
+                    period = state.selectedPeriod,
+                    sort = state.selectedSort,
+                    selectedRoutineName = routineName,
                     nowMillis = System.currentTimeMillis()
                 )
             )
@@ -299,24 +475,50 @@ data class HistoryUiState(
     val isDetailLoading: Boolean = false,
     val allSessions: List<HistorySessionUiState> = emptyList(),
     val sessions: List<HistorySessionUiState> = emptyList(),
-    val selectedPeriod: HistoryPeriodFilter = HistoryPeriodFilter.All,
+    val selectedPeriod: WorkoutStatsPeriod = WorkoutStatsPeriod.LastFourWeeks,
     val selectedSort: HistorySortOrder = HistorySortOrder.Recent,
+    val selectedRoutineName: String? = null,
     val selectedSessionId: Long? = null,
     val selectedDetail: HistoryDetailUiState? = null,
     val isEditMode: Boolean = false,
     val pendingEditExit: HistoryEditExitAction? = null,
+    val weightUnit: WeightUnit = WeightUnit.Kilograms,
     val message: String? = null
-)
+) {
+    val availableRoutineNames: List<String> = allSessions.availableRoutineNames()
+}
 
 enum class HistoryEditExitAction {
     FinishEditing,
     BackToList
 }
 
-enum class HistoryPeriodFilter(val label: String) {
-    All("Todo"),
-    LastFourWeeks("4 semanas"),
-    LastTwelveWeeks("12 semanas")
+internal data class HistorySetEdit(
+    val setId: Long,
+    val weightText: String,
+    val repsText: String
+)
+
+internal fun changedHistorySetEdits(
+    detail: HistoryDetailUiState?,
+    snapshot: Map<Long, Pair<String, String>>
+): List<HistorySetEdit> {
+    return detail
+        ?.exercises
+        ?.flatMap { exercise -> exercise.sets }
+        ?.mapNotNull { set ->
+            val original = snapshot[set.setId] ?: return@mapNotNull null
+            if (original.first == set.weightText && original.second == set.repsText) {
+                null
+            } else {
+                HistorySetEdit(
+                    setId = set.setId,
+                    weightText = set.weightText,
+                    repsText = set.repsText
+                )
+            }
+        }
+        ?: emptyList()
 }
 
 enum class HistorySortOrder(val label: String) {
@@ -334,7 +536,8 @@ data class HistorySessionUiState(
     val weekNumber: Int,
     val totalVolumeKg: Double,
     val durationMillis: Long,
-    val setCount: Int
+    val setCount: Int,
+    val isComplete: Boolean
 )
 
 data class HistoryDetailUiState(
@@ -344,12 +547,14 @@ data class HistoryDetailUiState(
     val startedAt: Long,
     val finishedAt: Long,
     val weekNumber: Int,
-    val notes: String?,
+    val notes: String? = null,
+    val pausedMillis: Long,
     val exercises: List<HistoryExerciseUiState>,
     val comparison: HistoryComparisonUiState? = null
 ) {
     val totalSetCount: Int = exercises.sumOf { it.sets.size }
-    val durationMillis: Long = (finishedAt - startedAt).coerceAtLeast(0)
+    val isComplete: Boolean = exercises.all { exercise -> exercise.sets.all { it.isCompleted } }
+    val durationMillis: Long = (finishedAt - startedAt - pausedMillis).coerceAtLeast(0)
     val totalVolumeKg: Double = exercises.sumOf { exercise ->
         exercise.sets.sumOf { set -> set.weightKg * set.reps }
     }
@@ -400,6 +605,7 @@ data class HistoryExerciseUiState(
     val exerciseId: Long,
     val name: String,
     val targetRepsText: String,
+    val notes: String? = null,
     val sets: List<HistorySetUiState>
 )
 
@@ -409,7 +615,8 @@ data class HistorySetUiState(
     val weightKg: Double,
     val reps: Int,
     val notes: String?,
-    val weightText: String = weightKg.toHistoryInputText(),
+    val isCompleted: Boolean,
+    val weightText: String = weightKg.toInputText(),
     val repsText: String = reps.toString()
 )
 
@@ -423,39 +630,58 @@ private fun WorkoutHistorySummary.toUiState(): HistorySessionUiState {
         weekNumber = weekNumber,
         totalVolumeKg = totalVolumeKg,
         durationMillis = durationMillis,
-        setCount = setCount
+        setCount = setCount,
+        isComplete = isComplete
     )
 }
 
 fun List<HistorySessionUiState>.applyHistoryFilters(
-    period: HistoryPeriodFilter,
+    period: WorkoutStatsPeriod,
     sort: HistorySortOrder,
-    nowMillis: Long
+    nowMillis: Long,
+    selectedRoutineName: String? = null
 ): List<HistorySessionUiState> {
-    return filterByPeriod(period, nowMillis).sortByOrder(sort)
+    return filterByPeriod(period, nowMillis)
+        .filterByRoutine(selectedRoutineName)
+        .sortByOrder(sort)
+}
+
+fun List<HistorySessionUiState>.availableRoutineNames(): List<String> {
+    val spanishCollator = Collator.getInstance(Locale("es", "ES"))
+    return map { session -> session.routineName.trim() }
+        .filter { routineName -> routineName.isNotBlank() }
+        .distinct()
+        .sortedWith(spanishCollator)
 }
 
 private fun List<HistorySessionUiState>.filterByPeriod(
-    period: HistoryPeriodFilter,
+    period: WorkoutStatsPeriod,
     nowMillis: Long
 ): List<HistorySessionUiState> {
     val cutoff = when (period) {
-        HistoryPeriodFilter.All -> return this
-        HistoryPeriodFilter.LastFourWeeks -> nowMillis - 4 * 7 * DAY_MILLIS
-        HistoryPeriodFilter.LastTwelveWeeks -> nowMillis - 12 * 7 * DAY_MILLIS
+        WorkoutStatsPeriod.All -> return this
+        WorkoutStatsPeriod.LastFourWeeks -> nowMillis - 4 * 7 * DAY_MILLIS
+        WorkoutStatsPeriod.LastTwelveWeeks -> nowMillis - 12 * 7 * DAY_MILLIS
     }
-    return filter { session -> session.finishedAt >= cutoff }
+    return filter { session -> session.startedAt >= cutoff }
+}
+
+private fun List<HistorySessionUiState>.filterByRoutine(
+    selectedRoutineName: String?
+): List<HistorySessionUiState> {
+    val routineName = selectedRoutineName?.trim()?.takeIf { it.isNotBlank() } ?: return this
+    return filter { session -> session.routineName == routineName }
 }
 
 private fun List<HistorySessionUiState>.sortByOrder(sort: HistorySortOrder): List<HistorySessionUiState> {
     return when (sort) {
-        HistorySortOrder.Recent -> sortedByDescending { session -> session.finishedAt }
-        HistorySortOrder.Oldest -> sortedBy { session -> session.finishedAt }
+        HistorySortOrder.Recent -> sortedByDescending { session -> session.startedAt }
+        HistorySortOrder.Oldest -> sortedBy { session -> session.startedAt }
         HistorySortOrder.HighestVolume -> sortedByDescending { session -> session.totalVolumeKg }
     }
 }
 
-private fun WorkoutHistoryDetail.toUiState(): HistoryDetailUiState {
+private fun WorkoutHistoryDetail.toUiState(weightUnit: WeightUnit): HistoryDetailUiState {
     return HistoryDetailUiState(
         sessionId = sessionId,
         routineName = routineName,
@@ -464,7 +690,8 @@ private fun WorkoutHistoryDetail.toUiState(): HistoryDetailUiState {
         finishedAt = finishedAt,
         weekNumber = weekNumber,
         notes = notes,
-        exercises = exercises.map { it.toUiState() },
+        pausedMillis = pausedMillis,
+        exercises = exercises.map { it.toUiState(weightUnit) },
         comparison = comparison?.let { domainComparison ->
             HistoryComparisonUiState(
                 previousFinishedAt = domainComparison.previousFinishedAt,
@@ -504,23 +731,34 @@ private fun WorkoutHistoryMetricDelta.toUiState(): HistoryMetricDeltaUiState {
     )
 }
 
-private fun WorkoutHistoryExercise.toUiState(): HistoryExerciseUiState {
+private fun WorkoutHistoryExercise.toUiState(weightUnit: WeightUnit): HistoryExerciseUiState {
     return HistoryExerciseUiState(
         exerciseId = exerciseId,
         name = name,
         targetRepsText = targetRepsText,
-        sets = sets.map { it.toUiState() }
+        notes = notes,
+        sets = sets.map { it.toUiState(weightUnit) }
     )
 }
 
-private fun WorkoutHistorySet.toUiState(): HistorySetUiState {
+private fun WorkoutHistorySet.toUiState(weightUnit: WeightUnit): HistorySetUiState {
     return HistorySetUiState(
         setId = setId,
         setNumber = setNumber,
         weightKg = weightKg,
         reps = reps,
-        notes = notes
+        notes = notes,
+        isCompleted = isCompleted,
+        weightText = weightUnit.fromKilograms(weightKg).toHistoryInputText()
     )
+}
+
+private fun HistoryDetailUiState.withWeightUnit(weightUnit: WeightUnit): HistoryDetailUiState {
+    return copy(exercises = exercises.map { exercise ->
+        exercise.copy(sets = exercise.sets.map { set ->
+            set.copy(weightText = weightUnit.fromKilograms(set.weightKg).toHistoryInputText())
+        })
+    })
 }
 
 private fun Double.toHistoryInputText(): String {

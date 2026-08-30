@@ -4,7 +4,12 @@ on:
   push:
     branches:
       - main
-      - 'codex/**'
+      - 'feature/**'
+      - 'bug/**'
+      - 'fix/**'
+      - 'refactor/**'
+      - 'cherrypick/**'
+      - 'docs/**'
   pull_request:
 
 permissions:

@@ -22,14 +22,17 @@ class GetWorkoutHeatmapUseCase @Inject constructor(
         return workoutRepository.observeFinishedSessionsWithExercises().map { sessions ->
             // Sumar volumen por dia a partir de sesiones finalizadas en el ultimo año
             val volumeByDay = mutableMapOf<Long, Double>()
+            val sessionsByDay = mutableMapOf<Long, Int>()
             sessions.forEach { session ->
-                val finishedAt = session.session.finishedAt ?: return@forEach
-                if (finishedAt < sinceMs) return@forEach
-                val epochDay = finishedAt / DAY_MS
+                if (session.session.finishedAt == null) return@forEach
+                val startedAt = session.session.startedAt
+                if (startedAt < sinceMs) return@forEach
+                val epochDay = startedAt / DAY_MS
                 val sessionVolume = session.exercises.sumOf { exercise ->
                     exercise.sets.sumOf { set -> set.volumeKg() }
                 }
                 volumeByDay[epochDay] = (volumeByDay[epochDay] ?: 0.0) + sessionVolume
+                sessionsByDay[epochDay] = (sessionsByDay[epochDay] ?: 0) + 1
             }
 
             // Calcular niveles de intensidad por percentil
@@ -41,19 +44,34 @@ class GetWorkoutHeatmapUseCase @Inject constructor(
             (0..364).map { offset ->
                 val day = startDay + offset
                 val volume = volumeByDay[day] ?: 0.0
+                val sessions = sessionsByDay[day] ?: 0
                 HeatmapDay(
                     epochDay = day,
                     totalVolumeKg = volume,
-                    intensityLevel = when {
-                        volume <= 0.0 -> 0
-                        thresholds.isEmpty() -> 1
-                        volume <= thresholds[0] -> 1
-                        thresholds.size < 2 || volume <= thresholds[1] -> 2
-                        thresholds.size < 3 || volume <= thresholds[2] -> 3
-                        else -> 4
-                    }
+                    sessionCount = sessions,
+                    intensityLevel = intensityLevelFor(
+                        sessions = sessions,
+                        volume = volume,
+                        thresholds = thresholds
+                    )
                 )
             }
+        }
+    }
+
+    /**
+     * A bodyweight session logs zero volume but is still a trained day, so the level is driven by
+     * whether anything was trained first, and only then by how much was lifted.
+     */
+    private fun intensityLevelFor(sessions: Int, volume: Double, thresholds: List<Double>): Int {
+        if (sessions == 0) return 0
+        return when {
+            volume <= 0.0 -> 1
+            thresholds.isEmpty() -> 1
+            volume <= thresholds[0] -> 1
+            thresholds.size < 2 || volume <= thresholds[1] -> 2
+            thresholds.size < 3 || volume <= thresholds[2] -> 3
+            else -> 4
         }
     }
 

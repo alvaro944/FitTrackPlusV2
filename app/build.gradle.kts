@@ -1,22 +1,38 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.dagger.hilt)
     alias(libs.plugins.google.devtools.ksp)
     alias(libs.plugins.detekt)
 }
 
+// Reads git state at build time so the installed app reports the branch/commit it was built from,
+// instead of a hardcoded channel. Falls back gracefully when git is unavailable (e.g. CI tarball).
+fun gitCommand(vararg args: String): String =
+    runCatching {
+        providers.exec {
+            commandLine("git", *args)
+            isIgnoreExitValue = true
+        }.standardOutput.asText.get().trim()
+    }.getOrDefault("")
+
+val gitBranch: String = gitCommand("rev-parse", "--abbrev-ref", "HEAD").ifEmpty { "unknown" }
+val gitSha: String = gitCommand("rev-parse", "--short", "HEAD")
+
 android {
     namespace = "com.alvarocervantes.fittrackplus"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.alvarocervantes.fittrackplus"
-        minSdk = 23
-        targetSdk = 35
-        versionCode = 1
-        versionName = "2.0.0-dev"
+        minSdk = 26
+        targetSdk = 36
+        versionCode = 7
+        versionName = "0.7.0-dev"
+        buildConfigField("String", "GIT_BRANCH", "\"$gitBranch\"")
+        buildConfigField("String", "GIT_SHA", "\"$gitSha\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -40,11 +56,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += listOf("-opt-in=androidx.compose.foundation.ExperimentalFoundationApi")
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -52,11 +63,18 @@ android {
 
     sourceSets {
         getByName("main") {
-            java.setSrcDirs(listOf("src/main/kotlin"))
+            kotlin.srcDir("src/main/kotlin")
         }
         getByName("androidTest") {
-            java.setSrcDirs(listOf("src/androidTest/kotlin"))
+            kotlin.srcDir("src/androidTest/kotlin")
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
+        freeCompilerArgs.add("-opt-in=androidx.compose.foundation.ExperimentalFoundationApi")
     }
 }
 

@@ -1,6 +1,6 @@
 # Final Form Sidebar Shell Design
 
-**Goal:** Aplicar el shell visual de `docs/Final form Fit track 2/` a la app Android actual, moviendo `Ajustes` fuera de la bottom bar y centralizando navegación secundaria y preferencias en un drawer lateral.
+**Goal:** Aplicar el shell visual de `docs/design/final-form-v2/` a la app Android actual, moviendo `Ajustes` fuera de la bottom bar y centralizando navegación secundaria y preferencias en un drawer lateral.
 
 **Scope**
 

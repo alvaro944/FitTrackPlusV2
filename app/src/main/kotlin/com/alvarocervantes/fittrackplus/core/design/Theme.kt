@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val LightColors = lightColorScheme(
+val LightColors = lightColorScheme(
     primary = Color(0xFF1F6B57),
     onPrimary = Color.White,
     secondary = Color(0xFFC47A49),
@@ -35,7 +35,7 @@ private val LightColors = lightColorScheme(
     onError = Color.White
 )
 
-private val DarkColors = darkColorScheme(
+val DarkColors = darkColorScheme(
     primary = Color(0xFF2E8B6E),
     onPrimary = Color(0xFFEEF0EE),
     secondary = Color(0xFFD4895A),
@@ -54,7 +54,6 @@ private val DarkColors = darkColorScheme(
 
 @Immutable
 data class FitTrackPlusExtraColors(
-    val surfaceAlt: Color,
     val surfaceCard: Color,
     val borderLight: Color,
     val textTertiary: Color,
@@ -63,12 +62,22 @@ data class FitTrackPlusExtraColors(
     val primaryMid: Color,
     val accentWarm: Color,
     val accentSoft: Color,
-    val errorSoft: Color
+    val errorSoft: Color,
+    val success: Color,
+    val onSuccess: Color,
+    val successSoft: Color,
+
+    /**
+     * Content colour for hero surfaces painted with [primaryDark]. It cannot be a literal white:
+     * in the dark scheme [primaryDark] is a *light* green, so white text on it fails contrast.
+     */
+    val onHero: Color,
+    /** Secondary content on the same hero surface, for supporting lines. */
+    val onHeroMuted: Color
 )
 
 private val LightExtraColors = FitTrackPlusExtraColors(
-    surfaceAlt = Color(0xFFE8E5DD),
-    surfaceCard = Color(0xFFFCFBF7),
+    surfaceCard = Color(0xFFF6F3EB),
     borderLight = Color(0xFFD5D0C5),
     textTertiary = Color(0xFF9AA09B),
     primaryDark = Color(0xFF174D40),
@@ -76,20 +85,32 @@ private val LightExtraColors = FitTrackPlusExtraColors(
     primaryMid = Color(0xFF2E8B6E),
     accentWarm = Color(0xFFC47A49),
     accentSoft = Color(0xFFF0E0D3),
-    errorSoft = Color(0xFFF2DED9)
+    errorSoft = Color(0xFFF2DED9),
+    success = Color(0xFF_2E7D32),
+    onSuccess = Color(0xFFFFFFFF),
+    successSoft = Color(0xFFDCEDDD),
+    onHero = Color(0xFFFFFFFF),
+    onHeroMuted = Color(0xFFD5E4DD)
 )
 
 private val DarkExtraColors = FitTrackPlusExtraColors(
-    surfaceAlt = Color(0xFF272A27),
-    surfaceCard = Color(0xFF1F221F),
+    surfaceCard = Color(0xFF2B2F2B),
     borderLight = Color(0xFF353835),
     textTertiary = Color(0xFF5E655F),
     primaryDark = Color(0xFF3AA882),
-    primarySoft = Color(0xFF1A3830),
+    // Was 0xFF1A3830, roughly 1.1:1 against the dark surface, which made "trained" and
+    // "today" cells indistinguishable from empty ones.
+    primarySoft = Color(0xFF224A3D),
     primaryMid = Color(0xFF2E8B6E),
     accentWarm = Color(0xFFD4895A),
     accentSoft = Color(0xFF2D2018),
-    errorSoft = Color(0xFF2D1919)
+    errorSoft = Color(0xFF2D1919),
+    success = Color(0xFF66BB6A),
+    onSuccess = Color(0xFF10130F),
+    successSoft = Color(0xFF223524),
+    // primaryDark is a light green here, so hero content has to be dark ink, not white.
+    onHero = Color(0xFF0E211B),
+    onHeroMuted = Color(0xFF265043)
 )
 
 private val LocalFitTrackPlusExtraColors = staticCompositionLocalOf { LightExtraColors }
@@ -212,9 +233,13 @@ val ColorScheme.primaryDark: Color
     @Composable
     get() = FitTrackPlusStyle.extraColors.primaryDark
 
-val ColorScheme.surfaceAlt: Color
+val ColorScheme.onHero: Color
     @Composable
-    get() = FitTrackPlusStyle.extraColors.surfaceAlt
+    get() = FitTrackPlusStyle.extraColors.onHero
+
+val ColorScheme.onHeroMuted: Color
+    @Composable
+    get() = FitTrackPlusStyle.extraColors.onHeroMuted
 
 val ColorScheme.surfaceCard: Color
     @Composable
@@ -243,3 +268,15 @@ val ColorScheme.errorSoft: Color
 val ColorScheme.primaryMid: Color
     @Composable
     get() = FitTrackPlusStyle.extraColors.primaryMid
+
+val ColorScheme.success: Color
+    @Composable
+    get() = FitTrackPlusStyle.extraColors.success
+
+val ColorScheme.onSuccess: Color
+    @Composable
+    get() = FitTrackPlusStyle.extraColors.onSuccess
+
+val ColorScheme.successSoft: Color
+    @Composable
+    get() = FitTrackPlusStyle.extraColors.successSoft

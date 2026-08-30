@@ -11,8 +11,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import android.graphics.Paint
 import kotlin.math.hypot
 
 @Composable
@@ -20,7 +23,9 @@ fun LineChart(
     points: List<Pair<Long, Float>>,
     modifier: Modifier = Modifier,
     selectedPointIndex: Int? = null,
-    onPointSelected: ((Int) -> Unit)? = null
+    onPointSelected: ((Int) -> Unit)? = null,
+    pointLabels: List<String> = emptyList(),
+    xAxisLabels: List<String> = emptyList()
 ) {
     if (points.size < 2) {
         Box(
@@ -39,6 +44,10 @@ fun LineChart(
     val lineColor = MaterialTheme.colorScheme.primary
     val dotOuterColor = MaterialTheme.colorScheme.primary
     val dotInnerColor = MaterialTheme.colorScheme.surface
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    // Read from the type scale, which is in sp, so the labels follow the user's font size setting.
+    // Drawing them at a dp size ignored that setting entirely.
+    val labelFontSize = MaterialTheme.typography.labelSmall.fontSize
 
     val sortedPoints = points.sortedBy { it.first }
 
@@ -49,8 +58,9 @@ fun LineChart(
                 val offsets = sortedPoints.chartOffsets(
                     width = size.width.toFloat(),
                     height = size.height.toFloat(),
-                    padH = 8.dp.toPx(),
-                    padV = 12.dp.toPx()
+                    padH = 18.dp.toPx(),
+                    padTop = 22.dp.toPx(),
+                    padBottom = 26.dp.toPx()
                 )
                 val hitIndex = offsets
                     .mapIndexed { index, offset -> index to offset.distanceTo(tapOffset) }
@@ -63,14 +73,21 @@ fun LineChart(
             }
         }
     ) {
-        val padH = 8.dp.toPx()
-        val padV = 12.dp.toPx()
+        val padH = 18.dp.toPx()
+        val padTop = 22.dp.toPx()
+        val padBottom = 26.dp.toPx()
         val offsets = sortedPoints.chartOffsets(
             width = size.width,
             height = size.height,
             padH = padH,
-            padV = padV
+            padTop = padTop,
+            padBottom = padBottom
         )
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = labelColor.toArgb()
+            textSize = labelFontSize.toPx()
+            textAlign = Paint.Align.CENTER
+        }
 
         // Connecting line
         for (i in 0 until offsets.size - 1) {
@@ -92,6 +109,22 @@ fun LineChart(
                 center = offset
             )
             drawCircle(color = dotInnerColor, radius = 2.dp.toPx(), center = offset)
+            pointLabels.getOrNull(index)?.let { label ->
+                drawContext.canvas.nativeCanvas.drawText(
+                    label,
+                    offset.x,
+                    (offset.y - 8.dp.toPx()).coerceAtLeast(10.dp.toPx()),
+                    textPaint
+                )
+            }
+            xAxisLabels.getOrNull(index)?.let { label ->
+                drawContext.canvas.nativeCanvas.drawText(
+                    label,
+                    offset.x,
+                    size.height - 4.dp.toPx(),
+                    textPaint
+                )
+            }
         }
     }
 }
@@ -100,17 +133,18 @@ private fun List<Pair<Long, Float>>.chartOffsets(
     width: Float,
     height: Float,
     padH: Float,
-    padV: Float
+    padTop: Float,
+    padBottom: Float
 ): List<Offset> {
     val minY = minOf { it.second }
     val maxY = maxOf { it.second }
     val yRange = if (maxY == minY) 1f else maxY - minY
     val chartW = width - padH * 2
-    val chartH = height - padV * 2
+    val chartH = height - padTop - padBottom
     return mapIndexed { index, (_, value) ->
         Offset(
             x = padH + (index.toFloat() / (size - 1)) * chartW,
-            y = padV + chartH - ((value - minY) / yRange) * chartH
+            y = padTop + chartH - ((value - minY) / yRange) * chartH
         )
     }
 }

@@ -2,6 +2,11 @@ package com.alvarocervantes.fittrackplus.feature.workout
 
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import com.alvarocervantes.fittrackplus.core.design.components.maybeSelectAllOnFocusValue
+import com.alvarocervantes.fittrackplus.core.design.components.SelectAllArming
+import com.alvarocervantes.fittrackplus.core.design.components.selectAllOnFocusValue
+import com.alvarocervantes.fittrackplus.core.design.components.syncTextFieldValue
+import com.alvarocervantes.fittrackplus.domain.model.PrType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -54,10 +59,49 @@ class WorkoutInputDefaultsTest {
     }
 
     @Test
-    fun isWorkoutSetCompleted_requiresPositiveWeightAndReps() {
-        assertFalse(isWorkoutSetCompleted(weightText = "", repsText = "10"))
-        assertFalse(isWorkoutSetCompleted(weightText = "20", repsText = "0"))
-        assertTrue(isWorkoutSetCompleted(weightText = "20", repsText = "10"))
+    fun isWorkoutSetCompleted_acceptsBodyweightSetsWithPositiveReps() {
+        assertTrue(isWorkoutSetCompleted(repsText = "8"))
+        assertFalse(isWorkoutSetCompleted(repsText = "0"))
+        assertTrue(isWorkoutSetCompleted(repsText = "10"))
+    }
+
+    @Test
+    fun workoutSetReadyToComplete_requiresPositiveRepsAndNotCompleted() {
+        assertTrue(isWorkoutSetReadyToComplete(repsText = "10", isCompleted = false))
+        assertFalse(isWorkoutSetReadyToComplete(repsText = "10", isCompleted = true))
+        assertFalse(isWorkoutSetReadyToComplete(repsText = "0", isCompleted = false))
+    }
+
+    @Test
+    fun updateWorkoutSetInput_keepsSetUncompletedWhenInputsBecomeReady() {
+        val set = WorkoutSetUiState(
+            id = 1,
+            setNumber = 1,
+            weightText = "",
+            repsText = "10",
+            isCompleted = false
+        )
+
+        val result = updateWorkoutSetWeightInput(set, weightText = "60")
+
+        assertEquals("60", result.weightText)
+        assertFalse(result.isCompleted)
+        assertTrue(isWorkoutSetReadyToComplete(result.repsText, result.isCompleted))
+    }
+
+    @Test
+    fun editingCompletedSetClearsItsPersonalRecordMarker() {
+        val set = WorkoutSetUiState(
+            id = 1,
+            setNumber = 1,
+            weightText = "60",
+            repsText = "10",
+            isCompleted = true,
+            prType = PrType.MaxWeight
+        )
+
+        assertEquals(null, updateWorkoutSetWeightInput(set, "62,5").prType)
+        assertEquals(null, updateWorkoutSetRepsInput(set, "11").prType)
     }
 
     @Test
@@ -66,29 +110,34 @@ class WorkoutInputDefaultsTest {
 
         assertTrue(
             shouldAutoStartRestTimerOnSetCompletion(
-                previousWeightText = "",
-                previousRepsText = "10",
-                nextWeightText = "20",
+                previousRepsText = "",
                 nextRepsText = "10",
                 timer = timer
             )
         )
         assertTrue(
             shouldAutoStartRestTimerOnSetCompletion(
-                previousWeightText = "20",
                 previousRepsText = "",
-                nextWeightText = "20",
                 nextRepsText = "10",
                 timer = timer
             )
         )
         assertFalse(
             shouldAutoStartRestTimerOnSetCompletion(
-                previousWeightText = "20",
                 previousRepsText = "10",
-                nextWeightText = "25",
                 nextRepsText = "10",
                 timer = timer
+            )
+        )
+    }
+
+    @Test
+    fun shouldAutoStartRestTimerOnManualSetCompletion_respectsAutoStartAndTimerStatus() {
+        assertTrue(shouldAutoStartRestTimerOnManualSetCompletion(RestTimerUiState(autoStartEnabled = true)))
+        assertFalse(shouldAutoStartRestTimerOnManualSetCompletion(RestTimerUiState(autoStartEnabled = false)))
+        assertFalse(
+            shouldAutoStartRestTimerOnManualSetCompletion(
+                RestTimerUiState(autoStartEnabled = true, status = RestTimerStatus.Running)
             )
         )
     }
@@ -111,6 +160,31 @@ class WorkoutInputDefaultsTest {
         assertEquals("12,5", sanitizeWorkoutWeightInput("12,,5"))
         assertEquals("12,5", sanitizeWorkoutWeightInput("1a2,5x"))
         assertEquals(",5", sanitizeWorkoutWeightInput("..5"))
+    }
+
+    @Test
+    fun sanitizeWeightInputStopsAtScientificNotationInsteadOfMangling() {
+        // Pasted scientific notation ("1.0E7") used to silently become a wrong-but-plausible
+        // "1,07" by dropping only the "E" and keeping the trailing exponent digits.
+        assertEquals("1,0", sanitizeWorkoutWeightInput("1.0E7"))
+        assertEquals("1,0", sanitizeWorkoutWeightInput("1.0e-7"))
+    }
+
+    @Test
+    fun sanitizeRepsInputKeepsOnlyLeadingDigits() {
+        assertEquals("12", sanitizeWorkoutRepsInput("12"))
+        assertEquals("", sanitizeWorkoutRepsInput("-5"))
+        assertEquals("12", sanitizeWorkoutRepsInput("12x"))
+        assertEquals("", sanitizeWorkoutRepsInput("abc"))
+    }
+
+    @Test
+    fun toInputTextNeverEmitsScientificNotation() {
+        // A whole number this large already goes through the toInt() branch, so the case that
+        // used to break was a large *fractional* value, where Double.toString() switches to
+        // exponential form (e.g. "1.23456785E7") instead of a plain decimal.
+        assertEquals("12345678,5", 12_345_678.5.toInputText())
+        assertEquals("12,5", 12.5.toInputText())
     }
 
     @Test
@@ -207,8 +281,8 @@ class WorkoutInputDefaultsTest {
     }
 
     @Test
-    fun selectAllWorkoutFieldValue_selectsFullText() {
-        val result = selectAllWorkoutFieldValue(
+    fun selectAllOnFocusValue_selectsFullText() {
+        val result = selectAllOnFocusValue(
             TextFieldValue(
                 text = "100",
                 selection = TextRange(1, 1)
@@ -219,8 +293,21 @@ class WorkoutInputDefaultsTest {
     }
 
     @Test
-    fun syncWorkoutFieldValue_updatesTextWhenExternalValueChanges() {
-        val result = syncWorkoutFieldValue(
+    fun maybeSelectAllOnFocusValue_keepsCaretWhenSelectAllIsDisabled() {
+        val result = maybeSelectAllOnFocusValue(
+            current = TextFieldValue(
+                text = "Bench Press",
+                selection = TextRange(5, 5)
+            ),
+            selectAllOnFocus = false
+        )
+
+        assertEquals(TextRange(5, 5), result.selection)
+    }
+
+    @Test
+    fun syncTextFieldValue_updatesTextWhenExternalValueChanges() {
+        val result = syncTextFieldValue(
             current = TextFieldValue(
                 text = "8",
                 selection = TextRange(0, 1)
@@ -231,4 +318,73 @@ class WorkoutInputDefaultsTest {
         assertEquals("12", result.text)
         assertEquals(TextRange(2, 2), result.selection)
     }
+
+    @Test
+    fun repsInputStopsAtThreeDigits() {
+        assertEquals("123", sanitizeWorkoutRepsInput("1234"))
+        assertEquals("12", sanitizeWorkoutRepsInput("12"))
+    }
+
+    @Test
+    fun weightInputCapsDigitsOnEachSideOfTheSeparator() {
+        assertEquals("1234", sanitizeWorkoutWeightInput("12345"))
+        assertEquals("123,45", sanitizeWorkoutWeightInput("123,456"))
+        assertEquals("1234,5", sanitizeWorkoutWeightInput("1234,5"))
+        // Once the integer cap is reached the rest is dropped, separator included.
+        assertEquals("1234", sanitizeWorkoutWeightInput("123456,789"))
+    }
+
+    @Test
+    fun weightInputKeepsRejectingScientificNotation() {
+        assertEquals("1,0", sanitizeWorkoutWeightInput("1.0E7"))
+    }
+
+    @Test
+    fun selectAllArmingFiresOnceUntilItIsRearmed() {
+        val arming = SelectAllArming()
+
+        assertTrue(arming.consume())
+        assertFalse(arming.consume())
+
+        arming.rearm()
+        assertTrue(arming.consume())
+    }
+
+
+    @Test
+    fun clearingRepsOnTheSetBeingEditedIsNotRefilledBySuggestions() {
+        val sets = listOf(
+            WorkoutSetUiState(id = 1L, setNumber = 1, weightText = "60", repsText = "12", isCompleted = true),
+            WorkoutSetUiState(id = 2L, setNumber = 2, weightText = "", repsText = "")
+        )
+
+        val result = applyWorkoutSetInputSuggestions(
+            sets = sets,
+            targetRepsText = "8-12",
+            skipSetId = 2L
+        )
+
+        // The row the user just cleared stays cleared instead of a suggestion reappearing in it.
+        assertEquals("", result[1].repsText)
+    }
+
+    @Test
+    fun otherSetsStillGetTheirSuggestionWhileOneIsBeingEdited() {
+        val sets = listOf(
+            WorkoutSetUiState(id = 1L, setNumber = 1, weightText = "60", repsText = "10", isCompleted = true),
+            WorkoutSetUiState(id = 2L, setNumber = 2, weightText = "", repsText = ""),
+            WorkoutSetUiState(id = 3L, setNumber = 3, weightText = "", repsText = "")
+        )
+
+        val result = applyWorkoutSetInputSuggestions(
+            sets = sets,
+            targetRepsText = "8-12",
+            skipSetId = 2L
+        )
+
+        assertEquals("", result[1].repsText)
+        assertEquals("10", result[2].repsText)
+    }
+
+
 }

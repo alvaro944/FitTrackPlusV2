@@ -21,5 +21,7 @@ data class WorkoutSessionEntity(
     val startedAt: Long,
     val finishedAt: Long? = null,
     val weekNumber: Int,
-    val notes: String? = null
+    val notes: String? = null,
+    /** Total time the session sat paused between being finished-as-incomplete and reopened. */
+    val pausedMillis: Long = 0
 )

@@ -15,6 +15,7 @@ class HistoryDetailUiStateTest {
             finishedAt = 181_000,
             weekNumber = 2,
             notes = "Good session",
+            pausedMillis = 0,
             exercises = listOf(
                 HistoryExerciseUiState(
                     exerciseId = 11,
@@ -26,14 +27,16 @@ class HistoryDetailUiStateTest {
                             setNumber = 1,
                             weightKg = 80.0,
                             reps = 8,
-                            notes = "Controlled"
+                            notes = "Controlled",
+                            isCompleted = true
                         ),
                         HistorySetUiState(
                             setId = 102,
                             setNumber = 2,
                             weightKg = 85.0,
                             reps = 6,
-                            notes = null
+                            notes = null,
+                            isCompleted = true
                         )
                     )
                 ),
@@ -47,7 +50,8 @@ class HistoryDetailUiStateTest {
                             setNumber = 1,
                             weightKg = 20.0,
                             reps = 12,
-                            notes = null
+                            notes = null,
+                            isCompleted = true
                         )
                     )
                 )
@@ -60,5 +64,61 @@ class HistoryDetailUiStateTest {
         assertEquals(80.0, detail.bestSet?.weightKg ?: -1.0, 0.0)
         assertEquals(8, detail.bestSet?.reps)
         assertEquals(640.0, detail.bestSet?.volumeKg ?: -1.0, 0.0)
+    }
+
+    @Test
+    fun durationExcludesPausedTimeFromRecoveredSession() {
+        val detail = HistoryDetailUiState(
+            sessionId = 2,
+            routineName = "Pull",
+            dayName = "Day 2",
+            startedAt = 0,
+            finishedAt = 3_600_000, // 60 min of wall-clock between start and final finish
+            weekNumber = 1,
+            notes = null,
+            pausedMillis = 1_800_000, // 30 min spent paused between finish-incomplete and recovery
+            exercises = emptyList()
+        )
+
+        assertEquals(1_800_000, detail.durationMillis) // only the 30 min actually trained
+    }
+
+    @Test
+    fun discardedSetEditProducesNoPendingDatabaseWrite() {
+        val originalSet = HistorySetUiState(
+            setId = 101,
+            setNumber = 1,
+            weightKg = 80.0,
+            reps = 8,
+            notes = null,
+            isCompleted = true
+        )
+        val detail = HistoryDetailUiState(
+            sessionId = 1,
+            routineName = "Push",
+            dayName = "Day 1",
+            startedAt = 0,
+            finishedAt = 1,
+            weekNumber = 1,
+            notes = null,
+            pausedMillis = 0,
+            exercises = listOf(
+                HistoryExerciseUiState(
+                    exerciseId = 1,
+                    name = "Bench Press",
+                    targetRepsText = "8-12",
+                    sets = listOf(originalSet)
+                )
+            )
+        )
+        val snapshot = mapOf(originalSet.setId to (originalSet.weightText to originalSet.repsText))
+        val editedDetail = detail.copy(
+            exercises = detail.exercises.map { exercise ->
+                exercise.copy(sets = exercise.sets.map { set -> set.copy(weightText = "85") })
+            }
+        )
+
+        assertEquals(1, changedHistorySetEdits(editedDetail, snapshot).size)
+        assertEquals(emptyList<HistorySetEdit>(), changedHistorySetEdits(detail, snapshot))
     }
 }

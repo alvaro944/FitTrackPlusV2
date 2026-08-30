@@ -1,5 +1,6 @@
 package com.alvarocervantes.fittrackplus.feature.stats
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
@@ -11,15 +12,20 @@ import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutSessionVolume
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStats
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
+import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHeatmapUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutStatsUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ReadDailyStepsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.text.Collator
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.temporal.TemporalAdjusters
+import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +36,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.update
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -38,34 +45,70 @@ class StatsViewModel @Inject constructor(
     observeWorkoutStats: ObserveWorkoutStatsUseCase,
     getWorkoutHeatmap: GetWorkoutHeatmapUseCase,
     private val readDailyStepsUseCase: ReadDailyStepsUseCase,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val selectedPeriod = MutableStateFlow(WorkoutStatsPeriod.All)
+
+    private val selectedPeriod = MutableStateFlow(WorkoutStatsPeriod.LastFourWeeks)
+    /** Bumped by [retry] to re-subscribe the stats flow after a failure. */
+    private val retryTrigger = MutableStateFlow(0)
+    private val activeRoutineId = MutableStateFlow<Long?>(null)
     private val _selectedWeekStart = MutableStateFlow(currentWeekMonday())
-    private val _uiState = MutableStateFlow(StatsUiState())
+    private val _uiState = MutableStateFlow(
+        StatsUiState(
+            visibleCalendarMonth = savedStateHandle.get<String>(VISIBLE_CALENDAR_MONTH_KEY)
+                ?.let { runCatching { YearMonth.parse(it) }.getOrNull() }
+                ?: YearMonth.now(),
+            selectedStepsDayIndex = savedStateHandle.get<Int>(SELECTED_STEPS_DAY_KEY)
+        )
+    )
     val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
 
     init {
-        selectedPeriod
-            .flatMapLatest { period ->
-                observeWorkoutStats(period = period).map { stats -> period to stats }
+        userPreferencesRepository.activeRoutineId
+            .onEach { id ->
+                activeRoutineId.value = id
+                _uiState.update { state -> state.copy(activeRoutineId = id).withValidFocusSelection() }
             }
-            .onEach { (period, stats) ->
+            .launchIn(viewModelScope)
+
+        userPreferencesRepository.weightUnit
+            .onEach { preference ->
+                _uiState.update { state ->
+                    state.copy(weightUnit = WeightUnit.fromPreference(preference))
+                }
+            }
+            .launchIn(viewModelScope)
+
+        combine(selectedPeriod, activeRoutineId, retryTrigger) { period, routineId, _ ->
+            period to routineId
+        }
+            .flatMapLatest { (period, routineId) ->
+                observeWorkoutStats(period = period).map { stats -> Triple(period, routineId, stats) }
+            }
+            .onEach { (period, routineId, stats) ->
                 _uiState.update { currentState ->
                     currentState.withStatsPeriod(
                         period = period,
-                        stats = stats.toUiState().copy(isLoading = false)
-                    )
+                        stats = stats.toUiState().copy(
+                            isLoading = false,
+                            activeRoutineId = routineId
+                        )
+                    ).copy(error = null)
                 }
             }
-            .catch { throwable ->
+            // retryWhen, not catch: catch terminates the upstream, so a single transient failure
+            // would leave the tab frozen for the life of the ViewModel.
+            .retryWhen { throwable, _ ->
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
-                        message = throwable.message ?: "No se pudieron cargar las estadisticas."
+                        error = throwable.message ?: "No se pudieron cargar las estadisticas."
                     )
                 }
+                delay(STATS_RETRY_DELAY_MS)
+                true
             }
             .launchIn(viewModelScope)
 
@@ -110,22 +153,84 @@ class StatsViewModel @Inject constructor(
 
     fun previousWeek() {
         _selectedWeekStart.update { it.minusWeeks(1) }
+        selectStepsDay(null)
     }
 
     fun nextWeek() {
         val nextWeek = _selectedWeekStart.value.plusWeeks(1)
         if (!nextWeek.isAfter(currentWeekMonday())) {
             _selectedWeekStart.value = nextWeek
+            selectStepsDay(null)
         }
+    }
+
+    fun selectStepsDay(dayIndex: Int?) {
+        savedStateHandle[SELECTED_STEPS_DAY_KEY] = dayIndex
+        _uiState.update { state -> state.copy(selectedStepsDayIndex = dayIndex) }
+    }
+
+    fun previousCalendarMonth() {
+        _uiState.update { state ->
+            val month = state.visibleCalendarMonth.minusMonths(1)
+            savedStateHandle[VISIBLE_CALENDAR_MONTH_KEY] = month.toString()
+            state.copy(visibleCalendarMonth = month)
+        }
+    }
+
+    fun nextCalendarMonth() {
+        _uiState.update { state ->
+            val month = state.visibleCalendarMonth.plusMonths(1)
+            if (month <= YearMonth.now()) {
+                savedStateHandle[VISIBLE_CALENDAR_MONTH_KEY] = month.toString()
+                state.copy(visibleCalendarMonth = month)
+            } else {
+                state
+            }
+        }
+    }
+
+    /** Clears the error and re-subscribes the stats flow so the user can ask for another go. */
+    fun retry() {
+        _uiState.update { state -> state.copy(error = null, isLoading = true) }
+        retryTrigger.value += 1
     }
 
     fun setPeriodFilter(period: WorkoutStatsPeriod) {
         selectedPeriod.value = period
     }
 
-    fun selectExercise(name: String) {
+    fun selectRoutine(routineName: String) {
         _uiState.update { state ->
-            state.withSelectedExercise(name)
+            state.copy(
+                selectedRoutineName = routineName,
+                selectedDayName = null,
+                selectedExerciseScopeKey = null,
+                selectedExerciseName = null,
+                selectedProgressPoint = null
+            ).withValidFocusSelection()
+        }
+    }
+
+    fun selectDay(dayName: String) {
+        _uiState.update { state ->
+            state.copy(
+                selectedDayName = dayName,
+                selectedExerciseScopeKey = null,
+                selectedExerciseName = null,
+                selectedProgressPoint = null
+            ).withValidFocusSelection()
+        }
+    }
+
+    fun selectExerciseScope(scopeKey: String) {
+        _uiState.update { state ->
+            state.withSelectedExerciseScope(scopeKey)
+        }
+    }
+
+    fun selectProgressMetric(metric: ProgressMetric) {
+        _uiState.update { state ->
+            state.withProgressMetric(metric)
         }
     }
 
@@ -141,23 +246,18 @@ class StatsViewModel @Inject constructor(
         }
     }
 
-    fun onHeatmapDayClick(day: HeatmapDay) {
-        if (day.totalVolumeKg <= 0.0) return
-        val dateStr = epochDayToDisplayString(day.epochDay)
-        val volumeStr = if (day.totalVolumeKg % 1.0 == 0.0) {
-            day.totalVolumeKg.toInt().toString()
-        } else {
-            String.format(java.util.Locale.getDefault(), "%.1f", day.totalVolumeKg)
-        }
-        _uiState.update { state -> state.copy(message = "$dateStr · $volumeStr kg") }
-    }
-
     fun clearMessage() {
         _uiState.update { state -> state.copy(message = null) }
     }
 
     private fun currentWeekMonday(): LocalDate = LocalDate.now()
         .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+
+    private companion object {
+        const val VISIBLE_CALENDAR_MONTH_KEY = "visible_calendar_month"
+        const val SELECTED_STEPS_DAY_KEY = "selected_steps_day_index"
+        const val STATS_RETRY_DELAY_MS = 3_000L
+    }
 }
 
 data class WeeklyStepsData(
@@ -174,26 +274,105 @@ data class WeeklyStepsData(
 
 data class StatsUiState(
     val isLoading: Boolean = true,
+    /**
+     * A load failure that stays on screen until it resolves. Kept apart from [message], which is a
+     * transient snackbar the UI clears after showing: sharing one field made the error card vanish
+     * the moment the snackbar timed out.
+     */
+    val error: String? = null,
     val sessionVolumes: List<SessionVolumeUiState> = emptyList(),
     val exerciseProgress: List<ExerciseProgressUiState> = emptyList(),
     val exerciseRecords: List<ExerciseRecordsUiState> = emptyList(),
-    val selectedPeriod: WorkoutStatsPeriod = WorkoutStatsPeriod.All,
+    val selectedPeriod: WorkoutStatsPeriod = WorkoutStatsPeriod.LastFourWeeks,
+    val activeRoutineId: Long? = null,
+    val selectedRoutineName: String? = null,
+    val selectedDayName: String? = null,
+    val selectedExerciseScopeKey: String? = null,
     val selectedExerciseName: String? = null,
+    val selectedProgressMetric: ProgressMetric = ProgressMetric.MaxWeight,
+    val weightUnit: WeightUnit = WeightUnit.Kilograms,
     val progressPoints: List<ProgressChartPointUiState> = emptyList(),
     val selectedProgressPoint: ProgressChartPointUiState? = null,
     val heatmapDays: List<HeatmapDay> = emptyList(),
     val weeklyStepsData: WeeklyStepsData? = null,
     val canGoToNextWeek: Boolean = false,
+    val visibleCalendarMonth: YearMonth = YearMonth.now(),
+    val selectedStepsDayIndex: Int? = null,
     val message: String? = null
 ) {
     val isEmpty: Boolean = sessionVolumes.isEmpty() &&
         exerciseProgress.isEmpty() &&
         exerciseRecords.isEmpty()
+    val summarySessionVolumes: List<SessionVolumeUiState> = sessionVolumes.filterByPeriod(selectedPeriod)
+    val sessionCount: Int = summarySessionVolumes.size
+    val exerciseCount: Int = exerciseProgress
+        .map { progress -> progress.exerciseKey }
+        .distinct()
+        .size
+    val personalRecordCount: Int = exerciseRecords.sumOf { records ->
+        listOf(
+            records.maxWeight,
+            records.maxReps,
+            records.bestSetVolume,
+            records.bestEstimatedOneRepMax
+        ).count { it != null }
+    }
+    val availableRoutineNames: List<String> = sessionVolumes
+        .map { session -> session.routineName.trim() }
+        .filter { name -> name.isNotBlank() }
+        .distinct()
+        .sortedWith(spanishCollator())
+    val availableDayNames: List<String> = sessionVolumes
+        .filter { session -> selectedRoutineName == null || session.routineName == selectedRoutineName }
+        .map { session -> session.dayName.trim() to session.dayId }
+        .filter { (name, _) -> name.isNotBlank() }
+        .groupBy(keySelector = { (name, _) -> name }, valueTransform = { (_, dayId) -> dayId })
+        .entries
+        .sortedWith(
+            compareBy<Map.Entry<String, List<Long?>>> { (_, dayIds) ->
+                dayIds.filterNotNull().minOrNull() ?: Long.MAX_VALUE
+            }.thenBy(spanishCollator()) { (name, _) -> name }
+        )
+        .map { (name, _) -> name }
+    val focusedSessionVolumes: List<SessionVolumeUiState> = sessionVolumes
+        .filter { session -> selectedRoutineName == null || session.routineName == selectedRoutineName }
+        .filter { session -> selectedDayName == null || session.dayName == selectedDayName }
+    val focusedSessionVolumesChronological: List<SessionVolumeUiState> = focusedSessionVolumes
+        .sortedBy { session -> session.finishedAt }
+    val focusedExerciseProgress: List<ExerciseProgressUiState> = exerciseProgress
+        .filter { progress -> selectedRoutineName == null || progress.routineName == selectedRoutineName }
+        .filter { progress -> selectedDayName == null || progress.dayName == selectedDayName }
+        .sortedWith(compareBy<ExerciseProgressUiState> { it.exercisePosition }.thenBy { it.exerciseName })
+    val focusedExerciseRecords: List<ExerciseRecordsUiState> = exerciseRecords
+        .filter { records -> selectedRoutineName == null || records.routineName == selectedRoutineName }
+        .filter { records -> selectedDayName == null || records.dayName == selectedDayName }
+        .sortedWith(compareBy<ExerciseRecordsUiState> { it.exercisePosition }.thenBy { it.exerciseName })
+    val selectedExerciseProgress: ExerciseProgressUiState? = selectedExerciseScopeKey
+        ?.let { scopeKey -> focusedExerciseProgress.firstOrNull { progress -> progress.scopeKey == scopeKey } }
+    val selectedExerciseRecords: ExerciseRecordsUiState? = selectedExerciseScopeKey
+        ?.let { scopeKey -> focusedExerciseRecords.firstOrNull { records -> records.scopeKey == scopeKey } }
+    val progressChartValues: List<Pair<Long, Float>> = progressPoints.map { point ->
+        point.finishedAt to when (selectedProgressMetric) {
+            ProgressMetric.MaxWeight -> weightUnit.fromKilograms(point.maxWeightKg).toFloat()
+            ProgressMetric.Volume -> weightUnit.fromKilograms(point.volumeKg).toFloat()
+            ProgressMetric.Reps -> point.totalReps.toFloat()
+            ProgressMetric.EstimatedOneRepMax -> weightUnit.fromKilograms(point.estimatedOneRepMaxKg).toFloat()
+        }
+    }
+}
+
+enum class ProgressMetric(val label: String, val unit: String) {
+    MaxWeight("Peso", "kg"),
+    Reps("Reps", ""),
+    Volume("Volumen", "kg"),
+    EstimatedOneRepMax("1RM", "kg")
 }
 
 data class SessionVolumeUiState(
     val sessionId: Long,
+    val routineId: Long? = null,
     val routineName: String,
+    val dayId: Long? = null,
     val dayName: String,
     val finishedAt: Long,
     val totalVolumeKg: Double
@@ -201,7 +380,11 @@ data class SessionVolumeUiState(
 
 data class ExerciseProgressUiState(
     val exerciseKey: String,
+    val scopeKey: String = exerciseKey,
+    val routineName: String = "",
+    val dayName: String = "",
     val exerciseName: String,
+    val exercisePosition: Int = Int.MAX_VALUE,
     val entries: List<ExerciseProgressEntryUiState>
 )
 
@@ -225,7 +408,11 @@ data class ProgressChartPointUiState(
 
 data class ExerciseRecordsUiState(
     val exerciseKey: String,
+    val scopeKey: String = exerciseKey,
+    val routineName: String = "",
+    val dayName: String = "",
     val exerciseName: String,
+    val exercisePosition: Int = Int.MAX_VALUE,
     val maxWeight: ExerciseSetRecordUiState?,
     val maxReps: ExerciseSetRecordUiState?,
     val bestSetVolume: ExerciseSetRecordUiState?,
@@ -241,11 +428,6 @@ data class ExerciseSetRecordUiState(
     val estimatedOneRepMaxKg: Double
 )
 
-private fun epochDayToDisplayString(epochDay: Long): String {
-    val ms = epochDay * 86_400_000L
-    return java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(ms))
-}
-
 private fun WorkoutStats.toUiState(): StatsUiState {
     return StatsUiState(
         sessionVolumes = sessionVolumes.map { it.toUiState() },
@@ -257,7 +439,9 @@ private fun WorkoutStats.toUiState(): StatsUiState {
 private fun WorkoutSessionVolume.toUiState(): SessionVolumeUiState {
     return SessionVolumeUiState(
         sessionId = sessionId,
+        routineId = routineId,
         routineName = routineName,
+        dayId = dayId,
         dayName = dayName,
         finishedAt = finishedAt,
         totalVolumeKg = totalVolumeKg
@@ -267,7 +451,11 @@ private fun WorkoutSessionVolume.toUiState(): SessionVolumeUiState {
 private fun ExerciseProgress.toUiState(): ExerciseProgressUiState {
     return ExerciseProgressUiState(
         exerciseKey = exerciseKey,
+        scopeKey = scopeKey,
+        routineName = routineName,
+        dayName = dayName,
         exerciseName = exerciseName,
+        exercisePosition = exercisePosition,
         entries = entries.map { it.toUiState() }
     )
 }
@@ -286,7 +474,11 @@ private fun ExerciseProgressEntry.toUiState(): ExerciseProgressEntryUiState {
 private fun ExerciseRecords.toUiState(): ExerciseRecordsUiState {
     return ExerciseRecordsUiState(
         exerciseKey = exerciseKey,
+        scopeKey = scopeKey,
+        routineName = routineName,
+        dayName = dayName,
         exerciseName = exerciseName,
+        exercisePosition = exercisePosition,
         maxWeight = maxWeight?.toUiState(),
         maxReps = maxReps?.toUiState(),
         bestSetVolume = bestSetVolume?.toUiState(),
@@ -309,24 +501,48 @@ fun StatsUiState.withStatsPeriod(
     period: WorkoutStatsPeriod,
     stats: StatsUiState
 ): StatsUiState {
-    val retainedExerciseName = selectedExerciseName?.takeIf { selectedName ->
-        stats.exerciseProgress.any { progress -> progress.exerciseName == selectedName }
-    }
     return stats.copy(
         selectedPeriod = period,
-        selectedExerciseName = retainedExerciseName,
+        selectedRoutineName = selectedRoutineName,
+        selectedDayName = selectedDayName,
+        selectedExerciseScopeKey = selectedExerciseScopeKey,
+        selectedExerciseName = selectedExerciseName,
         selectedProgressPoint = null,
+        heatmapDays = heatmapDays,
+        weightUnit = weightUnit,
         weeklyStepsData = weeklyStepsData,
         canGoToNextWeek = canGoToNextWeek
+    ).withValidFocusSelection()
+}
+
+fun StatsUiState.withSelectedExerciseScope(scopeKey: String): StatsUiState {
+    val selected = focusedExerciseProgress.firstOrNull { progress -> progress.scopeKey == scopeKey }
+    return copy(
+        selectedExerciseScopeKey = selected?.scopeKey,
+        selectedExerciseName = selected?.exerciseName,
+        selectedProgressPoint = null
     ).withProgressPointsForSelection()
 }
 
-fun StatsUiState.withSelectedExercise(name: String): StatsUiState {
-    val selectedName = exerciseProgress
-        .firstOrNull { progress -> progress.exerciseName == name }
-        ?.exerciseName
-    return copy(
-        selectedExerciseName = selectedName,
+fun StatsUiState.withValidFocusSelection(): StatsUiState {
+    val routine = selectedRoutineName?.takeIf { routineName -> routineName in availableRoutineNames }
+        ?: activeRoutineId?.let { activeId ->
+            sessionVolumes.firstOrNull { session -> session.routineId == activeId }?.routineName
+        }
+        ?: availableRoutineNames.firstOrNull()
+    val stateWithRoutine = copy(selectedRoutineName = routine)
+    val day = stateWithRoutine.selectedDayName?.takeIf { dayName -> dayName in stateWithRoutine.availableDayNames }
+        ?: stateWithRoutine.availableDayNames.firstOrNull()
+    val stateWithDay = stateWithRoutine.copy(selectedDayName = day)
+    val selectedExercise = stateWithDay.selectedExerciseScopeKey
+        ?.let { scopeKey ->
+            stateWithDay.focusedExerciseProgress.firstOrNull { progress -> progress.scopeKey == scopeKey }
+        }
+        ?: stateWithDay.focusedExerciseProgress.firstOrNull()
+
+    return stateWithDay.copy(
+        selectedExerciseScopeKey = selectedExercise?.scopeKey,
+        selectedExerciseName = selectedExercise?.exerciseName,
         selectedProgressPoint = null
     ).withProgressPointsForSelection()
 }
@@ -337,11 +553,19 @@ fun StatsUiState.withSelectedProgressPoint(sessionId: Long): StatsUiState {
     )
 }
 
+fun StatsUiState.withProgressMetric(metric: ProgressMetric): StatsUiState {
+    return copy(
+        selectedProgressMetric = metric,
+        selectedProgressPoint = null
+    )
+}
+
 fun StatsUiState.withProgressPointsForSelection(): StatsUiState {
-    val name = selectedExerciseName
+    val scopeKey = selectedExerciseScopeKey
         ?: return copy(progressPoints = emptyList(), selectedProgressPoint = null)
-    val exercise = exerciseProgress.firstOrNull { it.exerciseName == name }
+    val exercise = exerciseProgress.firstOrNull { it.scopeKey == scopeKey }
         ?: return copy(
+            selectedExerciseScopeKey = null,
             selectedExerciseName = null,
             progressPoints = emptyList(),
             selectedProgressPoint = null
@@ -365,4 +589,20 @@ fun StatsUiState.withProgressPointsForSelection(): StatsUiState {
         progressPoints = points,
         selectedProgressPoint = retainedPoint
     )
+}
+
+private fun spanishCollator(): Collator = Collator.getInstance(Locale("es", "ES"))
+
+private fun List<SessionVolumeUiState>.filterByPeriod(period: WorkoutStatsPeriod): List<SessionVolumeUiState> {
+    return filter { session -> session.finishedAt.isInsideStatsPeriod(period) }
+}
+
+private fun Long.isInsideStatsPeriod(period: WorkoutStatsPeriod): Boolean {
+    val nowMillis = System.currentTimeMillis()
+    val cutoff = when (period) {
+        WorkoutStatsPeriod.All -> return true
+        WorkoutStatsPeriod.LastFourWeeks -> nowMillis - 4 * 7 * 86_400_000L
+        WorkoutStatsPeriod.LastTwelveWeeks -> nowMillis - 12 * 7 * 86_400_000L
+    }
+    return this >= cutoff
 }

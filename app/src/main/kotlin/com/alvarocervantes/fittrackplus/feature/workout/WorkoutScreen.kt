@@ -2,14 +2,16 @@
 
 package com.alvarocervantes.fittrackplus.feature.workout
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,18 +22,14 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
@@ -44,8 +42,8 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.Button
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
@@ -53,16 +51,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.minimumInteractiveComponentSize
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,29 +69,44 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.ViewModelStoreOwner
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
+import com.alvarocervantes.fittrackplus.core.design.onHero
+import com.alvarocervantes.fittrackplus.core.design.onHeroMuted
+import com.alvarocervantes.fittrackplus.core.design.success
+import com.alvarocervantes.fittrackplus.core.design.primaryMid
+import com.alvarocervantes.fittrackplus.core.design.accentSoft
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
+import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroTag
+import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeTone
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeVariant
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import com.alvarocervantes.fittrackplus.core.design.components.ConfettiAnimation
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
 import com.alvarocervantes.fittrackplus.domain.model.PrType
 import com.alvarocervantes.fittrackplus.domain.model.ProgressionHint
+import com.alvarocervantes.fittrackplus.feature.routines.isValidTargetReps
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
+import com.alvarocervantes.fittrackplus.core.design.FitTrackDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackFormDialogActions
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
+import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
@@ -103,28 +114,74 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackMetricAccent
 import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
 import com.alvarocervantes.fittrackplus.core.design.FitTrackRadialTimer
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
-import com.alvarocervantes.fittrackplus.core.design.primaryDark
+import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRow
+import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowMode
+import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
+import com.alvarocervantes.fittrackplus.core.design.FitTrackTargetPrescriptionFields
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
+import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
+import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private const val MAX_NAME_LENGTH = 60
+private const val MAX_NOTES_LENGTH = 500
 
 @Composable
 fun WorkoutScreen(
     onGoToRoutines: () -> Unit,
     viewModel: WorkoutViewModel = hiltViewModel()
 ) {
+    val activity = LocalActivity.current
+    val appShellOwner = requireNotNull(activity) as ViewModelStoreOwner
+    val appShellViewModel: AppShellViewModel = hiltViewModel(appShellOwner)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val pendingNavigation by appShellViewModel.pendingNavigation.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showFinishConfirmation by remember { mutableStateOf(false) }
+    var finishNotes by remember { mutableStateOf("") }
     val haptic = LocalHapticFeedback.current
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        appShellViewModel.activeTabReselected.collect { route ->
+            if (route == AppRoute.Workout) {
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
+
+    LaunchedEffect(state.activeSession?.sessionId) {
+        appShellViewModel.setNavigationBlocker(
+            route = AppRoute.Workout,
+            isBlocked = state.activeSession != null
+        )
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            appShellViewModel.setNavigationBlocker(AppRoute.Workout, isBlocked = false)
+        }
+    }
 
     state.message?.let { message ->
         LaunchedEffect(message) {
             snackbarHostState.showSnackbar(message)
             viewModel.clearMessage()
         }
+    }
+
+    if (pendingNavigation != null) {
+        FitTrackConfirmDialog(
+            title = "Entrenamiento en curso",
+            text = "Tienes una sesion activa. ¿Quieres salir sin finalizarla?",
+            confirmLabel = "Salir",
+            dismissLabel = "Seguir entrenando",
+            onConfirm = appShellViewModel::confirmPendingNavigation,
+            onDismiss = appShellViewModel::dismissPendingNavigation,
+            destructive = true
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -141,50 +198,44 @@ fun WorkoutScreen(
         }
     }
 
-    if (showFinishConfirmation) {
-        Dialog(onDismissRequest = { showFinishConfirmation = false }) {
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp
-            ) {
-                Column(
-                    modifier = Modifier.padding(FitSpacing.cardPadding),
-                    verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
-                ) {
-                    Text(
-                        text = "Finalizar entrenamiento",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = if (state.activeSession?.completedSetCount == 0) {
-                            "No hay series completadas. Si finalizas ahora, la sesion se descartara."
-                        } else {
-                            "Se guardara la sesion en el historial con las series registradas hasta ahora."
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = { showFinishConfirmation = false }) {
-                            Text("Seguir entrenando")
-                        }
-                        TextButton(
-                            onClick = {
-                                showFinishConfirmation = false
-                                viewModel.finishWorkout()
-                            }
-                        ) {
-                            Text("Finalizar")
-                        }
-                    }
-                }
-            }
+    LaunchedEffect(Unit) {
+        viewModel.restTimerFinishedHapticEvent.collect {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         }
+    }
+
+    LaunchedEffect(state.activeSession?.sessionId) {
+        finishNotes = ""
+    }
+
+    // Pick up a session reopened from History when returning to this tab (only when idle).
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.refreshIfIdle()
+    }
+
+    if (showFinishConfirmation) {
+        val completedSetCount = state.activeSession?.completedSetCount ?: 0
+        val totalSetCount = state.activeSession?.totalSetCount ?: 0
+        val finishDialogText = when {
+            completedSetCount == 0 ->
+                "No hay series completadas. Si finalizas ahora, la sesion se descartara."
+            completedSetCount < totalSetCount ->
+                "Quedan series sin completar. Se guardara como incompleto y podras recuperarlo desde el historial."
+            else ->
+                "Se guardara la sesion en el historial con las series registradas hasta ahora."
+        }
+        FinishWorkoutDialog(
+            title = "Finalizar entrenamiento",
+            text = finishDialogText,
+            notes = finishNotes,
+            onNotesChange = { finishNotes = it },
+            onConfirm = {
+                showFinishConfirmation = false
+                viewModel.finishWorkout(finishNotes)
+            },
+            onDismiss = { showFinishConfirmation = false },
+            confirmEnabled = !state.isFinishing,
+        )
     }
 
     state.alternativePicker?.let { picker ->
@@ -210,11 +261,14 @@ fun WorkoutScreen(
             WorkoutContent(
                 state = state,
                 contentPadding = padding,
+                listState = listState,
                 onRefresh = viewModel::refresh,
                 onStartWorkout = viewModel::startWorkout,
                 onFinishWorkout = { showFinishConfirmation = true },
                 onSetWeightChange = viewModel::updateSetWeight,
                 onSetRepsChange = viewModel::updateSetReps,
+                onSetNotesChange = viewModel::updateSetNotes,
+                onCompleteSet = viewModel::completeSet,
                 onStepWeight = viewModel::stepSetWeight,
                 onStepReps = viewModel::stepSetReps,
                 onStartRestTimer = viewModel::startRestTimer,
@@ -236,6 +290,14 @@ fun WorkoutScreen(
             ) {
                 ConfettiAnimation(
                     modifier = Modifier.fillMaxSize(),
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.primaryMid,
+                        MaterialTheme.colorScheme.accentWarm,
+                        MaterialTheme.colorScheme.tertiary,
+                        MaterialTheme.colorScheme.success,
+                        MaterialTheme.colorScheme.accentSoft
+                    ),
                     onFinished = { viewModel.dismissCelebration() }
                 )
                 Box(
@@ -258,16 +320,60 @@ fun WorkoutScreen(
     }
 }
 
+@Composable
+private fun FinishWorkoutDialog(
+    title: String,
+    text: String,
+    notes: String,
+    onNotesChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    confirmEnabled: Boolean
+) {
+    FitTrackDialog(
+        title = title,
+        onDismissRequest = onDismiss,
+        content = {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            FitTrackSelectAllTextField(
+                value = notes,
+                onValueChange = onNotesChange,
+                label = { Text("Notas de la sesion") },
+                singleLine = false,
+                minLines = 3,
+                selectAllOnFocus = false,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        actions = {
+            FitTrackFormDialogActions(
+                cancelLabel = "Seguir entrenando",
+                confirmLabel = "Finalizar",
+                onCancel = onDismiss,
+                onConfirm = onConfirm,
+                confirmEnabled = confirmEnabled
+            )
+        }
+    )
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WorkoutContent(
     state: WorkoutUiState,
     contentPadding: PaddingValues,
+    listState: LazyListState,
     onRefresh: () -> Unit,
     onStartWorkout: () -> Unit,
     onFinishWorkout: () -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onSetNotesChange: (Long, String) -> Unit,
+    onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit,
     onStartRestTimer: (Int) -> Unit,
@@ -280,7 +386,6 @@ private fun WorkoutContent(
     onToggleExerciseExpanded: (Long) -> Unit,
     onGoToRoutines: () -> Unit
 ) {
-    val listState = rememberLazyListState()
     val imeBottom = with(LocalDensity.current) {
         WindowInsets.ime.getBottom(this).toDp()
     }
@@ -348,12 +453,15 @@ private fun WorkoutContent(
                 ) { exercise ->
                     WorkoutExerciseCard(
                         exercise = exercise,
+                        weightUnitLabel = state.weightUnit.label,
                         hint = state.hints[exercise.id] ?: ProgressionHint.NONE,
                         isExpanded = state.expandedExerciseId == exercise.id,
                         onOpenAlternatives = onOpenExerciseAlternatives,
                         onToggleExpanded = onToggleExerciseExpanded,
                         onSetWeightChange = onSetWeightChange,
                         onSetRepsChange = onSetRepsChange,
+                        onSetNotesChange = onSetNotesChange,
+                        onCompleteSet = onCompleteSet,
                         onStepWeight = onStepWeight,
                         onStepReps = onStepReps
                     )
@@ -368,9 +476,10 @@ private fun WorkoutContent(
                         message = "Selecciona una rutina en Rutinas para preparar el siguiente entrenamiento.",
                         supporting = "Primero crea o elige una rutina y marcala como activa."
                     ) {
-                        Button(onClick = onGoToRoutines) {
-                            Text("Ir a Rutinas")
-                        }
+                        FitTrackPrimaryButton(
+                            label = "Ir a Rutinas",
+                            onClick = onGoToRoutines
+                        )
                     }
                 }
             }
@@ -393,9 +502,10 @@ private fun WorkoutContent(
                         message = "Puede que la rutina activa no tenga dias o ejercicios disponibles.",
                         supporting = "Revisa la rutina actual antes de volver a intentarlo."
                     ) {
-                        FilledTonalButton(onClick = onRefresh) {
-                            Text("Revisar de nuevo")
-                        }
+                        FitTrackTonalButton(
+                            label = "Revisar de nuevo",
+                            onClick = onRefresh
+                        )
                     }
                 }
             }
@@ -409,69 +519,35 @@ private fun WorkoutPreviewCard(
     isStarting: Boolean,
     onStartWorkout: () -> Unit
 ) {
-    androidx.compose.material3.Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryDark),
-        border = null
-    ) {
-        Column(
-            modifier = Modifier.padding(FitSpacing.cardPadding),
-            verticalArrangement = Arrangement.spacedBy(FitSpacing.mdLg)
-        ) {
-            FitTrackBadge(
-                label = "PROXIMO ENTRENAMIENTO",
-                tone = FitTrackBadgeTone.Active
-            )
+    FitTrackHeroCard(
+        badge = "PROXIMO ENTRENAMIENTO",
+        title = {
             Text(
                 text = preview.routineName,
                 style = MaterialTheme.typography.headlineMedium,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onHero,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+        },
+        cta = if (isStarting) "Iniciando entrenamiento" else "Iniciar entrenamiento",
+        onCtaClick = onStartWorkout,
+        ctaEnabled = !isStarting,
+        ctaIcon = Icons.Filled.PlayArrow,
+        content = {
             Text(
                 text = preview.dayName,
                 style = MaterialTheme.typography.titleLarge,
-                color = Color.White.copy(alpha = 0.92f)
+                color = MaterialTheme.colorScheme.onHeroMuted
             )
             Row(
                 horizontalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
             ) {
-                HeroTag(text = "Semana ${preview.weekNumber}")
-                HeroTag(text = "${preview.exerciseCount} ejercicios")
-            }
-            Button(
-                onClick = onStartWorkout,
-                enabled = !isStarting
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = if (isStarting) "Iniciando entrenamiento" else "Iniciar entrenamiento",
-                    modifier = Modifier.padding(start = FitSpacing.sm)
-                )
+                FitTrackHeroTag(text = "Semana ${preview.weekNumber}")
+                FitTrackHeroTag(text = "${preview.exerciseCount} ejercicios")
             }
         }
-    }
-}
-
-@Composable
-private fun HeroTag(text: String) {
-    Box(
-        modifier = Modifier
-            .background(Color.White.copy(alpha = 0.10f), MaterialTheme.shapes.medium)
-            .padding(horizontal = FitSpacing.smMd, vertical = FitSpacing.tiny)
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = Color.White.copy(alpha = 0.78f)
-        )
-    }
+    )
 }
 
 @Composable
@@ -538,21 +614,13 @@ private fun ActiveSessionSummary(
             contentDescription = "Progreso de series completadas del entrenamiento actual"
         )
 
-        Button(
+        FitTrackPrimaryButton(
+            label = if (isFinishing) "Finalizando entrenamiento" else "Finalizar entrenamiento",
             onClick = onFinishWorkout,
             enabled = !isFinishing,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Check,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            Text(
-                text = if (isFinishing) "Finalizando entrenamiento" else "Finalizar entrenamiento",
-                modifier = Modifier.padding(start = FitSpacing.sm)
-            )
-        }
+            modifier = Modifier.fillMaxWidth(),
+            icon = Icons.Filled.Check
+        )
     }
 }
 
@@ -566,14 +634,6 @@ private fun RestTimerCard(
     onCancelRestTimer: () -> Unit,
     onAutoStartRestTimerChange: (Boolean) -> Unit
 ) {
-    val haptic = LocalHapticFeedback.current
-
-    LaunchedEffect(timer.status) {
-        if (timer.status == RestTimerStatus.Finished) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        }
-    }
-
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         RestTimerHeader(
             timer = timer,
@@ -769,18 +829,22 @@ private fun isRestTimerUrgent(timer: RestTimerUiState): Boolean {
 @Composable
 private fun WorkoutExerciseCard(
     exercise: WorkoutExerciseUiState,
+    weightUnitLabel: String,
     hint: ProgressionHint,
     isExpanded: Boolean,
     onOpenAlternatives: (Long) -> Unit,
     onToggleExpanded: (Long) -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onSetNotesChange: (Long, String) -> Unit,
+    onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit
 ) {
     val showProgressionHint = hint != ProgressionHint.NONE && exercise.sets.none { it.isCompleted }
     val completedSetCount = exercise.sets.count { it.isCompleted }
     val isExerciseCompleted = completedSetCount == exercise.sets.size && exercise.sets.isNotEmpty()
+    var showSetNotes by remember(exercise.id) { mutableStateOf(false) }
 
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -818,6 +882,13 @@ private fun WorkoutExerciseCard(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        exercise.notes?.takeIf { showSetNotes && it.isNotBlank() }?.let { notes ->
+                            Text(
+                                text = "Notas: $notes",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         ExerciseCompletionLabel(
                             isExpanded = isExpanded,
                             isCompleted = isExerciseCompleted,
@@ -829,6 +900,19 @@ private fun WorkoutExerciseCard(
                         horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        IconButton(
+                            onClick = { showSetNotes = !showSetNotes },
+                            modifier = Modifier.minimumInteractiveComponentSize()
+                        ) {
+                            Icon(
+                                imageVector = if (showSetNotes) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (showSetNotes) {
+                                    "Ocultar notas de las series de ${exercise.name}"
+                                } else {
+                                    "Mostrar notas de las series de ${exercise.name}"
+                                }
+                            )
+                        }
                         Icon(
                             imageVector = if (isExpanded) {
                                 Icons.Filled.KeyboardArrowUp
@@ -865,8 +949,12 @@ private fun WorkoutExerciseCard(
                     exercise.sets.forEach { set ->
                         WorkoutSetRow(
                             set = set,
+                            weightUnitLabel = weightUnitLabel,
+                            showNotes = showSetNotes,
                             onSetWeightChange = onSetWeightChange,
                             onSetRepsChange = onSetRepsChange,
+                            onSetNotesChange = onSetNotesChange,
+                            onCompleteSet = onCompleteSet,
                             onStepWeight = onStepWeight,
                             onStepReps = onStepReps
                         )
@@ -897,19 +985,66 @@ private fun ExerciseCompletionLabel(
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = null,
-                tint = Color(0xFF2E7D32),
+                tint = MaterialTheme.colorScheme.success,
                 modifier = Modifier.size(16.dp)
             )
         }
         Text(
             text = if (isExpanded && !isCompleted) "$label abiertas" else label,
             style = MaterialTheme.typography.labelMedium,
-            color = if (isCompleted) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant
+            color = if (isCompleted) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ExerciseVariantOptionCard(
+    option: ExerciseVariantOptionUiState,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    FitTrackCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled || option.isCurrent, onClick = onClick)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = option.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                if (option.isDefault) {
+                    FitTrackBadge(label = "PREDET.", tone = FitTrackBadgeTone.Active)
+                }
+            }
+            Text(
+                text = "${option.targetSets} series · ${option.targetRepsText} reps",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            // Only label the row as actionable when tapping it would actually do something.
+            if (option.isCurrent || enabled) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Text(
+                        text = if (option.isCurrent) "Usando ahora" else "Usar ahora",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun ExerciseAlternativesDialog(
     picker: ExerciseAlternativesUiState,
@@ -923,385 +1058,169 @@ private fun ExerciseAlternativesDialog(
     onDraftNotesChange: (String) -> Unit,
     onSaveAlternative: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(FitSpacing.cardPadding),
-                verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Ejercicios alternativos",
-                        style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Cerrar dialogo de alternativas"
-                        )
-                    }
-                }
-                Column(
-                    modifier = Modifier
-                        .verticalScroll(rememberScrollState())
-                        .imePadding(),
-                    verticalArrangement = Arrangement.spacedBy(FitSpacing.md)
-                ) {
-                    Text(
-                        text = picker.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (picker.draft == null) {
-                        picker.options.forEach { option ->
-                            val onOptionClick = {
-                                if (option.variantKey == picker.currentVariantKey) {
-                                    onDismiss()
-                                } else {
-                                    onApplyVariant(option.variantKey)
-                                }
-                            }
-                            FitTrackCard(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable(onClick = onOptionClick)
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = option.name,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        if (option.isDefault) {
-                                            FitTrackBadge(
-                                                label = "PREDET.",
-                                                tone = FitTrackBadgeTone.Active
-                                            )
-                                        }
-                                    }
-                                    Text(
-                                        text = "${option.targetSets} series · ${option.targetRepsText} reps",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.End
-                                    ) {
-                                        Text(
-                                            text = if (option.isCurrent) "Usando ahora" else "Usar ahora",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        FilledTonalButton(
-                            onClick = onStartCreating,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Crear alternativa")
-                        }
-                    } else {
-                        OutlinedTextField(
-                            value = picker.draft.name,
-                            onValueChange = onDraftNameChange,
-                            label = { Text("Nombre") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                            OutlinedTextField(
-                                value = picker.draft.targetSets,
-                                onValueChange = onDraftSetsChange,
-                                label = { Text("Series") },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.weight(1f)
-                            )
-                            OutlinedTextField(
-                                value = picker.draft.targetRepsText,
-                                onValueChange = onDraftRepsChange,
-                                label = { Text("Reps") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        OutlinedTextField(
-                            value = picker.draft.notes,
-                            onValueChange = onDraftNotesChange,
-                            label = { Text("Notas") },
-                            minLines = 2,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            TextButton(onClick = onCancelCreating) {
-                                Text("Cancelar")
-                            }
-                            TextButton(
-                                onClick = onSaveAlternative,
-                                enabled = picker.draft.canSave && !picker.isSaving
-                            ) {
-                                Text("Guardar y usar")
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+    var pendingVariantKey by remember { mutableStateOf<String?>(null) }
 
-@Composable
-private fun WeightFieldColumn(
-    setId: Long,
-    weightText: String,
-    previousWeight: String?,
-    isCompleted: Boolean,
-    onSetWeightChange: (Long, String) -> Unit,
-    onStepWeight: (Long, Double) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var fieldValue by remember(setId) { mutableStateOf(TextFieldValue(weightText)) }
-    val interactionSource = remember { MutableInteractionSource() }
-
-    LaunchedEffect(weightText) {
-        fieldValue = syncWorkoutFieldValue(
-            current = fieldValue,
-            externalText = weightText
+    pendingVariantKey?.let { variantKey ->
+        FitTrackConfirmDialog(
+            title = "Cambiar variante",
+            text = if (picker.hasLoggedSets) {
+                "Se conservaran las series que ya has registrado y solo cambiara la variante " +
+                    "a la que se atribuyen. Revisa el peso despues: puede no coincidir entre " +
+                    "una maquina y otra."
+            } else {
+                "Cambiaras el ejercicio activo de esta sesion. Las series objetivo se " +
+                    "actualizaran segun la nueva variante."
+            },
+            confirmLabel = "Cambiar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onApplyVariant(variantKey)
+                pendingVariantKey = null
+            },
+            onDismiss = { pendingVariantKey = null },
+            destructive = false
         )
     }
 
-    LaunchedEffect(interactionSource) {
-        interactionSource.interactions.collect { interaction ->
-            if (interaction is PressInteraction.Release) {
-                fieldValue = selectAllWorkoutFieldValue(fieldValue)
-            }
-        }
-    }
-
-    Column(modifier = modifier) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SetStepperButton(
-                icon = Icons.Filled.Remove,
-                contentDescription = "Bajar peso de la serie ${setId}",
-                onClick = { onStepWeight(setId, -2.5) },
-                onLongClick = { onStepWeight(setId, -5.0) },
-                minButtonSize = REPS_STEPPER_BUTTON_SIZE,
-                iconSize = REPS_STEPPER_ICON_SIZE
-            )
-            OutlinedTextField(
-                value = fieldValue,
-                onValueChange = { value ->
-                    fieldValue = value
-                    onSetWeightChange(setId, value.text)
-                },
-                placeholder = { Text("Kg") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                colors = workoutSetFieldColors(isCompleted = isCompleted),
-                interactionSource = interactionSource,
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 56.dp)
-                    .onFocusChanged { focusState ->
-                        if (focusState.isFocused) {
-                            fieldValue = selectAllWorkoutFieldValue(fieldValue)
-                        }
-                    }
-            )
-            SetStepperButton(
-                icon = Icons.Filled.Add,
-                contentDescription = "Subir peso de la serie ${setId}",
-                onClick = { onStepWeight(setId, 2.5) },
-                onLongClick = { onStepWeight(setId, 5.0) },
-                minButtonSize = REPS_STEPPER_BUTTON_SIZE,
-                iconSize = REPS_STEPPER_ICON_SIZE
-            )
-        }
-        if (previousWeight != null) {
+    FitTrackDialog(
+        title = "Ejercicios alternativos",
+        onDismissRequest = onDismiss,
+        content = {
             Text(
-                text = formatPreviousWeightLabel(previousWeight),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                text = picker.title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-    }
+            if (picker.draft == null) {
+                if (picker.hasLoggedSets) {
+                    Text(
+                        text = "Ya has registrado series aqui. Si cambias de variante se " +
+                            "conservan, solo cambia el ejercicio al que se atribuyen.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                val optionsEnabled = !picker.isSaving
+                picker.options.forEach { option ->
+                    ExerciseVariantOptionCard(
+                        option = option,
+                        enabled = optionsEnabled,
+                        onClick = {
+                            if (option.isCurrent) onDismiss() else pendingVariantKey = option.variantKey
+                        }
+                    )
+                }
+                FitTrackTonalButton(
+                    label = "Crear alternativa",
+                    onClick = onStartCreating,
+                    enabled = !picker.isSaving,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                val notesFocusRequester = remember { FocusRequester() }
+                FitTrackSelectAllTextField(
+                    value = picker.draft.name,
+                    onValueChange = onDraftNameChange,
+                    label = { Text("Nombre") },
+                    singleLine = true,
+                    selectAllOnFocus = false,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { notesFocusRequester.requestFocus() }
+                    ),
+                    maxLength = MAX_NAME_LENGTH,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                FitTrackTargetPrescriptionFields(
+                    targetSets = picker.draft.targetSets,
+                    targetRepsText = picker.draft.targetRepsText,
+                    onTargetSetsChange = onDraftSetsChange,
+                    onTargetRepsChange = onDraftRepsChange,
+                    isValidTargetReps = ::isValidTargetReps
+                )
+                FitTrackSelectAllTextField(
+                    value = picker.draft.notes,
+                    onValueChange = onDraftNotesChange,
+                    label = { Text("Notas") },
+                    singleLine = false,
+                    minLines = 2,
+                    selectAllOnFocus = false,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        imeAction = ImeAction.Done
+                    ),
+                    maxLength = MAX_NOTES_LENGTH,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(notesFocusRequester)
+                )
+            }
+        },
+        actions = if (picker.draft != null) {
+            {
+                FitTrackFormDialogActions(
+                    cancelLabel = "Cancelar",
+                    confirmLabel = "Guardar y usar",
+                    onCancel = onCancelCreating,
+                    onConfirm = onSaveAlternative,
+                    confirmEnabled = picker.draft.canSave && !picker.isSaving
+                )
+            }
+        } else null
+    )
 }
 
 @Composable
 private fun WorkoutSetRow(
     set: WorkoutSetUiState,
+    weightUnitLabel: String,
+    showNotes: Boolean,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
+    onSetNotesChange: (Long, String) -> Unit,
+    onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit
 ) {
-    val rowBackground = if (set.isCompleted) {
-        MaterialTheme.colorScheme.primarySoft
-    } else {
-        MaterialTheme.colorScheme.surfaceAlt
-    }
-    var repsFieldValue by remember(set.id) { mutableStateOf(TextFieldValue(set.repsText)) }
-    val repsInteractionSource = remember { MutableInteractionSource() }
-
-    LaunchedEffect(set.repsText) {
-        repsFieldValue = syncWorkoutFieldValue(
-            current = repsFieldValue,
-            externalText = set.repsText
-        )
-    }
-
-    LaunchedEffect(repsInteractionSource) {
-        repsInteractionSource.interactions.collect { interaction ->
-            if (interaction is PressInteraction.Release) {
-                repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)
+    FitTrackSetRow(
+        setId = set.id,
+        setNumber = set.setNumber,
+        weightText = set.weightText,
+        repsText = set.repsText,
+        notes = set.notes,
+        showNotes = showNotes,
+        mode = FitTrackSetRowMode.Edit,
+        isCompleted = set.isCompleted,
+        isReadyToComplete = isWorkoutSetReadyToComplete(
+            set.repsText,
+            set.isCompleted
+        ),
+        showCompletionControl = true,
+        previousWeight = set.previousWeight,
+        weightUnitLabel = weightUnitLabel,
+        previousReps = set.previousReps,
+        onWeightChange = { onSetWeightChange(set.id, it) },
+        onRepsChange = { onSetRepsChange(set.id, it) },
+        onNotesChange = { onSetNotesChange(set.id, it) },
+        onComplete = { onCompleteSet(set.id) },
+        onStepWeight = { onStepWeight(set.id, it) },
+        onStepReps = { onStepReps(set.id, it) },
+        footer = if (set.prType != null) {
+            {
+                FitTrackBadge(
+                    label = if (set.prType == PrType.MaxWeight) "PR PESO" else "PR VOLUMEN",
+                    tone = FitTrackBadgeTone.Warm,
+                    modifier = Modifier.padding(start = FitSpacing.smMd, top = 2.dp)
+                )
             }
+        } else {
+            null
         }
-    }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(rowBackground, MaterialTheme.shapes.large)
-                .padding(FitSpacing.smMd),
-            horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
-            verticalAlignment = Alignment.Top
-        ) {
-            Box(
-                modifier = Modifier
-                    .padding(top = 6.dp)
-                    .size(WORKOUT_SET_INDEX_SIZE)
-                    .background(
-                        color = if (set.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                        shape = CircleShape
-                    )
-                    .semantics {
-                        contentDescription = if (set.isCompleted) {
-                            "Serie ${set.setNumber} completada"
-                        } else {
-                            "Serie ${set.setNumber} pendiente"
-                        }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                if (set.isCompleted) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                } else {
-                    Text(
-                        text = set.setNumber.toString(),
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            }
-            WeightFieldColumn(
-                setId = set.id,
-                weightText = set.weightText,
-                previousWeight = set.previousWeight,
-                isCompleted = set.isCompleted,
-                onSetWeightChange = onSetWeightChange,
-                onStepWeight = onStepWeight,
-                modifier = Modifier.weight(WORKOUT_WEIGHT_COLUMN_WEIGHT)
-            )
-            Column(
-                modifier = Modifier.weight(WORKOUT_REPS_COLUMN_WEIGHT),
-                verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.tiny),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    SetStepperButton(
-                        icon = Icons.Filled.Remove,
-                        contentDescription = "Bajar repeticiones de la serie ${set.setNumber}",
-                        onClick = { onStepReps(set.id, -1) },
-                        minButtonSize = REPS_STEPPER_BUTTON_SIZE,
-                        iconSize = REPS_STEPPER_ICON_SIZE
-                    )
-                    OutlinedTextField(
-                        value = repsFieldValue,
-                        onValueChange = { value ->
-                            repsFieldValue = value
-                            onSetRepsChange(set.id, value.text)
-                        },
-                        placeholder = { Text("Reps") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = workoutSetFieldColors(isCompleted = set.isCompleted),
-                        interactionSource = repsInteractionSource,
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = 56.dp)
-                            .onFocusChanged { focusState ->
-                                if (focusState.isFocused) {
-                                    repsFieldValue = selectAllWorkoutFieldValue(repsFieldValue)
-                                }
-                            }
-                    )
-                    SetStepperButton(
-                        icon = Icons.Filled.Add,
-                        contentDescription = "Subir repeticiones de la serie ${set.setNumber}",
-                        onClick = { onStepReps(set.id, 1) },
-                        minButtonSize = REPS_STEPPER_BUTTON_SIZE,
-                        iconSize = REPS_STEPPER_ICON_SIZE
-                    )
-                }
-                if (set.previousReps != null) {
-                    Text(
-                        text = formatPreviousRepsLabel(set.previousReps),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                }
-            }
-        }
-        if (set.prType != null) {
-            FitTrackBadge(
-                label = if (set.prType == PrType.MaxWeight) "PR PESO" else "PR VOLUMEN",
-                tone = FitTrackBadgeTone.Warm,
-                modifier = Modifier.padding(start = FitSpacing.smMd, top = 2.dp)
-            )
-        }
-    }
+    )
 }
-
-internal fun formatPreviousWeightLabel(previousWeight: String): String = "ant. $previousWeight kg"
-
-internal fun formatPreviousRepsLabel(previousReps: Int): String = "ant. $previousReps"
 
 @Composable
 private fun ProgressionHintButton(hint: ProgressionHint) {
@@ -1324,7 +1243,7 @@ private fun ProgressionHintButton(hint: ProgressionHint) {
                     "Sugerencia de bajar peso"
                 },
                 tint = if (hint == ProgressionHint.UP) {
-                    Color(0xFF2E7D32)
+                    MaterialTheme.colorScheme.success
                 } else {
                     MaterialTheme.colorScheme.accentWarm
                 }
@@ -1341,80 +1260,6 @@ private fun ProgressionHintButton(hint: ProgressionHint) {
         }
     }
 }
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun SetStepperButton(
-    icon: ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-    onLongClick: (() -> Unit)? = null,
-    minButtonSize: androidx.compose.ui.unit.Dp = 36.dp,
-    iconSize: androidx.compose.ui.unit.Dp = 18.dp
-) {
-    Box(
-        modifier = Modifier
-            .sizeIn(minWidth = minButtonSize, minHeight = minButtonSize)
-            .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.medium)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(iconSize)
-        )
-    }
-}
-
-internal fun selectAllWorkoutFieldValue(current: TextFieldValue): TextFieldValue {
-    return current.copy(selection = TextRange(0, current.text.length))
-}
-
-internal fun syncWorkoutFieldValue(
-    current: TextFieldValue,
-    externalText: String
-): TextFieldValue {
-    return if (current.text == externalText) {
-        current
-    } else {
-        TextFieldValue(
-            text = externalText,
-            selection = TextRange(externalText.length, externalText.length)
-        )
-    }
-}
-
-@Composable
-private fun workoutSetFieldColors(isCompleted: Boolean) = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = MaterialTheme.colorScheme.primary,
-    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-    focusedLabelColor = MaterialTheme.colorScheme.primary,
-    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    focusedTextColor = if (isCompleted) {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    },
-    unfocusedTextColor = if (isCompleted) {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    },
-    cursorColor = MaterialTheme.colorScheme.primary,
-    focusedContainerColor = Color.Transparent,
-    unfocusedContainerColor = Color.Transparent
-)
-
-private val WORKOUT_SET_INDEX_SIZE = 40.dp
-private val REPS_STEPPER_BUTTON_SIZE = 28.dp
-private val REPS_STEPPER_ICON_SIZE = 16.dp
-private const val WORKOUT_WEIGHT_COLUMN_WEIGHT = 1.0f
-private const val WORKOUT_REPS_COLUMN_WEIGHT = 1.1f
 
 @Composable
 private fun WorkoutLoadingSkeleton() {
@@ -1471,6 +1316,10 @@ private fun WorkoutLoadingSkeleton() {
         }
     }
 }
+
+internal fun formatPreviousWeightLabel(previousWeight: String): String = "ant. $previousWeight kg"
+
+internal fun formatPreviousRepsLabel(previousReps: Int): String = "ant. $previousReps"
 
 private fun formatStartedAt(timestamp: Long): String {
     return SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()).format(Date(timestamp))

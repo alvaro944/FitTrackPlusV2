@@ -45,6 +45,12 @@ class HealthConnectRepository @Inject constructor(
         }.getOrDefault(false)
     }
 
+    suspend fun revokePermissions() {
+        if (isAvailable()) {
+            client.permissionController.revokeAllPermissions()
+        }
+    }
+
     fun permissionsContract(): ActivityResultContract<Set<String>, Set<String>> =
         PermissionController.createRequestPermissionResultContract()
 

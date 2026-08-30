@@ -6,6 +6,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.alvarocervantes.fittrackplus.core.notification.ActiveSessionObserver
 import com.alvarocervantes.fittrackplus.data.local.seed.DebugDemoDataSeeder
+import com.alvarocervantes.fittrackplus.feature.widget.WidgetUpdateObserver
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -14,6 +15,7 @@ class FitTrackPlusApp : Application() {
 
     @Inject lateinit var debugDemoDataSeeder: DebugDemoDataSeeder
     @Inject lateinit var activeSessionObserver: ActiveSessionObserver
+    @Inject lateinit var widgetUpdateObserver: WidgetUpdateObserver
 
     override fun onCreate() {
         super.onCreate()
@@ -21,5 +23,6 @@ class FitTrackPlusApp : Application() {
             debugDemoDataSeeder.seedIfEmpty()
         }
         activeSessionObserver.start(ProcessLifecycleOwner.get().lifecycleScope)
+        widgetUpdateObserver.start(ProcessLifecycleOwner.get().lifecycleScope)
     }
 }

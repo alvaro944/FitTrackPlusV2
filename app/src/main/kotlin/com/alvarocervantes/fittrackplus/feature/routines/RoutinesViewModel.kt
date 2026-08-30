@@ -10,6 +10,7 @@ import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseAlternativeD
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseDraft
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +31,7 @@ class RoutinesViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(RoutinesUiState())
     val uiState: StateFlow<RoutinesUiState> = _uiState.asStateFlow()
+    private val alternativeEditSnapshots = mutableMapOf<AlternativeEditKey, AlternativeEditSnapshot>()
 
     init {
         combine(
@@ -115,6 +117,7 @@ class RoutinesViewModel @Inject constructor(
     }
 
     fun discardEditorChanges() {
+        alternativeEditSnapshots.clear()
         _uiState.update { state -> state.copy(editor = null) }
     }
 
@@ -134,7 +137,7 @@ class RoutinesViewModel @Inject constructor(
     }
 
     fun updateRoutineName(name: String) {
-        updateEditor { editor -> editor.copy(name = normalizeEditorNameInput(name)) }
+        updateEditor { editor -> editor.copy(name = name, hasInteractedWithName = true) }
     }
 
     fun addDay() {
@@ -150,7 +153,7 @@ class RoutinesViewModel @Inject constructor(
         updateEditor { editor ->
             editor.copy(
                 days = editor.days.replaceAt(dayIndex) {
-                    it.copy(name = normalizeEditorNameInput(name))
+                    it.copy(name = name)
                 }
             )
         }
@@ -182,7 +185,7 @@ class RoutinesViewModel @Inject constructor(
     fun updateExerciseName(dayIndex: Int, exerciseIndex: Int, name: String) {
         updateEditor { editor ->
             editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
-                exercise.copy(name = normalizeEditorNameInput(name))
+                exercise.copy(name = name, hasInteractedWithName = true)
             }
         }
     }
@@ -208,16 +211,52 @@ class RoutinesViewModel @Inject constructor(
     fun addExerciseAlternative(dayIndex: Int, exerciseIndex: Int) {
         updateEditor { editor ->
             editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
-                exercise.copy(
-                    alternatives = exercise.alternatives + RoutineExerciseAlternativeEditorUiState(
-                        name = exercise.name,
-                        targetSets = exercise.targetSets,
-                        targetRepsText = exercise.targetRepsText,
-                        notes = exercise.notes
-                    )
-                )
+                exercise.withSeedAlternative()
             }
         }
+    }
+
+    /** Captures an alternative before inline editing so cancelling can restore its saved draft. */
+    fun beginExerciseAlternativeEdit(dayIndex: Int, exerciseIndex: Int, alternativeIndex: Int) {
+        val editor = _uiState.value.editor ?: return
+        val alternatives = editor.days
+            .getOrNull(dayIndex)
+            ?.exercises
+            ?.getOrNull(exerciseIndex)
+            ?.alternatives
+            ?: return
+        if (alternativeIndex !in 0..alternatives.size) return
+
+        alternativeEditSnapshots[AlternativeEditKey(dayIndex, exerciseIndex, alternativeIndex)] =
+            AlternativeEditSnapshot(
+                alternative = alternatives.getOrNull(alternativeIndex),
+                wasDirty = editor.isDirty
+            )
+    }
+
+    /** Restores the captured draft, or removes the newly-created seed when it did not exist yet. */
+    fun cancelExerciseAlternativeEdit(dayIndex: Int, exerciseIndex: Int, alternativeIndex: Int) {
+        val key = AlternativeEditKey(dayIndex, exerciseIndex, alternativeIndex)
+        if (!alternativeEditSnapshots.containsKey(key)) return
+        val snapshot = requireNotNull(alternativeEditSnapshots.remove(key))
+
+        _uiState.update { state ->
+            val editor = state.editor ?: return@update state
+            val restoredEditor = editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
+                val restoredAlternatives = if (snapshot.alternative == null) {
+                    exercise.alternatives.removeAt(alternativeIndex)
+                } else {
+                    exercise.alternatives.replaceAt(alternativeIndex) { snapshot.alternative }
+                }
+                exercise.copy(alternatives = restoredAlternatives)
+            }
+            state.copy(editor = restoredEditor.copy(isDirty = snapshot.wasDirty))
+        }
+    }
+
+    /** Clears the transient snapshot after inline edits are saved or the dialog is closed. */
+    fun finishExerciseAlternativeEdit(dayIndex: Int, exerciseIndex: Int, alternativeIndex: Int) {
+        alternativeEditSnapshots.remove(AlternativeEditKey(dayIndex, exerciseIndex, alternativeIndex))
     }
 
     fun updateExerciseAlternativeName(dayIndex: Int, exerciseIndex: Int, alternativeIndex: Int, name: String) {
@@ -225,7 +264,7 @@ class RoutinesViewModel @Inject constructor(
             editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
                 exercise.copy(
                     alternatives = exercise.alternatives.replaceAt(alternativeIndex) { alternative ->
-                        alternative.copy(name = normalizeEditorNameInput(name))
+                        alternative.copy(name = name)
                     }
                 )
             }
@@ -319,6 +358,7 @@ class RoutinesViewModel @Inject constructor(
     }
 
     fun saveEditor() {
+        if (_uiState.value.isSaving) return
         val editor = _uiState.value.editor ?: return
         if (!editor.canSave) return
 
@@ -334,6 +374,7 @@ class RoutinesViewModel @Inject constructor(
                     editor.routineId
                 }
             }.onSuccess { routineId ->
+                alternativeEditSnapshots.clear()
                 _uiState.update { state -> state.copy(editor = null, isSaving = false) }
                 if (_uiState.value.activeRoutineId == null) {
                     userPreferencesRepository.setActiveRoutineId(routineId)
@@ -392,6 +433,17 @@ class RoutinesViewModel @Inject constructor(
     }
 }
 
+private data class AlternativeEditKey(
+    val dayIndex: Int,
+    val exerciseIndex: Int,
+    val alternativeIndex: Int
+)
+
+private data class AlternativeEditSnapshot(
+    val alternative: RoutineExerciseAlternativeEditorUiState?,
+    val wasDirty: Boolean
+)
+
 private fun RoutineEditorUiState.updateExercise(
     dayIndex: Int,
     exerciseIndex: Int,
@@ -426,6 +478,7 @@ data class RoutineListItemUiState(
 data class RoutineEditorUiState(
     val routineId: Long? = null,
     val name: String = "",
+    val hasInteractedWithName: Boolean = false,
     val days: List<RoutineDayEditorUiState> = listOf(RoutineDayEditorUiState()),
     val isDirty: Boolean = false,
     val showCloseConfirmation: Boolean = false,
@@ -434,8 +487,12 @@ data class RoutineEditorUiState(
     val title: String = if (routineId == null) "Nueva rutina" else "Editar rutina"
     val hasUnsavedChanges: Boolean
         get() = isDirty
+    private val nameBlank: Boolean
+        get() = name.isBlank()
+    // Only surfaced once the user has actually touched the field - otherwise a brand new
+    // routine shows a validation error before anyone has typed anything.
     val routineNameError: String?
-        get() = if (name.isBlank()) "Pon un nombre para la rutina." else null
+        get() = if (hasInteractedWithName && nameBlank) "Pon un nombre para la rutina." else null
     val validationMessage: String?
         get() = when {
             routineNameError != null -> routineNameError
@@ -456,13 +513,17 @@ data class RoutineEditorUiState(
             else -> null
         }
     val canSave: Boolean
-        get() = routineNameError == null &&
+        // Uses the raw check, not routineNameError: a blank name must block saving even if the
+        // user never touched the field (routineNameError is gated on hasInteractedWithName so
+        // it doesn't show an error before any interaction, but that gating must not let an
+        // invalid, untouched routine be saved).
+        get() = !nameBlank &&
             days.isNotEmpty() &&
             days.all { day ->
                 day.nameError == null &&
                 day.exercises.isNotEmpty() &&
                     day.exercises.all { exercise ->
-                        exercise.nameError == null &&
+                        !exercise.isNameBlank &&
                             exercise.targetSetsError == null &&
                             exercise.targetRepsError == null &&
                             exercise.alternatives.all { alternative ->
@@ -482,6 +543,7 @@ internal fun RoutineEditorUiState.toggleDayExpansion(dayIndex: Int): RoutineEdit
 }
 
 data class RoutineDayEditorUiState(
+    val draftId: String = UUID.randomUUID().toString(),
     val name: String = "Dia 1",
     val exercises: List<RoutineExerciseEditorUiState> = listOf(RoutineExerciseEditorUiState())
 ) {
@@ -490,17 +552,23 @@ data class RoutineDayEditorUiState(
 }
 
 data class RoutineExerciseEditorUiState(
+    val draftId: String = UUID.randomUUID().toString(),
     val routineExerciseId: Long? = null,
     val variantKey: String? = null,
     val defaultVariantKey: String? = null,
     val name: String = "",
+    val hasInteractedWithName: Boolean = false,
     val targetSets: String = "3",
     val targetRepsText: String = "8-12",
     val notes: String = "",
     val alternatives: List<RoutineExerciseAlternativeEditorUiState> = emptyList()
 ) {
+    val isNameBlank: Boolean
+        get() = name.isBlank()
+    // Only surfaced once the user has actually touched the field - otherwise a brand new
+    // exercise shows a validation error before anyone has typed anything.
     val nameError: String?
-        get() = if (name.isBlank()) "Pon un nombre para el ejercicio." else null
+        get() = if (hasInteractedWithName && isNameBlank) "Pon un nombre para el ejercicio." else null
     val targetSetsError: String?
         get() = if (targetSets.toIntOrNull()?.let { it in 1..99 } == true) {
             null
@@ -539,6 +607,31 @@ data class RoutineExerciseAlternativeEditorUiState(
         }
 }
 
+internal fun RoutineExerciseEditorUiState.withSeedAlternative(): RoutineExerciseEditorUiState {
+    val seed = RoutineExerciseAlternativeEditorUiState(
+        name = name,
+        targetSets = targetSets,
+        targetRepsText = targetRepsText,
+        notes = notes
+    )
+    return if (alternatives.lastOrNull()?.isUntouchedSeedFor(this) == true) {
+        this
+    } else {
+        copy(alternatives = alternatives + seed)
+    }
+}
+
+private fun RoutineExerciseAlternativeEditorUiState.isUntouchedSeedFor(
+    exercise: RoutineExerciseEditorUiState
+): Boolean {
+    return alternativeId == null &&
+        variantKey == null &&
+        name == exercise.name &&
+        targetSets == exercise.targetSets &&
+        targetRepsText == exercise.targetRepsText &&
+        notes == exercise.notes
+}
+
 internal fun isValidTargetReps(value: String): Boolean {
     val normalized = value.trim()
     if (normalized.isEmpty()) return false
@@ -557,17 +650,6 @@ internal fun isValidTargetReps(value: String): Boolean {
                 rpeMatch != null -> rpeMatch.groupValues[1].toInt() in 1..10
                 else -> false
             }
-        }
-    }
-}
-
-internal fun normalizeEditorNameInput(value: String): String {
-    if (value.isEmpty()) return value
-    return value.replaceFirstChar { char ->
-        if (char.isLowerCase()) {
-            char.titlecase()
-        } else {
-            char.toString()
         }
     }
 }

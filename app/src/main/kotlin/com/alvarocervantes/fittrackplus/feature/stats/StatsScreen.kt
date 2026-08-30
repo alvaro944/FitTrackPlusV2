@@ -1,5 +1,13 @@
+// Large Compose screen composed of many small private composables; the function-count threshold
+// is not meaningful for this kind of screen file.
+@file:Suppress("TooManyFunctions")
+
 package com.alvarocervantes.fittrackplus.feature.stats
 
+import androidx.activity.compose.LocalActivity
+import androidx.lifecycle.ViewModelStoreOwner
+import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
+import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -11,24 +19,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -37,9 +43,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,13 +52,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
-import com.alvarocervantes.fittrackplus.core.design.components.HeatmapCalendar
+import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import com.alvarocervantes.fittrackplus.core.design.components.LineChart
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackErrorState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackDropdownField
+import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRow
+import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRowStyle
 import com.alvarocervantes.fittrackplus.core.design.FitTrackMetric
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
@@ -65,10 +73,11 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.accentSoft
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
+import com.alvarocervantes.fittrackplus.core.design.success
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Date
 import java.util.Locale
@@ -79,6 +88,10 @@ fun StatsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val activity = LocalActivity.current
+    val appShellOwner = requireNotNull(activity) as ViewModelStoreOwner
+    val appShellViewModel: AppShellViewModel = hiltViewModel(appShellOwner)
+    val listState = rememberLazyListState()
 
     LaunchedEffect(state.message) {
         val msg = state.message ?: return@LaunchedEffect
@@ -86,19 +99,37 @@ fun StatsScreen(
         viewModel.clearMessage()
     }
 
+    LaunchedEffect(Unit) {
+        appShellViewModel.activeTabReselected.collect { route ->
+            if (route == AppRoute.Stats) {
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
+
     Scaffold(
+        // The app shell already applies the system bar insets; without this the
+        // status bar padding lands twice and leaves a dead band above the content.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         StatsContent(
             state = state,
             contentPadding = padding,
+            listState = listState,
+            onRetry = viewModel::retry,
             onPeriodFilterChange = viewModel::setPeriodFilter,
-            onSelectExercise = viewModel::selectExercise,
+            onSelectRoutine = viewModel::selectRoutine,
+            onSelectDay = viewModel::selectDay,
+            onSelectExercise = viewModel::selectExerciseScope,
+            onSelectProgressMetric = viewModel::selectProgressMetric,
             onSelectProgressPoint = viewModel::selectProgressPoint,
             onClearSelectedProgressPoint = viewModel::clearSelectedProgressPoint,
-            onHeatmapDayClick = viewModel::onHeatmapDayClick,
             onPreviousStepsWeek = viewModel::previousWeek,
-            onNextStepsWeek = viewModel::nextWeek
+            onNextStepsWeek = viewModel::nextWeek,
+            onSelectStepsDay = viewModel::selectStepsDay,
+            onPreviousCalendarMonth = viewModel::previousCalendarMonth,
+            onNextCalendarMonth = viewModel::nextCalendarMonth
         )
     }
 }
@@ -107,15 +138,23 @@ fun StatsScreen(
 private fun StatsContent(
     state: StatsUiState,
     contentPadding: PaddingValues,
+    listState: LazyListState,
+    onRetry: () -> Unit,
     onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
+    onSelectRoutine: (String) -> Unit,
+    onSelectDay: (String) -> Unit,
     onSelectExercise: (String) -> Unit,
+    onSelectProgressMetric: (ProgressMetric) -> Unit,
     onSelectProgressPoint: (Long) -> Unit,
     onClearSelectedProgressPoint: () -> Unit,
-    onHeatmapDayClick: (HeatmapDay) -> Unit = {},
     onPreviousStepsWeek: () -> Unit = {},
-    onNextStepsWeek: () -> Unit = {}
+    onNextStepsWeek: () -> Unit = {},
+    onSelectStepsDay: (Int?) -> Unit = {},
+    onPreviousCalendarMonth: () -> Unit = {},
+    onNextCalendarMonth: () -> Unit = {}
 ) {
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
@@ -148,20 +187,13 @@ private fun StatsContent(
                 item { StatsLoadingSkeleton() }
             }
 
-            state.message != null -> {
+            state.error != null -> {
                 item {
-                    FitTrackCard {
-                        Text(
-                            text = "No se pudieron cargar los datos",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Text(
-                            text = state.message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    FitTrackErrorState(
+                        title = "No se pudieron cargar los datos",
+                        message = state.error,
+                        onRetry = onRetry
+                    )
                 }
             }
 
@@ -181,6 +213,19 @@ private fun StatsContent(
                     SummaryGrid(state = state)
                 }
 
+                if (state.availableRoutineNames.isNotEmpty()) {
+                    item {
+                        StatsFocusControls(
+                            routineNames = state.availableRoutineNames,
+                            selectedRoutineName = state.selectedRoutineName,
+                            dayNames = state.availableDayNames,
+                            selectedDayName = state.selectedDayName,
+                            onSelectRoutine = onSelectRoutine,
+                            onSelectDay = onSelectDay
+                        )
+                    }
+                }
+
                 if (state.weeklyStepsData != null) {
                     item { FitTrackSectionLabel(label = "Actividad") }
                     item {
@@ -188,7 +233,9 @@ private fun StatsContent(
                             data = state.weeklyStepsData,
                             canGoNext = state.canGoToNextWeek,
                             onPrevious = onPreviousStepsWeek,
-                            onNext = onNextStepsWeek
+                            onNext = onNextStepsWeek,
+                            selectedDayIndex = state.selectedStepsDayIndex,
+                            onDaySelect = onSelectStepsDay
                         )
                     }
                 }
@@ -196,51 +243,55 @@ private fun StatsContent(
                 if (state.heatmapDays.isNotEmpty()) {
                     item { FitTrackSectionLabel(label = "Constancia") }
                     item {
-                        FitTrackCard(modifier = Modifier.fillMaxWidth()) {
-                            HeatmapCalendar(
-                                days = state.heatmapDays,
-                                onDayClick = onHeatmapDayClick
-                            )
-                        }
+                        ConsistencyCalendarCard(
+                            days = state.heatmapDays,
+                            visibleMonth = state.visibleCalendarMonth,
+                            onPreviousMonth = onPreviousCalendarMonth,
+                            onNextMonth = onNextCalendarMonth
+                        )
                     }
                 }
 
-                if (state.exerciseProgress.isNotEmpty()) {
+                if (state.focusedExerciseProgress.isNotEmpty()) {
                     item {
                         ProgressChartCard(
-                            exerciseNames = state.exerciseProgress.map { it.exerciseName },
+                            exercises = state.focusedExerciseProgress,
                             selectedExerciseName = state.selectedExerciseName,
                             progressPoints = state.progressPoints,
+                            chartValues = state.progressChartValues,
+                            selectedMetric = state.selectedProgressMetric,
                             selectedProgressPoint = state.selectedProgressPoint,
+                            weightUnit = state.weightUnit,
                             onSelectExercise = onSelectExercise,
+                            onSelectProgressMetric = onSelectProgressMetric,
                             onSelectProgressPoint = onSelectProgressPoint,
                             onClearSelectedProgressPoint = onClearSelectedProgressPoint
                         )
                     }
                 }
 
-                item { FitTrackSectionLabel(label = "Volumen por sesion") }
-                items(
-                    items = state.sessionVolumes,
-                    key = { session -> session.sessionId }
-                ) { session ->
-                    SessionVolumeCard(session = session)
+                if (state.focusedSessionVolumesChronological.isNotEmpty()) {
+                    item { FitTrackSectionLabel(label = "Volumen por sesion") }
+                    item {
+                        SessionVolumeTrendCard(
+                            sessions = state.focusedSessionVolumesChronological,
+                            weightUnit = state.weightUnit
+                        )
+                    }
                 }
 
-                item { FitTrackSectionLabel(label = "Progreso por ejercicio") }
-                items(
-                    items = state.exerciseProgress,
-                    key = { progress -> progress.exerciseKey }
-                ) { progress ->
-                    ExerciseProgressCard(progress = progress)
+                state.selectedExerciseProgress?.let { progress ->
+                    item { FitTrackSectionLabel(label = "Progreso del ejercicio") }
+                    item {
+                        ExerciseProgressCard(progress = progress, weightUnit = state.weightUnit)
+                    }
                 }
 
-                item { FitTrackSectionLabel(label = "Mejores marcas") }
-                items(
-                    items = state.exerciseRecords,
-                    key = { records -> records.exerciseKey }
-                ) { records ->
-                    ExerciseRecordsCard(records = records)
+                state.selectedExerciseRecords?.let { records ->
+                    item { FitTrackSectionLabel(label = "Mejores marcas") }
+                    item {
+                        ExerciseRecordsCard(records = records, weightUnit = state.weightUnit)
+                    }
                 }
             }
         }
@@ -272,6 +323,40 @@ private fun StatsPeriodControls(
 }
 
 @Composable
+private fun StatsFocusControls(
+    routineNames: List<String>,
+    selectedRoutineName: String?,
+    dayNames: List<String>,
+    selectedDayName: String?,
+    onSelectRoutine: (String) -> Unit,
+    onSelectDay: (String) -> Unit
+) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Vista enfocada",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = "Elige rutina y dia para ver solo sus sesiones, ejercicios y marcas.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        FitTrackDropdownField(
+            label = "Rutina",
+            value = selectedRoutineName ?: "Selecciona rutina",
+            options = routineNames,
+            onSelect = onSelectRoutine
+        )
+        FitTrackDropdownField(
+            label = "Dia",
+            value = selectedDayName ?: "Selecciona dia",
+            options = dayNames,
+            onSelect = onSelectDay
+        )
+    }
+}
+
+@Composable
 private fun SummaryGrid(state: StatsUiState) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -279,7 +364,7 @@ private fun SummaryGrid(state: StatsUiState) {
     ) {
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
-                value = state.sessionVolumes.size.toString(),
+                value = state.sessionCount.toString(),
                 label = "sesiones",
                 accent = FitTrackMetricAccent.Primary,
                 compact = true
@@ -287,15 +372,15 @@ private fun SummaryGrid(state: StatsUiState) {
         }
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
-                value = state.exerciseProgress.size.toString(),
+                value = state.exerciseCount.toString(),
                 label = "ejercicios",
                 compact = true
             )
         }
         FitTrackCard(modifier = Modifier.weight(1f)) {
             FitTrackMetric(
-                value = state.exerciseRecords.size.toString(),
-                label = "records",
+                value = state.personalRecordCount.toString(),
+                label = "PRs",
                 accent = FitTrackMetricAccent.Warm,
                 compact = true
             )
@@ -304,46 +389,245 @@ private fun SummaryGrid(state: StatsUiState) {
 }
 
 @Composable
-private fun SessionVolumeCard(session: SessionVolumeUiState) {
+private fun ConsistencyCalendarCard(
+    days: List<HeatmapDay>,
+    visibleMonth: YearMonth,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit
+) {
+    val currentMonth = YearMonth.now()
+    val activeDays = remember(days) {
+        days
+            .filter { day -> day.sessionCount > 0 }
+            .associateBy { day -> LocalDate.ofEpochDay(day.epochDay) }
+    }
+
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
-            ) {
+            IconButton(onClick = onPreviousMonth) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Mes anterior"
+                )
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = session.routineName,
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    text = "Calendario de entrenos",
+                    style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = session.dayName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = formatDate(session.finishedAt),
+                    text = "Verde marca los dias entrenados",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            FitTrackMetric(
-                value = session.totalVolumeKg.toDisplayText(),
-                unit = "kg",
-                label = "volumen",
-                accent = FitTrackMetricAccent.Primary,
-                compact = true
+            IconButton(
+                onClick = onNextMonth,
+                enabled = visibleMonth < currentMonth
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Mes siguiente"
+                )
+            }
+        }
+        MonthConsistencyGrid(
+            month = visibleMonth,
+            activeDays = activeDays
+        )
+    }
+}
+
+@Composable
+private fun MonthConsistencyGrid(
+    month: YearMonth,
+    activeDays: Map<LocalDate, HeatmapDay>
+) {
+    val locale = Locale("es", "ES")
+    val firstDay = month.atDay(1)
+    val leadingBlankDays = firstDay.dayOfWeek.value - 1
+    val totalSlots = ((leadingBlankDays + month.lengthOfMonth() + 6) / 7) * 7
+    val dayLabels = listOf("L", "M", "X", "J", "V", "S", "D")
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)
+    ) {
+        Text(
+            text = month.month.getDisplayName(TextStyle.FULL, locale)
+                .replaceFirstChar { it.uppercase() } + " ${month.year}",
+            style = MaterialTheme.typography.labelLarge
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+            dayLabels.forEach { label ->
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+        repeat(totalSlots / 7) { week ->
+            Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+                repeat(7) { dayOfWeek ->
+                    val slot = week * 7 + dayOfWeek
+                    val dayNumber = slot - leadingBlankDays + 1
+                    val date = if (dayNumber in 1..month.lengthOfMonth()) {
+                        month.atDay(dayNumber)
+                    } else {
+                        null
+                    }
+                    ConsistencyDayCell(
+                        modifier = Modifier.weight(1f),
+                        date = date,
+                        heatmapDay = date?.let { activeDays[it] }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConsistencyDayCell(
+    modifier: Modifier = Modifier,
+    date: LocalDate?,
+    heatmapDay: HeatmapDay?
+) {
+    val hasWorkout = heatmapDay != null
+    val isToday = date == LocalDate.now()
+    val backgroundColor = when {
+        hasWorkout -> MaterialTheme.colorScheme.primary
+        isToday -> MaterialTheme.colorScheme.primarySoft
+        date != null -> MaterialTheme.colorScheme.surfaceVariant
+        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+    }
+    val textColor = when {
+        hasWorkout -> MaterialTheme.colorScheme.onPrimary
+        isToday -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Box(
+        modifier = modifier
+            .height(34.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .background(backgroundColor),
+        contentAlignment = Alignment.Center
+    ) {
+        if (date != null) {
+            Text(
+                text = date.dayOfMonth.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                color = textColor
             )
         }
     }
 }
 
 @Composable
-private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
+private fun SessionVolumeTrendCard(
+    sessions: List<SessionVolumeUiState>,
+    weightUnit: WeightUnit
+) {
+    val first = sessions.firstOrNull()
+    val last = sessions.lastOrNull()
+    val delta = if (first != null && last != null) last.totalVolumeKg - first.totalVolumeKg else 0.0
+    val selectedSessions = sessions.takeLast(8)
+
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
+            ) {
+                Text(
+                    text = "Tendencia de volumen",
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${sessions.size} sesiones registradas",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            FitTrackMetric(
+                value = last?.totalVolumeKg?.toDisplayText(weightUnit) ?: "0",
+                unit = weightUnit.label,
+                label = "ultima",
+                accent = FitTrackMetricAccent.Primary,
+                compact = true
+            )
+        }
+
+        if (selectedSessions.size >= 2) {
+            LineChart(
+                points = selectedSessions.map { session ->
+                    session.finishedAt to weightUnit.fromKilograms(session.totalVolumeKg).toFloat()
+                },
+                pointLabels = selectedSessions.map { session ->
+                    "${session.totalVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}"
+                },
+                xAxisLabels = selectedSessions.map { session -> formatChartDate(session.finishedAt) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+            )
+        } else {
+            Text(
+                text = "Se necesitan al menos 2 sesiones para ver tendencia.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = first?.let {
+                    "Inicio ${it.totalVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}"
+                } ?: "Sin datos",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = when {
+                    delta > 0.0 -> "+${delta.toDisplayText(weightUnit)} ${weightUnit.label}"
+                    delta < 0.0 -> "${delta.toDisplayText(weightUnit)} ${weightUnit.label}"
+                    else -> "sin cambio"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                // Aligned with History: rising volume is the positive tone, falling is the warm
+                // one. Before, a rise was orange here and green there for the same movement.
+                color = when {
+                    delta > 0.0 -> MaterialTheme.colorScheme.success
+                    delta < 0.0 -> MaterialTheme.colorScheme.accentWarm
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExerciseProgressCard(progress: ExerciseProgressUiState, weightUnit: WeightUnit) {
     val latest = progress.entries.lastOrNull()
     val maxWeight = progress.entries.maxOfOrNull { it.maxWeightKg } ?: 0.0
 
@@ -372,7 +656,7 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
             }
             if (latest != null) {
                 FitTrackBadge(
-                    label = "1RM ${latest.estimatedOneRepMaxKg.toDisplayText()}",
+                    label = "1RM ${latest.estimatedOneRepMaxKg.toDisplayText(weightUnit)} ${weightUnit.label}",
                     tone = FitTrackBadgeTone.Primary
                 )
             }
@@ -384,8 +668,8 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
                 horizontalArrangement = Arrangement.spacedBy(FitSpacing.lg)
             ) {
                 FitTrackMetric(
-                    value = latest.maxWeightKg.toDisplayText(),
-                    unit = "kg",
+                    value = latest.maxWeightKg.toDisplayText(weightUnit),
+                    unit = weightUnit.label,
                     label = "peso max",
                     accent = FitTrackMetricAccent.Primary,
                     compact = true
@@ -401,8 +685,8 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
                 contentDescription = "Progreso de peso maximo de ${progress.exerciseName}"
             )
             Text(
-                text = "Volumen ${latest.volumeKg.toDisplayText()} kg - " +
-                    "mejor peso registrado ${maxWeight.toDisplayText()} kg",
+                text = "Volumen ${latest.volumeKg.toDisplayText(weightUnit)} ${weightUnit.label} - " +
+                    "mejor peso registrado ${maxWeight.toDisplayText(weightUnit)} ${weightUnit.label}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -411,7 +695,7 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState) {
 }
 
 @Composable
-private fun ExerciseRecordsCard(records: ExerciseRecordsUiState) {
+private fun ExerciseRecordsCard(records: ExerciseRecordsUiState, weightUnit: WeightUnit) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
@@ -428,13 +712,13 @@ private fun ExerciseRecordsCard(records: ExerciseRecordsUiState) {
             )
         }
 
-        RecordRow("Peso max", records.maxWeight?.let { "${it.weightKg.toDisplayText()} kg x ${it.reps}" })
-        RecordRow("Reps max", records.maxReps?.let { "${it.reps} reps con ${it.weightKg.toDisplayText()} kg" })
-        RecordRow("Volumen set", records.bestSetVolume?.let { "${it.setVolumeKg.toDisplayText()} kg" })
+        RecordRow("Peso max", records.maxWeight?.let { "${it.weightKg.toDisplayText(weightUnit)} ${weightUnit.label} x ${it.reps}" })
+        RecordRow("Reps max", records.maxReps?.let { "${it.reps} reps con ${it.weightKg.toDisplayText(weightUnit)} ${weightUnit.label}" })
+        RecordRow("Volumen set", records.bestSetVolume?.let { "${it.setVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}" })
         RecordRow(
             label = "1RM estimado",
             value = records.bestEstimatedOneRepMax?.let {
-                "${it.estimatedOneRepMaxKg.toDisplayText()} kg"
+                "${it.estimatedOneRepMaxKg.toDisplayText(weightUnit)} ${weightUnit.label}"
             }
         )
     }
@@ -445,100 +729,80 @@ private fun RecordRow(
     label: String,
     value: String?
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.accentSoft, MaterialTheme.shapes.large)
-            .padding(horizontal = FitSpacing.md, vertical = FitSpacing.smMd),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value ?: "-",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.accentWarm
-        )
-    }
+    FitTrackKeyValueRow(
+        label = label,
+        value = value ?: "-",
+        style = FitTrackKeyValueRowStyle.Pill
+    )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProgressChartCard(
-    exerciseNames: List<String>,
+    exercises: List<ExerciseProgressUiState>,
     selectedExerciseName: String?,
     progressPoints: List<ProgressChartPointUiState>,
+    chartValues: List<Pair<Long, Float>>,
+    selectedMetric: ProgressMetric,
     selectedProgressPoint: ProgressChartPointUiState?,
+    weightUnit: WeightUnit,
     onSelectExercise: (String) -> Unit,
+    onSelectProgressMetric: (ProgressMetric) -> Unit,
     onSelectProgressPoint: (Long) -> Unit,
     onClearSelectedProgressPoint: () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Progreso visual",
             style = MaterialTheme.typography.titleMedium
         )
 
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
         ) {
-            OutlinedTextField(
-                value = selectedExerciseName ?: "Selecciona un ejercicio",
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                exerciseNames.forEach { name ->
-                    DropdownMenuItem(
-                        text = { Text(name) },
-                        onClick = {
-                            onSelectExercise(name)
-                            expanded = false
-                        }
-                    )
-                }
+            ProgressMetric.entries.forEach { metric ->
+                FilterChip(
+                    selected = selectedMetric == metric,
+                    onClick = { onSelectProgressMetric(metric) },
+                    label = { Text(metric.label) }
+                )
             }
         }
+
+        FitTrackDropdownField(
+            label = "Ejercicio",
+            value = selectedExerciseName ?: "Selecciona un ejercicio",
+            options = exercises,
+            onSelect = { exercise -> onSelectExercise(exercise.scopeKey) },
+            optionLabel = { it.exerciseName }
+        )
 
         when {
             selectedExerciseName == null -> {
                 Text(
-                    text = "Selecciona un ejercicio para ver la evolucion de su peso maximo.",
+                    text = "Selecciona un ejercicio de este dia para ver la evolucion de su peso maximo.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             progressPoints.size < 2 -> {
                 Text(
-                    text = "Se necesitan al menos 2 sesiones de '${selectedExerciseName}' para mostrar el grafico.",
+                    text = "Se necesitan al menos 2 sesiones de '$selectedExerciseName' en esta seleccion para mostrar el grafico.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             else -> {
-                val chartPoints = progressPoints.map { point ->
-                    point.finishedAt to point.maxWeightKg.toFloat()
-                }
                 val selectedIndex = selectedProgressPoint?.let { selected ->
                     progressPoints.indexOfFirst { point -> point.sessionId == selected.sessionId }
                 }?.takeIf { index -> index >= 0 }
                 LineChart(
-                    points = chartPoints,
+                    points = chartValues,
                     selectedPointIndex = selectedIndex,
+                    pointLabels = progressPoints.map { point -> point.toChartLabel(selectedMetric, weightUnit) },
+                    xAxisLabels = progressPoints.map { point -> formatChartDate(point.finishedAt) },
                     onPointSelected = { index ->
                         progressPoints.getOrNull(index)?.let { point ->
                             onSelectProgressPoint(point.sessionId)
@@ -552,6 +816,7 @@ private fun ProgressChartCard(
                 selectedProgressPoint?.let { point ->
                     ProgressPointDetails(
                         point = point,
+                        weightUnit = weightUnit,
                         onClear = onClearSelectedProgressPoint
                     )
                 }
@@ -563,14 +828,11 @@ private fun ProgressChartCard(
 @Composable
 private fun ProgressPointDetails(
     point: ProgressChartPointUiState,
+    weightUnit: WeightUnit,
     onClear: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.accentSoft, MaterialTheme.shapes.large)
-            .padding(FitSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+    FitTrackKeyValueRow(
+        style = FitTrackKeyValueRowStyle.Pill
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -589,21 +851,21 @@ private fun ProgressPointDetails(
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.lg)
         ) {
             FitTrackMetric(
-                value = point.maxWeightKg.toDisplayText(),
-                unit = "kg",
+                value = point.maxWeightKg.toDisplayText(weightUnit),
+                unit = weightUnit.label,
                 label = "peso max",
                 accent = FitTrackMetricAccent.Primary,
                 compact = true
             )
             FitTrackMetric(
-                value = point.volumeKg.toDisplayText(),
-                unit = "kg",
+                value = point.volumeKg.toDisplayText(weightUnit),
+                unit = weightUnit.label,
                 label = "volumen",
                 compact = true
             )
         }
         Text(
-            text = "${point.totalReps} reps - 1RM ${point.estimatedOneRepMaxKg.toDisplayText()} kg",
+            text = "${point.totalReps} reps - 1RM ${point.estimatedOneRepMaxKg.toDisplayText(weightUnit)} ${weightUnit.label}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -615,13 +877,12 @@ private fun WeeklyStepsCard(
     data: WeeklyStepsData,
     canGoNext: Boolean,
     onPrevious: () -> Unit,
-    onNext: () -> Unit
+    onNext: () -> Unit,
+    selectedDayIndex: Int?,
+    onDaySelect: (Int?) -> Unit
 ) {
-    var selectedDayIndex by remember(data.weekStart) {
-        mutableStateOf<Int?>(
-            if (data.isCurrentWeek) LocalDate.now().dayOfWeek.value - 1 else null
-        )
-    }
+    val effectiveSelectedDayIndex = selectedDayIndex
+        ?: if (data.isCurrentWeek) LocalDate.now().dayOfWeek.value - 1 else null
 
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         // Week navigation row
@@ -663,12 +924,12 @@ private fun WeeklyStepsCard(
         // Day-by-day bars
         DayBarsRow(
             data = data,
-            selectedDayIndex = selectedDayIndex,
-            onDaySelect = { selectedDayIndex = it }
+            selectedDayIndex = effectiveSelectedDayIndex,
+            onDaySelect = { onDaySelect(it) }
         )
 
         // Selected day detail
-        selectedDayIndex?.let { idx ->
+        effectiveSelectedDayIndex?.let { idx ->
             SelectedDayDetail(
                 dayIndex = idx,
                 weekStart = data.weekStart,
@@ -744,10 +1005,10 @@ private fun DayBarColumn(
     val fraction = if (maxSteps > 0) (steps.toFloat() / maxSteps).coerceIn(0f, 1f) else 0f
     val goalMet = steps >= dailyGoal
     val barColor = when {
-        goalMet -> MaterialTheme.colorScheme.accentWarm
+        goalMet -> MaterialTheme.colorScheme.success
         isToday -> MaterialTheme.colorScheme.primary
         steps > 0 -> MaterialTheme.colorScheme.primarySoft
-        else -> MaterialTheme.colorScheme.surfaceAlt
+        else -> MaterialTheme.colorScheme.surfaceVariant
     }
     val labelColor = if (isSelected || isToday) MaterialTheme.colorScheme.primary
     else MaterialTheme.colorScheme.onSurfaceVariant
@@ -778,7 +1039,7 @@ private fun DayBarColumn(
             Text(
                 text = abbrev,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (goalMet) MaterialTheme.colorScheme.accentWarm
+                color = if (goalMet) MaterialTheme.colorScheme.success
                 else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
         }
@@ -800,12 +1061,8 @@ private fun SelectedDayDetail(
         .replaceFirstChar { it.uppercase() }
     val dateStr = "${date.dayOfMonth} de ${date.month.getDisplayName(TextStyle.FULL, locale)}"
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
-            .padding(FitSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+    FitTrackKeyValueRow(
+        style = FitTrackKeyValueRowStyle.Pill
     ) {
         Text(
             text = "$dayName, $dateStr",
@@ -830,7 +1087,7 @@ private fun SelectedDayDetail(
             }
             FitTrackProgressBar(
                 progress = progress,
-                color = if (steps >= dailyGoal) MaterialTheme.colorScheme.accentWarm
+                color = if (steps >= dailyGoal) MaterialTheme.colorScheme.success
                 else MaterialTheme.colorScheme.primary,
                 contentDescription = "Progreso de pasos"
             )
@@ -863,13 +1120,6 @@ private fun formatWeekRange(weekStart: LocalDate, weekEnd: LocalDate): String {
         "del $startDay de $startMonth al $endDay de $endMonth"
     }
 }
-
-private val WorkoutStatsPeriod.label: String
-    get() = when (this) {
-        WorkoutStatsPeriod.All -> "Todo"
-        WorkoutStatsPeriod.LastFourWeeks -> "4 semanas"
-        WorkoutStatsPeriod.LastTwelveWeeks -> "12 semanas"
-    }
 
 @Composable
 private fun StatsLoadingSkeleton() {
@@ -938,6 +1188,19 @@ private fun formatDate(timestamp: Long): String {
     return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(timestamp))
 }
 
+private fun formatChartDate(timestamp: Long): String {
+    return SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(timestamp))
+}
+
+private fun ProgressChartPointUiState.toChartLabel(metric: ProgressMetric, weightUnit: WeightUnit): String {
+    return when (metric) {
+        ProgressMetric.MaxWeight -> "${maxWeightKg.toDisplayText(weightUnit)} ${weightUnit.label}"
+        ProgressMetric.Reps -> totalReps.toString()
+        ProgressMetric.Volume -> "${volumeKg.toDisplayText(weightUnit)} ${weightUnit.label}"
+        ProgressMetric.EstimatedOneRepMax -> "${estimatedOneRepMaxKg.toDisplayText(weightUnit)} ${weightUnit.label}"
+    }
+}
+
 private fun Double.toDisplayText(): String {
     return if (this % 1.0 == 0.0) {
         toInt().toString()
@@ -945,3 +1208,6 @@ private fun Double.toDisplayText(): String {
         String.format(Locale.getDefault(), "%.1f", this)
     }
 }
+
+private fun Double.toDisplayText(weightUnit: WeightUnit): String =
+    weightUnit.fromKilograms(this).toDisplayText()

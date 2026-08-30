@@ -11,6 +11,7 @@ import com.alvarocervantes.fittrackplus.data.local.entity.WorkoutExerciseEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.WorkoutSessionEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.WorkoutSetEntity
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
+import com.alvarocervantes.fittrackplus.domain.model.TargetRepsRange
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -115,6 +116,7 @@ class DebugDemoDataSeeder @Inject constructor(
             )
         )
         val demoExercises = exercises.mapIndexed { index, exercise ->
+            val targetRange = TargetRepsRange.parse(exercise.targetReps)
             val exerciseId = routineDao.insertExercise(
                 RoutineExerciseEntity(
                     routineDayId = dayId,
@@ -123,7 +125,9 @@ class DebugDemoDataSeeder @Inject constructor(
                     name = exercise.name,
                     targetSets = exercise.targetSets,
                     targetRepsText = exercise.targetReps,
-                    position = index
+                    position = index,
+                    targetRepsMin = targetRange?.min,
+                    targetRepsMax = targetRange?.max
                 )
             )
             DemoWorkoutExercise(
@@ -164,6 +168,7 @@ class DebugDemoDataSeeder @Inject constructor(
         )
 
         day.exercises.forEachIndexed { exerciseIndex, exercise ->
+            val targetRange = TargetRepsRange.parse(exercise.targetReps)
             val workoutExerciseId = workoutDao.insertExercise(
                 WorkoutExerciseEntity(
                     sessionId = sessionId,
@@ -171,7 +176,9 @@ class DebugDemoDataSeeder @Inject constructor(
                     performedVariantKey = "exercise-${exercise.id}",
                     exerciseNameSnapshot = exercise.name,
                     targetRepsSnapshot = exercise.targetReps,
-                    position = exercise.position
+                    position = exercise.position,
+                    targetRepsMinSnapshot = targetRange?.min,
+                    targetRepsMaxSnapshot = targetRange?.max
                 )
             )
             val values = setValues.getOrNull(exerciseIndex).orEmpty()

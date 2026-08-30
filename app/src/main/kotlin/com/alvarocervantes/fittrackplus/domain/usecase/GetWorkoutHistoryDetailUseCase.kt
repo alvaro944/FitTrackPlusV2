@@ -38,6 +38,7 @@ private fun WorkoutSessionWithExercises.toHistoryDetail(): WorkoutHistoryDetail?
         finishedAt = finishedAt,
         weekNumber = session.weekNumber,
         notes = session.notes,
+        pausedMillis = session.pausedMillis,
         exercises = exercises
             .sortedBy { it.exercise.position }
             .map { exerciseWithSets ->
@@ -45,6 +46,7 @@ private fun WorkoutSessionWithExercises.toHistoryDetail(): WorkoutHistoryDetail?
                     exerciseId = exerciseWithSets.exercise.id,
                     name = exerciseWithSets.exercise.exerciseNameSnapshot,
                     targetRepsText = exerciseWithSets.exercise.targetRepsSnapshot,
+                    notes = exerciseWithSets.exercise.notes,
                     sets = exerciseWithSets.sets
                         .sortedBy { it.setNumber }
                         .map { set ->
@@ -53,7 +55,8 @@ private fun WorkoutSessionWithExercises.toHistoryDetail(): WorkoutHistoryDetail?
                                 setNumber = set.setNumber,
                                 weightKg = set.weightKg,
                                 reps = set.reps,
-                                notes = set.notes
+                                notes = set.notes,
+                                isCompleted = set.isCompleted
                             )
                         }
                 )
@@ -64,17 +67,15 @@ private fun WorkoutSessionWithExercises.toHistoryDetail(): WorkoutHistoryDetail?
 private fun List<WorkoutSessionWithExercises>.findPreviousComparableSession(
     current: WorkoutSessionWithExercises
 ): WorkoutSessionWithExercises? {
-    val currentFinishedAt = current.session.finishedAt ?: return null
+    val currentStartedAt = current.session.startedAt
     return filter { candidate ->
-        val candidateFinishedAt = candidate.session.finishedAt
         candidate.session.id != current.session.id &&
-            candidateFinishedAt != null &&
-            candidateFinishedAt < currentFinishedAt &&
+            candidate.session.finishedAt != null &&
+            candidate.session.startedAt < currentStartedAt &&
             candidate.session.routineNameSnapshot == current.session.routineNameSnapshot &&
             candidate.session.dayNameSnapshot == current.session.dayNameSnapshot
     }.maxWithOrNull(
-        compareBy<WorkoutSessionWithExercises> { it.session.finishedAt ?: Long.MIN_VALUE }
-            .thenBy { it.session.startedAt }
+        compareBy<WorkoutSessionWithExercises> { it.session.startedAt }
     )
 }
 
@@ -114,7 +115,7 @@ private fun WorkoutSessionWithExercises.totalVolumeKg(): Double {
 
 private fun WorkoutSessionWithExercises.durationMillis(): Long {
     val finishedAt = session.finishedAt ?: return 0
-    return (finishedAt - session.startedAt).coerceAtLeast(0)
+    return (finishedAt - session.startedAt - session.pausedMillis).coerceAtLeast(0)
 }
 
 private fun WorkoutSessionWithExercises.setCount(): Int {

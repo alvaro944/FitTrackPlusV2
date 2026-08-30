@@ -4,6 +4,12 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +25,7 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -29,25 +36,18 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Unarchive
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -57,33 +57,53 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModelStoreOwner
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
+import com.alvarocervantes.fittrackplus.core.design.FitTrackAddButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
+import com.alvarocervantes.fittrackplus.core.design.FitTrackDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCard
+import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCardBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackFormDialogActions
+import com.alvarocervantes.fittrackplus.core.design.FitTrackInputDialog
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeSize
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeTone
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeVariant
+import com.alvarocervantes.fittrackplus.core.design.FitTrackOutlinedButton
+import com.alvarocervantes.fittrackplus.core.design.FitTrackPrimaryButton
+import com.alvarocervantes.fittrackplus.core.design.FitTrackReorderActions
 import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
+import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
+import com.alvarocervantes.fittrackplus.core.design.FitTrackTargetPrescriptionFields
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
 import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
+import com.alvarocervantes.fittrackplus.core.design.borderLight
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 
-private val repsPresetOptions = listOf("5", "6-8", "8-12", "10-15")
+private const val MAX_NAME_LENGTH = 60
+private const val MAX_NOTES_LENGTH = 500
 
 @Composable
 fun RoutinesScreen(
@@ -96,6 +116,15 @@ fun RoutinesScreen(
     val pendingNavigation by appShellViewModel.pendingNavigation.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var routinePendingArchive by remember { mutableStateOf<RoutineListItemUiState?>(null) }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        appShellViewModel.activeTabReselected.collect { route ->
+            if (route == AppRoute.Routines && state.editor == null) {
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
 
     LaunchedEffect(state.editor?.hasUnsavedChanges) {
         appShellViewModel.setNavigationBlocker(
@@ -116,29 +145,17 @@ fun RoutinesScreen(
     }
 
     routinePendingArchive?.let { routine ->
-        AlertDialog(
-            onDismissRequest = { routinePendingArchive = null },
-            title = { Text("Archivar rutina") },
-            text = {
-                Text(
-                    text = "La rutina \"${routine.name}\" dejara de aparecer en la lista principal. Los entrenamientos antiguos no cambiaran."
-                )
+        FitTrackConfirmDialog(
+            title = "Archivar rutina",
+            text = "La rutina \"${routine.name}\" dejara de aparecer en la lista principal. Los entrenamientos antiguos no cambiaran.",
+            confirmLabel = "Archivar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                routinePendingArchive = null
+                viewModel.archiveRoutine(routine.id)
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        routinePendingArchive = null
-                        viewModel.archiveRoutine(routine.id)
-                    }
-                ) {
-                    Text("Archivar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { routinePendingArchive = null }) {
-                    Text("Cancelar")
-                }
-            }
+            onDismiss = { routinePendingArchive = null },
+            destructive = true
         )
     }
 
@@ -149,7 +166,9 @@ fun RoutinesScreen(
             when {
                 state.editor?.hasUnsavedChanges == true -> {
                     ExtendedFloatingActionButton(
-                        onClick = viewModel::saveEditor
+                        onClick = {
+                            if (!state.isSaving) viewModel.saveEditor()
+                        }
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Check,
@@ -179,6 +198,7 @@ fun RoutinesScreen(
             RoutineListContent(
                 state = state,
                 contentPadding = padding,
+                listState = listState,
                 onCreateRoutine = viewModel::startCreateRoutine,
                 onUseTemplate = viewModel::startCreateRoutineFromTemplate,
                 onEditRoutine = viewModel::startEditRoutine,
@@ -190,43 +210,27 @@ fun RoutinesScreen(
             )
         } else {
             if (editor.showCloseConfirmation || pendingNavigation != null) {
-                AlertDialog(
-                    onDismissRequest = {
+                FitTrackConfirmDialog(
+                    title = "Cambios sin guardar",
+                    text = "Tienes cambios sin guardar. ¿Quieres descartarlos?",
+                    confirmLabel = "Descartar",
+                    dismissLabel = "Seguir editando",
+                    onConfirm = {
+                        if (pendingNavigation != null) {
+                            viewModel.discardEditorChanges()
+                            appShellViewModel.confirmPendingNavigation()
+                        } else {
+                            viewModel.resolveCloseConfirmation(discard = true)
+                        }
+                    },
+                    onDismiss = {
                         if (pendingNavigation != null) {
                             appShellViewModel.dismissPendingNavigation()
                         } else {
                             viewModel.resolveCloseConfirmation(discard = false)
                         }
                     },
-                    title = { Text("Cambios sin guardar") },
-                    text = { Text("Tienes cambios sin guardar. ¿Quieres descartarlos?") },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                if (pendingNavigation != null) {
-                                    viewModel.discardEditorChanges()
-                                    appShellViewModel.confirmPendingNavigation()
-                                } else {
-                                    viewModel.resolveCloseConfirmation(discard = true)
-                                }
-                            }
-                        ) {
-                            Text("Descartar")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(
-                            onClick = {
-                                if (pendingNavigation != null) {
-                                    appShellViewModel.dismissPendingNavigation()
-                                } else {
-                                    viewModel.resolveCloseConfirmation(discard = false)
-                                }
-                            }
-                        ) {
-                            Text("Seguir editando")
-                        }
-                    }
+                    destructive = true
                 )
             }
             RoutineEditorContent(
@@ -252,6 +256,9 @@ fun RoutinesScreen(
                 onExerciseRepsChange = viewModel::updateExerciseReps,
                 onExerciseNotesChange = viewModel::updateExerciseNotes,
                 onAddExerciseAlternative = viewModel::addExerciseAlternative,
+                onBeginExerciseAlternativeEdit = viewModel::beginExerciseAlternativeEdit,
+                onCancelExerciseAlternativeEdit = viewModel::cancelExerciseAlternativeEdit,
+                onFinishExerciseAlternativeEdit = viewModel::finishExerciseAlternativeEdit,
                 onExerciseAlternativeNameChange = viewModel::updateExerciseAlternativeName,
                 onExerciseAlternativeSetsChange = viewModel::updateExerciseAlternativeSets,
                 onExerciseAlternativeRepsChange = viewModel::updateExerciseAlternativeReps,
@@ -278,6 +285,7 @@ fun RoutinesScreen(
 private fun RoutineListContent(
     state: RoutinesUiState,
     contentPadding: PaddingValues,
+    listState: LazyListState,
     onCreateRoutine: () -> Unit,
     onUseTemplate: (String) -> Unit,
     onEditRoutine: (Long) -> Unit,
@@ -290,6 +298,7 @@ private fun RoutineListContent(
     val activeRoutine = state.routines.firstOrNull { it.isActive }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
@@ -340,18 +349,10 @@ private fun RoutineListContent(
                             horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(MaterialTheme.colorScheme.primary, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary
-                                )
-                            }
+                            FitTrackIconBadge(
+                                variant = FitTrackIconBadgeVariant.Icon(Icons.Filled.Check),
+                                tone = FitTrackIconBadgeTone.Filled
+                            )
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
                             ) {
@@ -383,7 +384,7 @@ private fun RoutineListContent(
                 item {
                     FitTrackCard(
                         modifier = Modifier.fillMaxWidth(),
-                        containerColor = MaterialTheme.colorScheme.surfaceAlt
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -421,9 +422,10 @@ private fun RoutineListContent(
                         message = "Crea una rutina desde cero o usa una plantilla para tener una base editable.",
                         supporting = "Revisa la plantilla antes de guardar; no se toca el historial hasta entrenar."
                     ) {
-                        Button(onClick = onCreateRoutine) {
-                            Text("Crear rutina")
-                        }
+                        FitTrackPrimaryButton(
+                            label = "Crear rutina",
+                            onClick = onCreateRoutine
+                        )
                     }
                 }
             } else {
@@ -511,9 +513,10 @@ private fun RoutineTemplateCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            FilledTonalButton(onClick = { onUseTemplate(template.id) }) {
-                Text("Usar")
-            }
+            FitTrackTonalButton(
+                label = "Usar",
+                onClick = { onUseTemplate(template.id) }
+            )
         }
     }
 }
@@ -525,136 +528,57 @@ private fun RoutineListItem(
     onArchiveRoutine: (RoutineListItemUiState) -> Unit,
     onSetActiveRoutine: (Long) -> Unit
 ) {
-    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(FitSpacing.mdLg)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(
+    FitTrackEntityListCard(
+        title = routine.name,
+        modifier = Modifier.fillMaxWidth(),
+        badge = if (routine.isActive) {
+            FitTrackEntityListCardBadge("ACTIVA", FitTrackBadgeTone.Active)
+        } else {
+            null
+        },
+        meta = "${routine.dayCount} dias · lista para editar",
+        actions = if (routine.isActive) {
+            listOf({
+                FitTrackOutlinedButton(
+                    label = "Editar",
+                    onClick = { onEditRoutine(routine.id) },
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = routine.name,
-                            style = MaterialTheme.typography.titleLarge,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        if (routine.isActive) {
-                            FitTrackBadge(
-                                label = "ACTIVA",
-                                tone = FitTrackBadgeTone.Active
-                            )
-                        }
-                    }
-                    Text(
-                        text = "${routine.dayCount} dias · lista para editar",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            if (routine.isActive) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-                ) {
-                    RoutineEditButton(
-                        onClick = { onEditRoutine(routine.id) },
-                        modifier = Modifier.weight(1f)
-                    )
-                    RoutineArchiveButton(
-                        onClick = { onArchiveRoutine(routine) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-                ) {
-                    FilledTonalButton(
+                    icon = Icons.Filled.Edit
+                )
+                FitTrackOutlinedButton(
+                    label = "Archivar",
+                    onClick = { onArchiveRoutine(routine) },
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Filled.Archive
+                )
+            })
+        } else {
+            listOf(
+                {
+                    FitTrackTonalButton(
+                        label = "Activar",
                         onClick = { onSetActiveRoutine(routine.id) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = "Activar",
-                            modifier = Modifier.padding(start = FitSpacing.sm)
-                        )
-                    }
-                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-                    ) {
-                        RoutineEditButton(
-                            onClick = { onEditRoutine(routine.id) },
-                            modifier = Modifier.weight(1f)
-                        )
-                        RoutineArchiveButton(
-                            onClick = { onArchiveRoutine(routine) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                        icon = Icons.Filled.Check
+                    )
+                },
+                {
+                    FitTrackOutlinedButton(
+                        label = "Editar",
+                        onClick = { onEditRoutine(routine.id) },
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.Edit
+                    )
+                    FitTrackOutlinedButton(
+                        label = "Archivar",
+                        onClick = { onArchiveRoutine(routine) },
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.Archive
+                    )
                 }
-            }
+            )
         }
-    }
-}
-
-@Composable
-private fun RoutineEditButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Edit,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = "Editar",
-            modifier = Modifier.padding(start = FitSpacing.sm)
-        )
-    }
-}
-
-@Composable
-private fun RoutineArchiveButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Archive,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = "Archivar",
-            modifier = Modifier.padding(start = FitSpacing.sm)
-        )
-    }
+    )
 }
 
 @Composable
@@ -662,52 +586,20 @@ private fun ArchivedRoutineListItem(
     routine: RoutineListItemUiState,
     onRestoreRoutine: (Long) -> Unit
 ) {
-    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(FitSpacing.mdLg)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
-                ) {
-                    Text(
-                        text = routine.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "${routine.dayCount} dias · archivada",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                FitTrackBadge(
-                    label = "ARCHIVADA",
-                    tone = FitTrackBadgeTone.Neutral
-                )
-            }
-            FilledTonalButton(
+    FitTrackEntityListCard(
+        title = routine.name,
+        modifier = Modifier.fillMaxWidth(),
+        badge = FitTrackEntityListCardBadge("ARCHIVADA", FitTrackBadgeTone.Neutral),
+        meta = "${routine.dayCount} dias · archivada",
+        actions = listOf({
+            FitTrackTonalButton(
+                label = "Restaurar",
                 onClick = { onRestoreRoutine(routine.id) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Unarchive,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "Restaurar",
-                    modifier = Modifier.padding(start = FitSpacing.sm)
-                )
-            }
-        }
-    }
+                modifier = Modifier.fillMaxWidth(),
+                icon = Icons.Filled.Unarchive
+            )
+        })
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -731,6 +623,9 @@ private fun RoutineEditorContent(
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
     onAddExerciseAlternative: (Int, Int) -> Unit,
+    onBeginExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
+    onCancelExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
+    onFinishExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
     onExerciseAlternativeNameChange: (Int, Int, Int, String) -> Unit,
     onExerciseAlternativeSetsChange: (Int, Int, Int, String) -> Unit,
     onExerciseAlternativeRepsChange: (Int, Int, Int, String) -> Unit,
@@ -744,6 +639,41 @@ private fun RoutineEditorContent(
     val listState = rememberLazyListState()
     val imeBottom = with(LocalDensity.current) {
         WindowInsets.ime.getBottom(this).toDp()
+    }
+    var exercisePendingRemoval by remember { mutableStateOf<PendingExerciseRemoval?>(null) }
+    var dayPendingRemoval by remember { mutableStateOf<Int?>(null) }
+
+    dayPendingRemoval?.let { dayIndex ->
+        FitTrackConfirmDialog(
+            title = "Eliminar dia",
+            text = "Se eliminara el dia y todos sus ejercicios. Esta accion no se puede deshacer.",
+            confirmLabel = "Eliminar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onRemoveDay(dayIndex)
+                dayPendingRemoval = null
+            },
+            onDismiss = { dayPendingRemoval = null },
+            destructive = true
+        )
+    }
+
+    exercisePendingRemoval?.let { pendingRemoval ->
+        FitTrackConfirmDialog(
+            title = "Eliminar ejercicio",
+            text = exerciseRemovalMessage(
+                exerciseIndex = pendingRemoval.exerciseIndex,
+                exerciseName = pendingRemoval.exerciseName
+            ),
+            confirmLabel = "Eliminar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onRemoveExercise(pendingRemoval.dayIndex, pendingRemoval.exerciseIndex)
+                exercisePendingRemoval = null
+            },
+            onDismiss = { exercisePendingRemoval = null },
+            destructive = true
+        )
     }
 
     LazyColumn(
@@ -782,24 +712,32 @@ private fun RoutineEditorContent(
         }
 
         item {
-            OutlinedTextField(
-                value = editor.name,
-                onValueChange = onRoutineNameChange,
-                label = { Text("Nombre de la rutina") },
-                isError = editor.routineNameError != null,
-                supportingText = editor.routineNameError?.let { error ->
-                    { Text(error) }
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+                FitTrackSelectAllTextField(
+                    value = editor.name,
+                    onValueChange = onRoutineNameChange,
+                    label = { Text("Nombre de la rutina") },
+                    isError = editor.routineNameError != null,
+                    supportingText = editor.routineNameError?.let { error ->
+                        { Text(error) }
+                    },
+                    singleLine = true,
+                    selectAllOnFocus = false,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Done
+                    ),
+                    maxLength = MAX_NAME_LENGTH,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
 
         item {
             FitTrackSectionLabel(label = "Dias")
         }
 
-        itemsIndexed(editor.days) { dayIndex, day ->
+        itemsIndexed(editor.days, key = { _, day -> day.draftId }) { dayIndex, day ->
             RoutineDayEditor(
                 dayIndex = dayIndex,
                 day = day,
@@ -811,13 +749,16 @@ private fun RoutineEditorContent(
                 onDayNameChange = onDayNameChange,
                 onDuplicateDay = onDuplicateDay,
                 onMoveDay = onMoveDay,
-                onRemoveDay = onRemoveDay,
+                onRemoveDay = { dayPendingRemoval = it },
                 onAddExercise = onAddExercise,
                 onExerciseNameChange = onExerciseNameChange,
                 onExerciseSetsChange = onExerciseSetsChange,
                 onExerciseRepsChange = onExerciseRepsChange,
                 onExerciseNotesChange = onExerciseNotesChange,
                 onAddExerciseAlternative = onAddExerciseAlternative,
+                onBeginExerciseAlternativeEdit = onBeginExerciseAlternativeEdit,
+                onCancelExerciseAlternativeEdit = onCancelExerciseAlternativeEdit,
+                onFinishExerciseAlternativeEdit = onFinishExerciseAlternativeEdit,
                 onExerciseAlternativeNameChange = onExerciseAlternativeNameChange,
                 onExerciseAlternativeSetsChange = onExerciseAlternativeSetsChange,
                 onExerciseAlternativeRepsChange = onExerciseAlternativeRepsChange,
@@ -826,25 +767,22 @@ private fun RoutineEditorContent(
                 onSetExerciseDefaultVariant = onSetExerciseDefaultVariant,
                 onDuplicateExercise = onDuplicateExercise,
                 onMoveExercise = onMoveExercise,
-                onRemoveExercise = onRemoveExercise
+                onRemoveExercise = { selectedDayIndex, selectedExerciseIndex, exerciseName ->
+                    exercisePendingRemoval = PendingExerciseRemoval(
+                        dayIndex = selectedDayIndex,
+                        exerciseIndex = selectedExerciseIndex,
+                        exerciseName = exerciseName
+                    )
+                }
             )
         }
 
         item {
-            OutlinedButton(
+            FitTrackAddButton(
+                label = "Anadir dia",
                 onClick = onAddDay,
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "Anadir dia",
-                    modifier = Modifier.padding(start = FitSpacing.sm)
-                )
-            }
+            )
         }
 
         item {
@@ -862,27 +800,18 @@ private fun RoutineEditorContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
                 ) {
-                    OutlinedButton(
+                    FitTrackOutlinedButton(
+                        label = "Cancelar",
                         onClick = onClose,
                         modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Cancelar")
-                    }
-                    Button(
+                    )
+                    FitTrackPrimaryButton(
+                        label = if (state.isSaving) "Guardando" else "Guardar",
                         onClick = onSave,
                         enabled = editor.canSave && !state.isSaving,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = if (state.isSaving) "Guardando" else "Guardar",
-                            modifier = Modifier.padding(start = FitSpacing.sm)
-                        )
-                    }
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.Check
+                    )
                 }
             }
         }
@@ -908,6 +837,9 @@ private fun RoutineDayEditor(
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
     onAddExerciseAlternative: (Int, Int) -> Unit,
+    onBeginExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
+    onCancelExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
+    onFinishExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
     onExerciseAlternativeNameChange: (Int, Int, Int, String) -> Unit,
     onExerciseAlternativeSetsChange: (Int, Int, Int, String) -> Unit,
     onExerciseAlternativeRepsChange: (Int, Int, Int, String) -> Unit,
@@ -916,7 +848,7 @@ private fun RoutineDayEditor(
     onSetExerciseDefaultVariant: (Int, Int, String?) -> Unit,
     onDuplicateExercise: (Int, Int) -> Unit,
     onMoveExercise: (Int, Int, MoveDirection) -> Unit,
-    onRemoveExercise: (Int, Int) -> Unit
+    onRemoveExercise: (Int, Int, String) -> Unit
 ) {
     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -924,37 +856,35 @@ private fun RoutineDayEditor(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
+            // The card is already the day's surface: no nested filled block, so the concentric
+            // radius rule holds and expansion is signalled by the chevron alone.
             Row(
                 modifier = Modifier
                     .weight(1f)
-                    .background(
-                        color = if (isExpanded) {
-                            MaterialTheme.colorScheme.primarySoft
+                    .clickable(
+                        onClickLabel = if (isExpanded) {
+                            "Colapsar dia ${dayIndex + 1}"
                         } else {
-                            MaterialTheme.colorScheme.surfaceAlt
+                            "Expandir dia ${dayIndex + 1}"
                         },
-                        shape = MaterialTheme.shapes.large
-                    )
-                    .clickable { onToggleExpanded(dayIndex) }
-                    .padding(FitSpacing.md),
+                        role = Role.Button,
+                        onClick = { onToggleExpanded(dayIndex) }
+                    ),
                 horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(width = 6.dp, height = 40.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = MaterialTheme.shapes.small
-                        )
+                FitTrackIconBadge(
+                    variant = FitTrackIconBadgeVariant.Number("${dayIndex + 1}"),
+                    tone = FitTrackIconBadgeTone.Soft
                 )
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
                 ) {
                     Text(
+                        // titleMedium, a step below the routine name that owns this editor.
                         text = day.name.ifBlank { "Dia ${dayIndex + 1}" },
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -968,23 +898,18 @@ private fun RoutineDayEditor(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                IconButton(
-                    onClick = { onToggleExpanded(dayIndex) },
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = if (isExpanded) {
-                            Icons.Filled.KeyboardArrowUp
-                        } else {
-                            Icons.Filled.KeyboardArrowDown
-                        },
-                        contentDescription = if (isExpanded) {
-                            "Colapsar dia ${dayIndex + 1}"
-                        } else {
-                            "Expandir dia ${dayIndex + 1}"
-                        }
-                    )
-                }
+                // Decorative: the whole header row is the control, and it carries the label and
+                // role. A nested IconButton here would be a second click target saying the same
+                // thing twice to TalkBack.
+                Icon(
+                    imageVector = if (isExpanded) {
+                        Icons.Filled.KeyboardArrowUp
+                    } else {
+                        Icons.Filled.KeyboardArrowDown
+                    },
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
@@ -993,50 +918,25 @@ private fun RoutineDayEditor(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
-                    IconButton(
-                        onClick = { onMoveDay(dayIndex, MoveDirection.Up) },
-                        enabled = canMoveUp,
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.KeyboardArrowUp,
-                            contentDescription = "Subir dia ${dayIndex + 1}"
-                        )
-                    }
-                    IconButton(
-                        onClick = { onMoveDay(dayIndex, MoveDirection.Down) },
-                        enabled = canMoveDown,
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.KeyboardArrowDown,
-                            contentDescription = "Bajar dia ${dayIndex + 1}"
-                        )
-                    }
-                    IconButton(
-                        onClick = { onDuplicateDay(dayIndex) },
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ContentCopy,
-                            contentDescription = "Duplicar dia ${dayIndex + 1}"
-                        )
-                    }
-                    IconButton(
-                        onClick = { onRemoveDay(dayIndex) },
-                        enabled = canRemove,
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Delete,
-                            contentDescription = "Quitar dia ${dayIndex + 1} del borrador"
-                        )
-                    }
-                }
+                FitTrackReorderActions(
+                    canMoveUp = canMoveUp,
+                    canMoveDown = canMoveDown,
+                    canRemove = canRemove,
+                    onMoveUp = { onMoveDay(dayIndex, MoveDirection.Up) },
+                    onMoveDown = { onMoveDay(dayIndex, MoveDirection.Down) },
+                    onDuplicate = { onDuplicateDay(dayIndex) },
+                    onRemove = { onRemoveDay(dayIndex) },
+                    moveUpContentDescription = "Subir dia ${dayIndex + 1}",
+                    moveDownContentDescription = "Bajar dia ${dayIndex + 1}",
+                    duplicateContentDescription = "Duplicar dia ${dayIndex + 1}",
+                    removeContentDescription = "Quitar dia ${dayIndex + 1} del borrador"
+                )
             }
 
-            OutlinedTextField(
+            var awaitingNewExerciseFocus by remember { mutableStateOf(false) }
+            var focusExerciseDraftId by remember { mutableStateOf<String?>(null) }
+
+            FitTrackSelectAllTextField(
                 value = day.name,
                 onValueChange = { onDayNameChange(dayIndex, it) },
                 label = { Text("Nombre del dia") },
@@ -1045,22 +945,44 @@ private fun RoutineDayEditor(
                     { Text(error) }
                 },
                 singleLine = true,
+                selectAllOnFocus = false,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusExerciseDraftId = day.exercises.firstOrNull()?.draftId }
+                ),
+                maxLength = MAX_NAME_LENGTH,
                 modifier = Modifier.fillMaxWidth()
             )
 
+            LaunchedEffect(day.exercises.size) {
+                if (awaitingNewExerciseFocus) {
+                    focusExerciseDraftId = day.exercises.lastOrNull()?.draftId
+                    awaitingNewExerciseFocus = false
+                }
+            }
+
             day.exercises.forEachIndexed { exerciseIndex, exercise ->
-                RoutineExerciseEditor(
+                key(exercise.draftId) {
+                    RoutineExerciseEditor(
                     dayIndex = dayIndex,
                     exerciseIndex = exerciseIndex,
                     exercise = exercise,
                     canRemove = day.exercises.size > 1,
                     canMoveUp = exerciseIndex > 0,
                     canMoveDown = exerciseIndex < day.exercises.lastIndex,
+                    requestNameFocus = exercise.draftId == focusExerciseDraftId,
+                    onNameFocusRequested = { focusExerciseDraftId = null },
                     onExerciseNameChange = onExerciseNameChange,
                     onExerciseSetsChange = onExerciseSetsChange,
                     onExerciseRepsChange = onExerciseRepsChange,
                     onExerciseNotesChange = onExerciseNotesChange,
                     onAddExerciseAlternative = onAddExerciseAlternative,
+                    onBeginExerciseAlternativeEdit = onBeginExerciseAlternativeEdit,
+                    onCancelExerciseAlternativeEdit = onCancelExerciseAlternativeEdit,
+                    onFinishExerciseAlternativeEdit = onFinishExerciseAlternativeEdit,
                     onExerciseAlternativeNameChange = onExerciseAlternativeNameChange,
                     onExerciseAlternativeSetsChange = onExerciseAlternativeSetsChange,
                     onExerciseAlternativeRepsChange = onExerciseAlternativeRepsChange,
@@ -1069,24 +991,19 @@ private fun RoutineDayEditor(
                     onSetExerciseDefaultVariant = onSetExerciseDefaultVariant,
                     onDuplicateExercise = onDuplicateExercise,
                     onMoveExercise = onMoveExercise,
-                    onRemoveExercise = onRemoveExercise
-                )
+                        onRemoveExercise = onRemoveExercise
+                    )
+                }
             }
 
-            OutlinedButton(
-                onClick = { onAddExercise(dayIndex) },
+            FitTrackAddButton(
+                label = "Anadir ejercicio",
+                onClick = {
+                    awaitingNewExerciseFocus = true
+                    onAddExercise(dayIndex)
+                },
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "Anadir ejercicio",
-                    modifier = Modifier.padding(start = FitSpacing.sm)
-                )
-            }
+            )
         }
     }
 }
@@ -1099,11 +1016,16 @@ private fun RoutineExerciseEditor(
     canRemove: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
+    requestNameFocus: Boolean,
+    onNameFocusRequested: () -> Unit,
     onExerciseNameChange: (Int, Int, String) -> Unit,
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
     onAddExerciseAlternative: (Int, Int) -> Unit,
+    onBeginExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
+    onCancelExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
+    onFinishExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
     onExerciseAlternativeNameChange: (Int, Int, Int, String) -> Unit,
     onExerciseAlternativeSetsChange: (Int, Int, Int, String) -> Unit,
     onExerciseAlternativeRepsChange: (Int, Int, Int, String) -> Unit,
@@ -1112,100 +1034,71 @@ private fun RoutineExerciseEditor(
     onSetExerciseDefaultVariant: (Int, Int, String?) -> Unit,
     onDuplicateExercise: (Int, Int) -> Unit,
     onMoveExercise: (Int, Int, MoveDirection) -> Unit,
-    onRemoveExercise: (Int, Int) -> Unit
+    onRemoveExercise: (Int, Int, String) -> Unit
 ) {
-    val currentSets = exercise.targetSets.toIntOrNull()?.coerceIn(1, 99) ?: 3
-    val hasCustomReps = exercise.targetRepsText !in repsPresetOptions
-    var showCustomRepsDialog by remember { mutableStateOf(false) }
-    var customRepsDraft by remember { mutableStateOf("") }
     var showNotesDialog by remember { mutableStateOf(false) }
     var notesDraft by remember { mutableStateOf("") }
     var showAlternativesDialog by remember { mutableStateOf(false) }
     var editingAlternativeIndex by remember { mutableStateOf<Int?>(null) }
+    var alternativePendingRemoval by remember { mutableStateOf<Int?>(null) }
+    var showDeleteNoteConfirm by remember { mutableStateOf(false) }
 
-    if (showCustomRepsDialog) {
-        val customRepsError = customRepsDraft
-            .takeIf { it.isNotBlank() }
-            ?.let { draft ->
-                if (isValidTargetReps(draft)) null else "Usa 8, 8-12, AMRAP o RPE 8."
-            }
-        AlertDialog(
-            onDismissRequest = { showCustomRepsDialog = false },
-            title = { Text("Reps personalizadas") },
-            text = {
-                OutlinedTextField(
-                    value = customRepsDraft,
-                    onValueChange = { customRepsDraft = it },
-                    label = { Text("Valor personalizado") },
-                    placeholder = { Text("12-15 o AMRAP") },
-                    isError = customRepsError != null,
-                    supportingText = customRepsError?.let { error ->
-                        { Text(error) }
-                    },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+    alternativePendingRemoval?.let { alternativeIndex ->
+        FitTrackConfirmDialog(
+            title = "Eliminar alternativa",
+            text = "Se eliminara esta alternativa del ejercicio. Esta accion no se puede deshacer.",
+            confirmLabel = "Eliminar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onRemoveExerciseAlternative(dayIndex, exerciseIndex, alternativeIndex)
+                if (editingAlternativeIndex == alternativeIndex) editingAlternativeIndex = null
+                alternativePendingRemoval = null
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onExerciseRepsChange(dayIndex, exerciseIndex, customRepsDraft.trim())
-                        showCustomRepsDialog = false
-                    },
-                    enabled = isValidTargetReps(customRepsDraft)
-                ) {
-                    Text("Guardar")
-                }
+            onDismiss = { alternativePendingRemoval = null },
+            destructive = true
+        )
+    }
+
+    if (showNotesDialog) {
+        FitTrackInputDialog(
+            title = if (exercise.notes.isBlank()) "Anadir nota" else "Editar nota",
+            value = notesDraft,
+            onValueChange = { notesDraft = it },
+            label = "Notas",
+            singleLine = false,
+            minLines = 3,
+            maxLines = 5,
+            maxLength = MAX_NOTES_LENGTH,
+            confirmLabel = "Guardar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onExerciseNotesChange(dayIndex, exerciseIndex, notesDraft)
+                showNotesDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = { showCustomRepsDialog = false }) {
-                    Text("Cancelar")
+            onDismiss = { showNotesDialog = false },
+            extraContent = {
+                if (exercise.notes.isNotBlank()) {
+                    TextButton(onClick = { showDeleteNoteConfirm = true }) {
+                        Text("Eliminar nota")
+                    }
                 }
             }
         )
     }
 
-    if (showNotesDialog) {
-        AlertDialog(
-            onDismissRequest = { showNotesDialog = false },
-            title = { Text(if (exercise.notes.isBlank()) "Anadir nota" else "Editar nota") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                    OutlinedTextField(
-                        value = notesDraft,
-                        onValueChange = { notesDraft = it },
-                        label = { Text("Notas") },
-                        minLines = 3,
-                        maxLines = 5,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    if (exercise.notes.isNotBlank()) {
-                        TextButton(
-                            onClick = {
-                                onExerciseNotesChange(dayIndex, exerciseIndex, "")
-                                showNotesDialog = false
-                            }
-                        ) {
-                            Text("Eliminar nota")
-                        }
-                    }
-                }
+    if (showDeleteNoteConfirm) {
+        FitTrackConfirmDialog(
+            title = "Eliminar nota",
+            text = "Se eliminara la nota de este ejercicio. Esta accion no se puede deshacer.",
+            confirmLabel = "Eliminar",
+            dismissLabel = "Cancelar",
+            onConfirm = {
+                onExerciseNotesChange(dayIndex, exerciseIndex, "")
+                showDeleteNoteConfirm = false
+                showNotesDialog = false
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onExerciseNotesChange(dayIndex, exerciseIndex, notesDraft)
-                        showNotesDialog = false
-                    }
-                ) {
-                    Text("Guardar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showNotesDialog = false }) {
-                    Text("Cancelar")
-                }
-            }
+            onDismiss = { showDeleteNoteConfirm = false },
+            destructive = true
         )
     }
 
@@ -1214,6 +1107,12 @@ private fun RoutineExerciseEditor(
             exercise = exercise,
             editingAlternativeIndex = editingAlternativeIndex,
             onDismiss = {
+                cancelInlineAlternativeEdit(
+                    editingAlternativeIndex,
+                    dayIndex,
+                    exerciseIndex,
+                    onCancelExerciseAlternativeEdit
+                )
                 showAlternativesDialog = false
                 editingAlternativeIndex = null
             },
@@ -1223,15 +1122,16 @@ private fun RoutineExerciseEditor(
             },
             onStartCreateAlternative = {
                 val nextIndex = exercise.alternatives.size
+                onBeginExerciseAlternativeEdit(dayIndex, exerciseIndex, nextIndex)
                 onAddExerciseAlternative(dayIndex, exerciseIndex)
                 editingAlternativeIndex = nextIndex
             },
             onEditAlternative = { alternativeIndex ->
+                onBeginExerciseAlternativeEdit(dayIndex, exerciseIndex, alternativeIndex)
                 editingAlternativeIndex = alternativeIndex
             },
             onRemoveAlternative = { alternativeIndex ->
-                onRemoveExerciseAlternative(dayIndex, exerciseIndex, alternativeIndex)
-                if (editingAlternativeIndex == alternativeIndex) editingAlternativeIndex = null
+                alternativePendingRemoval = alternativeIndex
             },
             onAlternativeNameChange = { alternativeIndex, value ->
                 onExerciseAlternativeNameChange(dayIndex, exerciseIndex, alternativeIndex, value)
@@ -1245,79 +1145,77 @@ private fun RoutineExerciseEditor(
             onAlternativeNotesChange = { alternativeIndex, value ->
                 onExerciseAlternativeNotesChange(dayIndex, exerciseIndex, alternativeIndex, value)
             },
-            onCloseEditor = { editingAlternativeIndex = null }
+            onCancelEditor = {
+                cancelInlineAlternativeEdit(
+                    editingAlternativeIndex,
+                    dayIndex,
+                    exerciseIndex,
+                    onCancelExerciseAlternativeEdit
+                )
+                editingAlternativeIndex = null
+            },
+            onCloseEditor = {
+                finishInlineAlternativeEdit(
+                    editingAlternativeIndex,
+                    dayIndex,
+                    exerciseIndex,
+                    onFinishExerciseAlternativeEdit
+                )
+                editingAlternativeIndex = null
+            }
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
-            .padding(FitSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
-    ) {
+    // Surface + border like every other container in the app, instead of the one borderless
+    // filled block it used to be.
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+      Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.smMd)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Ejercicio ${exerciseIndex + 1}",
-                style = MaterialTheme.typography.labelLarge
+            // The ordinal as a badge rather than a bold "Ejercicio N" label competing with the
+            // name field right below it.
+            FitTrackIconBadge(
+                variant = FitTrackIconBadgeVariant.Number("${exerciseIndex + 1}"),
+                tone = FitTrackIconBadgeTone.Soft,
+                size = FitTrackIconBadgeSize.Small
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
-                IconButton(
-                    onClick = { onMoveExercise(dayIndex, exerciseIndex, MoveDirection.Up) },
-                    enabled = canMoveUp,
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardArrowUp,
-                        contentDescription = "Subir ejercicio ${exerciseIndex + 1}"
-                    )
+            FitTrackReorderActions(
+                canMoveUp = canMoveUp,
+                canMoveDown = canMoveDown,
+                canRemove = canRemove,
+                onMoveUp = { onMoveExercise(dayIndex, exerciseIndex, MoveDirection.Up) },
+                onMoveDown = { onMoveExercise(dayIndex, exerciseIndex, MoveDirection.Down) },
+                onDuplicate = { onDuplicateExercise(dayIndex, exerciseIndex) },
+                onRemove = { onRemoveExercise(dayIndex, exerciseIndex, exercise.name) },
+                moveUpContentDescription = "Subir ejercicio ${exerciseIndex + 1}",
+                moveDownContentDescription = "Bajar ejercicio ${exerciseIndex + 1}",
+                duplicateContentDescription = "Duplicar ejercicio ${exerciseIndex + 1}",
+                removeContentDescription = "Quitar ejercicio ${exerciseIndex + 1} del borrador",
+                extraAction = {
+                    IconButton(
+                        onClick = { showAlternativesDialog = true },
+                        modifier = Modifier.minimumInteractiveComponentSize()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = "Ver ejercicios alternativos para ${exercise.name.ifBlank { "este ejercicio" }}"
+                        )
+                    }
                 }
-                IconButton(
-                    onClick = { onMoveExercise(dayIndex, exerciseIndex, MoveDirection.Down) },
-                    enabled = canMoveDown,
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardArrowDown,
-                        contentDescription = "Bajar ejercicio ${exerciseIndex + 1}"
-                    )
-                }
-                IconButton(
-                    onClick = { onDuplicateExercise(dayIndex, exerciseIndex) },
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.ContentCopy,
-                        contentDescription = "Duplicar ejercicio ${exerciseIndex + 1}"
-                    )
-                }
-                IconButton(
-                    onClick = { showAlternativesDialog = true },
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Refresh,
-                        contentDescription = "Ver ejercicios alternativos para ${exercise.name.ifBlank { "este ejercicio" }}"
-                    )
-                }
-                IconButton(
-                    onClick = { onRemoveExercise(dayIndex, exerciseIndex) },
-                    enabled = canRemove,
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = "Quitar ejercicio ${exerciseIndex + 1} del borrador"
-                    )
-                }
-            }
+            )
         }
 
-        OutlinedTextField(
+        val nameFocusRequester = remember { FocusRequester() }
+        LaunchedEffect(requestNameFocus) {
+            if (requestNameFocus) {
+                nameFocusRequester.requestFocus()
+                onNameFocusRequested()
+            }
+        }
+        FitTrackSelectAllTextField(
             value = exercise.name,
             onValueChange = { onExerciseNameChange(dayIndex, exerciseIndex, it) },
             label = { Text("Nombre del ejercicio") },
@@ -1326,37 +1224,30 @@ private fun RoutineExerciseEditor(
                 { Text(error) }
             },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth()
+            selectAllOnFocus = false,
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
+                imeAction = ImeAction.Done
+            ),
+            maxLength = MAX_NAME_LENGTH,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(nameFocusRequester)
         )
 
-        ExerciseSetsStepper(
-            sets = currentSets,
-            error = exercise.targetSetsError,
-            onDecrease = {
-                onExerciseSetsChange(dayIndex, exerciseIndex, (currentSets - 1).coerceAtLeast(1).toString())
+        FitTrackTargetPrescriptionFields(
+            targetSets = exercise.targetSets,
+            targetRepsText = exercise.targetRepsText,
+            onTargetSetsChange = { value ->
+                onExerciseSetsChange(dayIndex, exerciseIndex, value)
             },
-            onIncrease = {
-                onExerciseSetsChange(dayIndex, exerciseIndex, (currentSets + 1).coerceAtMost(99).toString())
-            }
-        )
-
-        ExerciseRepsSelector(
-            selectedReps = exercise.targetRepsText,
-            onPresetSelected = { preset ->
-                onExerciseRepsChange(dayIndex, exerciseIndex, preset)
+            onTargetRepsChange = { value ->
+                onExerciseRepsChange(dayIndex, exerciseIndex, value)
             },
-            onCustomSelected = {
-                customRepsDraft = if (hasCustomReps) exercise.targetRepsText else ""
-                showCustomRepsDialog = true
-            }
+            isValidTargetReps = ::isValidTargetReps,
+            targetSetsError = exercise.targetSetsError,
+            targetRepsError = exercise.targetRepsError
         )
-        exercise.targetRepsError?.let { error ->
-            Text(
-                text = error,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
 
         NotesActionRow(
             hasNote = exercise.notes.isNotBlank(),
@@ -1365,6 +1256,45 @@ private fun RoutineExerciseEditor(
                 showNotesDialog = true
             }
         )
+      }
+    }
+}
+
+private data class PendingExerciseRemoval(
+    val dayIndex: Int,
+    val exerciseIndex: Int,
+    val exerciseName: String
+)
+
+private fun finishInlineAlternativeEdit(
+    alternativeIndex: Int?,
+    dayIndex: Int,
+    exerciseIndex: Int,
+    onFinish: (Int, Int, Int) -> Unit
+) {
+    val index = alternativeIndex ?: return
+    onFinish(dayIndex, exerciseIndex, index)
+}
+
+private fun cancelInlineAlternativeEdit(
+    alternativeIndex: Int?,
+    dayIndex: Int,
+    exerciseIndex: Int,
+    onCancel: (Int, Int, Int) -> Unit
+) {
+    val index = alternativeIndex ?: return
+    onCancel(dayIndex, exerciseIndex, index)
+}
+
+internal fun exerciseRemovalMessage(
+    exerciseIndex: Int,
+    exerciseName: String
+): String {
+    val trimmedName = exerciseName.trim()
+    return if (trimmedName.isNotEmpty()) {
+        "Se eliminara \"$trimmedName\" de la rutina. Esta accion no se puede deshacer."
+    } else {
+        "Se eliminara el ejercicio ${exerciseIndex + 1} de la rutina. Esta accion no se puede deshacer."
     }
 }
 
@@ -1382,33 +1312,46 @@ private fun ExerciseAlternativesEditorDialog(
     onAlternativeSetsChange: (Int, String) -> Unit,
     onAlternativeRepsChange: (Int, String) -> Unit,
     onAlternativeNotesChange: (Int, String) -> Unit,
+    onCancelEditor: () -> Unit,
     onCloseEditor: () -> Unit
 ) {
-    AlertDialog(
+    FitTrackDialog(
+        title = "Ejercicios alternativos",
         onDismissRequest = onDismiss,
-        title = { Text("Ejercicios alternativos") },
-        text = {
+        content = {
             Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
+                val baseIsDefault = exercise.defaultVariantKey == null ||
+                    exercise.defaultVariantKey == exercise.variantKey
                 FitTrackCard(modifier = Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
-                        Text(
-                            text = exercise.name.ifBlank { "Ejercicio base" },
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        // Badge rather than a coloured border, matching how the workout tab marks
+                        // the default variant.
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = exercise.name.ifBlank { "Ejercicio base" },
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (baseIsDefault) {
+                                FitTrackBadge(label = "PREDET.", tone = FitTrackBadgeTone.Active)
+                            }
+                        }
                         Text(
                             text = "${exercise.targetSets} series · ${exercise.targetRepsText} reps",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(onClick = onSetBaseAsDefault) {
-                                Text(
-                                    if (exercise.defaultVariantKey == null || exercise.defaultVariantKey == exercise.variantKey) {
-                                        "Predeterminada"
-                                    } else {
-                                        "Usar por defecto"
-                                    }
-                                )
+                        // Only offered when it would change something: a button reading
+                        // "Predeterminada" on the item that already is one looks tappable and is not.
+                        if (!baseIsDefault) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                TextButton(onClick = onSetBaseAsDefault) {
+                                    Text("Usar por defecto")
+                                }
                             }
                         }
                     }
@@ -1416,63 +1359,97 @@ private fun ExerciseAlternativesEditorDialog(
 
                 exercise.alternatives.forEachIndexed { index, alternative ->
                     val isEditing = editingAlternativeIndex == index
+                    val isDefault = exercise.defaultVariantKey == alternative.variantKey
                     FitTrackCard(modifier = Modifier.fillMaxWidth()) {
                         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
                             if (isEditing) {
-                                OutlinedTextField(
+                                val notesFocusRequester = remember { FocusRequester() }
+                                FitTrackSelectAllTextField(
                                     value = alternative.name,
                                     onValueChange = { onAlternativeNameChange(index, it) },
                                     label = { Text("Nombre") },
                                     singleLine = true,
+                                    selectAllOnFocus = false,
+                                    keyboardOptions = KeyboardOptions(
+                                        capitalization = KeyboardCapitalization.Words,
+                                        imeAction = ImeAction.Next
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onNext = { notesFocusRequester.requestFocus() }
+                                    ),
+                                    maxLength = MAX_NAME_LENGTH,
                                     modifier = Modifier.fillMaxWidth()
                                 )
-                                Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                                    OutlinedTextField(
-                                        value = alternative.targetSets,
-                                        onValueChange = { onAlternativeSetsChange(index, it) },
-                                        label = { Text("Series") },
-                                        singleLine = true,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    OutlinedTextField(
-                                        value = alternative.targetRepsText,
-                                        onValueChange = { onAlternativeRepsChange(index, it) },
-                                        label = { Text("Reps") },
-                                        singleLine = true,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                                OutlinedTextField(
+                                FitTrackTargetPrescriptionFields(
+                                    targetSets = alternative.targetSets,
+                                    targetRepsText = alternative.targetRepsText,
+                                    onTargetSetsChange = { value ->
+                                        onAlternativeSetsChange(index, value)
+                                    },
+                                    onTargetRepsChange = { value ->
+                                        onAlternativeRepsChange(index, value)
+                                    },
+                                    isValidTargetReps = ::isValidTargetReps,
+                                    targetSetsError = alternative.targetSetsError,
+                                    targetRepsError = alternative.targetRepsError
+                                )
+                                FitTrackSelectAllTextField(
                                     value = alternative.notes,
                                     onValueChange = { onAlternativeNotesChange(index, it) },
                                     label = { Text("Notas") },
+                                    singleLine = false,
                                     minLines = 2,
-                                    modifier = Modifier.fillMaxWidth()
+                                    selectAllOnFocus = false,
+                                    keyboardOptions = KeyboardOptions(
+                                        capitalization = KeyboardCapitalization.Sentences,
+                                        imeAction = ImeAction.Done
+                                    ),
+                                    maxLength = MAX_NOTES_LENGTH,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusRequester(notesFocusRequester)
                                 )
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                    TextButton(onClick = onCloseEditor) {
-                                        Text("Listo")
+                                FitTrackFormDialogActions(
+                                    cancelLabel = "Cancelar",
+                                    confirmLabel = "Guardar",
+                                    onCancel = onCancelEditor,
+                                    onConfirm = onCloseEditor
+                                )
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = alternative.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (isDefault) {
+                                        FitTrackBadge(label = "PREDET.", tone = FitTrackBadgeTone.Active)
                                     }
                                 }
-                            } else {
-                                Text(text = alternative.name, style = MaterialTheme.typography.titleMedium)
                                 Text(
                                     text = "${alternative.targetSets} series · ${alternative.targetRepsText} reps",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                // FlowRow so three actions wrap instead of clipping off the
+                                // leading edge on a narrow screen.
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
                                     TextButton(onClick = { onEditAlternative(index) }) {
                                         Text("Editar")
                                     }
-                                    TextButton(onClick = { onSetAlternativeAsDefault(alternative.variantKey) }) {
-                                        Text(
-                                            if (exercise.defaultVariantKey == alternative.variantKey) {
-                                                "Predeterminada"
-                                            } else {
-                                                "Usar por defecto"
-                                            }
-                                        )
+                                    if (!isDefault) {
+                                        TextButton(
+                                            onClick = { onSetAlternativeAsDefault(alternative.variantKey) }
+                                        ) {
+                                            Text("Usar por defecto")
+                                        }
                                     }
                                     TextButton(onClick = { onRemoveAlternative(index) }) {
                                         Text("Eliminar")
@@ -1483,123 +1460,19 @@ private fun ExerciseAlternativesEditorDialog(
                     }
                 }
 
-                FilledTonalButton(
+                FitTrackTonalButton(
+                    label = "Crear alternativa",
                     onClick = onStartCreateAlternative,
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Crear alternativa")
-                }
+                )
             }
         },
-        confirmButton = {
+        actions = {
             TextButton(onClick = onDismiss) {
                 Text("Cerrar")
             }
-        },
-        dismissButton = {}
+        }
     )
-}
-
-@Composable
-private fun ExerciseSetsStepper(
-    sets: Int,
-    error: String?,
-    onDecrease: () -> Unit,
-    onIncrease: () -> Unit
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-    ) {
-        Text(
-            text = "Series",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Start
-        ) {
-            Box(
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.large)
-                    .padding(horizontal = FitSpacing.sm, vertical = FitSpacing.xs)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-                ) {
-                    IconButton(
-                        onClick = onDecrease,
-                        enabled = sets > 1,
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Remove,
-                            contentDescription = "Reducir series"
-                        )
-                    }
-                    Text(
-                        text = sets.toString(),
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    IconButton(
-                        onClick = onIncrease,
-                        enabled = sets < 99,
-                        modifier = Modifier.minimumInteractiveComponentSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = "Aumentar series"
-                        )
-                    }
-                }
-            }
-        }
-        error?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ExerciseRepsSelector(
-    selectedReps: String,
-    onPresetSelected: (String) -> Unit,
-    onCustomSelected: () -> Unit
-) {
-    val hasCustomSelection = selectedReps !in repsPresetOptions
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
-    ) {
-        Text(
-            text = "Reps objetivo",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)
-        ) {
-            repsPresetOptions.forEach { preset ->
-                FilterChip(
-                    selected = selectedReps == preset,
-                    onClick = { onPresetSelected(preset) },
-                    label = { Text(preset) }
-                )
-            }
-            FilterChip(
-                selected = hasCustomSelection,
-                onClick = onCustomSelected,
-                label = { Text(if (hasCustomSelection) selectedReps else "+") }
-            )
-        }
-    }
 }
 
 @Composable

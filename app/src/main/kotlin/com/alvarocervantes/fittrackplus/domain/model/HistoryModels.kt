@@ -9,7 +9,9 @@ data class WorkoutHistorySummary(
     val weekNumber: Int,
     val totalVolumeKg: Double,
     val durationMillis: Long,
-    val setCount: Int
+    val setCount: Int,
+    /** Derived: a finished session is complete only when every set was marked completed. */
+    val isComplete: Boolean
 )
 
 data class WorkoutHistoryDetail(
@@ -19,7 +21,8 @@ data class WorkoutHistoryDetail(
     val startedAt: Long,
     val finishedAt: Long,
     val weekNumber: Int,
-    val notes: String?,
+    val notes: String? = null,
+    val pausedMillis: Long,
     val exercises: List<WorkoutHistoryExercise>,
     val comparison: WorkoutHistoryComparison? = null
 )
@@ -28,6 +31,7 @@ data class WorkoutHistoryExercise(
     val exerciseId: Long,
     val name: String,
     val targetRepsText: String,
+    val notes: String? = null,
     val sets: List<WorkoutHistorySet>
 )
 
@@ -36,7 +40,8 @@ data class WorkoutHistorySet(
     val setNumber: Int,
     val weightKg: Double,
     val reps: Int,
-    val notes: String?
+    val notes: String?,
+    val isCompleted: Boolean
 )
 
 data class WorkoutHistoryComparison(

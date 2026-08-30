@@ -255,8 +255,11 @@ class ObserveWorkoutStatsUseCaseTest {
             val stats = awaitItem()
 
             assertEquals(listOf(3L, 2L, 1L), stats.sessionVolumes.map { it.sessionId })
-            val benchRecords = stats.exerciseRecords.single { it.exerciseKey == "bench press" }
-            assertEquals(140.0, benchRecords.maxWeight?.weightKg ?: -1.0, 0.0)
+            val benchRecords = stats.exerciseRecords.filter { it.exerciseKey == "bench press" }
+            assertEquals(2, benchRecords.size)
+            val legacyBenchRecords = benchRecords.single { it.routineName == "Legacy Snapshot" }
+            assertEquals("Old Push", legacyBenchRecords.dayName)
+            assertEquals(140.0, legacyBenchRecords.maxWeight?.weightKg ?: -1.0, 0.0)
 
             awaitComplete()
         }

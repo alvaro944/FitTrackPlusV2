@@ -24,7 +24,9 @@ data class RoutineExerciseDraft(
     val targetRepsText: String,
     val notes: String? = null,
     val defaultVariantKey: String? = null,
-    val alternatives: List<RoutineExerciseAlternativeDraft> = emptyList()
+    val alternatives: List<RoutineExerciseAlternativeDraft> = emptyList(),
+    val targetRepsMin: Int? = null,
+    val targetRepsMax: Int? = null
 )
 
 data class RoutineExerciseAlternativeDraft(
@@ -32,7 +34,9 @@ data class RoutineExerciseAlternativeDraft(
     val name: String,
     val targetSets: Int,
     val targetRepsText: String,
-    val notes: String? = null
+    val notes: String? = null,
+    val targetRepsMin: Int? = null,
+    val targetRepsMax: Int? = null
 )
 
 data class RoutineSnapshot(
@@ -57,7 +61,9 @@ data class RoutineExerciseSnapshot(
     val targetRepsText: String,
     val position: Int,
     val notes: String?,
-    val alternatives: List<RoutineExerciseAlternativeSnapshot>
+    val alternatives: List<RoutineExerciseAlternativeSnapshot>,
+    val targetRepsMin: Int? = null,
+    val targetRepsMax: Int? = null
 )
 
 data class RoutineExerciseAlternativeSnapshot(
@@ -67,5 +73,7 @@ data class RoutineExerciseAlternativeSnapshot(
     val targetSets: Int,
     val targetRepsText: String,
     val position: Int,
-    val notes: String?
+    val notes: String?,
+    val targetRepsMin: Int? = null,
+    val targetRepsMax: Int? = null
 )

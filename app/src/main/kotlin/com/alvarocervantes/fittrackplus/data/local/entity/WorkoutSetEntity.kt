@@ -26,5 +26,6 @@ data class WorkoutSetEntity(
     val setNumber: Int,
     val weightKg: Double,
     val reps: Int,
+    val isCompleted: Boolean = false,
     val notes: String? = null
 )

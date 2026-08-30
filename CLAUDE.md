@@ -6,7 +6,7 @@ This file provides guidance to Claude Code when working in this repository.
 
 FitTrackPlus v2 is a native Android app built with Kotlin, Jetpack Compose, Material 3, Room, Hilt, and DataStore. It is used to build gym routines, log real workouts, and keep a history that stays consistent even when routines change later.
 
-Current branch: `main` (stable, in daily use).
+Current branch: `main` (stable, in daily use). `develop` is the integration branch for work awaiting manual testing.
 
 Current status:
 
@@ -47,7 +47,7 @@ Codex ejecuta lo que Claude ha especificado:
 - hace push y avisa al usuario
 - cuando el usuario aprueba, hace merge a main y push
 
-La referencia canonica del modelo de colaboracion es `docs/work-methodology/agent-collaboration.md`.
+La referencia canonica del modelo de colaboracion es `docs/methodology/work-methodology/agent-collaboration.md`.
 
 ## Multi-platform handoff
 
@@ -56,25 +56,25 @@ This repo may be reviewed from more than one editor or AI platform. To avoid ove
 - Only one platform should execute code or shared docs changes in each iteration.
 - Other platforms may analyze, design, review, or leave backlog notes in their own files.
 - Before resuming work from another platform, re-check `git status`, re-read the live docs, and reopen the concrete files being touched.
-- Treat files such as `docs/mejoras-claude.md` as proposal backlog unless the user explicitly promotes items into execution.
+- Treat files such as `docs/design/mejoras-claude.md` as proposal backlog unless the user explicitly promotes items into execution.
 
 ## Required reading before editing
 
 Per `AGENTS.md`, always re-read these before touching code:
 
 1. `README.md`
-2. `docs/development-workflow.md`
-3. `docs/project-plan.md`
-4. `docs/project-progress.md`
-5. `docs/phase-log.md`
-6. `docs/architecture.md`
-7. `docs/work-methodology/README.md`
+2. `docs/methodology/project-methodology/README.md`
+3. `docs/planning/project-plan.md`
+4. `docs/progress/project-progress.md`
+5. `docs/progress/phase-log.md`
+6. `docs/architecture/overview.md`
+7. `docs/methodology/work-methodology/README.md`
 8. The concrete area being modified
 
 When present, also read:
 
 - `CLAUDE.md`
-- `docs/mejoras-claude.md`
+- `docs/design/mejoras-claude.md`
 - any external design/backlog note that is shaping the current iteration
 
 ## Build and test
@@ -98,7 +98,17 @@ Minimum verification for any code change:
 - `test`
 - `build`
 
-For UI changes, also do a manual pass in emulator/device when possible. `adb` is not currently on PATH in this workspace, so manual validation may remain pending in `docs/project-progress.md`.
+For UI changes, also do a manual pass in emulator/device when possible. `adb` is not currently on PATH in this workspace, so manual validation may remain pending in `docs/progress/project-progress.md`.
+
+### macOS / Claude Code environment notes
+
+- Requires JDK 17 (see `sourceCompatibility`/`jvmTarget` in `app/build.gradle.kts`) and Gradle 8.7.
+- If `java`/`./gradlew` are unavailable: `brew install openjdk@17` (keg-only, not symlinked into PATH by default). Invoke with an explicit `JAVA_HOME`:
+  ```bash
+  export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+  sh gradlew test
+  ```
+- `gradlew` in this repo does not carry the executable bit (`-rw-r--r--`). Invoke it as `sh gradlew ...` rather than `./gradlew ...`, or `chmod +x gradlew` once if you prefer the direct form.
 
 ## Source layout rule
 
@@ -152,29 +162,39 @@ Do not rely on it for release flows and do not let it leak into tests or non-deb
 
 ## Workflow y ramas
 
-El proyecto ya no trabaja en fases cerradas. Ahora trabaja en grupos de mejoras:
+El proyecto trabaja por grupos de mejoras relacionadas:
 
-- cada grupo de mejoras relacionadas va en una sola rama: `codex/<nombre-del-grupo>`
+- cada grupo de mejoras relacionadas va en una sola rama
 - no se crea una rama por cada pequeño cambio
 - todo el trabajo del grupo se hace en esa rama hasta que esta completo
 - Codex verifica localmente antes de hacer ningun commit
 - se hace commit limpio cuando el grupo esta verificado, no antes
-- se hace push y merge a main cuando todo el grupo esta done
+- las ramas no usan prefijos de agente o herramienta
+- usar prefijos semanticos segun el trabajo: `feature/`, `bug/`, `fix/`, `refactor/`, `cherrypick/` o `docs/`
 
-Ejemplo de rama correcta: `codex/ux-improvements`
-Ejemplo de rama incorrecta: `codex/fix-button-color`, `codex/minor-tweak`
+Ejemplo de rama correcta: `feature/ux-improvements`, `refactor/ui-component-grouping`
+Ejemplo de rama incorrecta: `codex/ux-improvements`, `codex/fix-button-color`, `codex/minor-tweak`
 
 Una mejora esta done cuando: compila, tests pasan, flujo manual verificado en emulador, docs alineados.
+
+### Rama develop
+
+Desde 2026-07-06 el proyecto usa `develop` como rama de integracion:
+
+- las ramas de grupo (`feature/...`, `bug/...`, `fix/...`, `refactor/...`) se mergean a `develop` cuando el grupo esta tecnicamente completo (compila, tests pasan)
+- `develop` acumula trabajo pendiente de pasada manual; puede ir por delante de `main`
+- `main` solo se actualiza desde `develop` despues de que el usuario verifique manualmente en dispositivo/emulador
+- al abrir o retomar trabajo, comprobar si `develop` esta por delante de `main` y desde que rama partir (normalmente `develop`, no `main`)
 
 ## Phase closeout
 
 On phase close, update:
 
-1. `docs/project-progress.md`
-2. `docs/phase-log.md`
-3. `docs/work-methodology/`
+1. `docs/progress/project-progress.md`
+2. `docs/progress/phase-log.md`
+3. `docs/methodology/work-methodology/`
 4. `README.md` or `AGENTS.md` if process changed
-5. `docs/future-improvements.md` for deferred ideas
+5. `docs/planning/roadmap-2.1.md` for deferred ideas
 
 Then tell the user:
 
@@ -194,7 +214,7 @@ Las siguientes skills de Claude Code estan instaladas a nivel usuario y disponib
 | `caveman` / `caveman-commit` / `caveman-review` / `caveman-compress` | Simplificar explicaciones, commits y revisiones |
 | `token-optimizer` / `token-coach` / `token-dashboard` / `fleet-auditor` | Optimizar uso de tokens en sesiones largas |
 
-Referencia completa con criterios de uso en `docs/work-methodology/available-skills.md`.
+Referencia completa con criterios de uso en `docs/methodology/work-methodology/available-skills.md`.
 
 ## Language and tone
 

@@ -1,24 +1,30 @@
 package com.alvarocervantes.fittrackplus.feature.home
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.lifecycle.ViewModelStoreOwner
+import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
+import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -39,7 +45,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
+import com.alvarocervantes.fittrackplus.core.design.onHero
+import com.alvarocervantes.fittrackplus.core.design.onHeroMuted
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeTone
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeVariant
+import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroTag
+import com.alvarocervantes.fittrackplus.core.design.FitTrackHeroCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
@@ -47,9 +60,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
-import com.alvarocervantes.fittrackplus.core.design.primaryDark
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import com.alvarocervantes.fittrackplus.core.design.surfaceCard
 import com.alvarocervantes.fittrackplus.core.design.textTertiary
 import java.text.SimpleDateFormat
@@ -67,6 +78,10 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val activity = LocalActivity.current
+    val appShellOwner = requireNotNull(activity) as ViewModelStoreOwner
+    val appShellViewModel: AppShellViewModel = hiltViewModel(appShellOwner)
+    val listState = rememberLazyListState()
 
     val hasActiveRoutine = uiState.activeRoutineId != null
 
@@ -76,53 +91,60 @@ fun HomeScreen(
         viewModel.clearMessage()
     }
 
+    LaunchedEffect(Unit) {
+        appShellViewModel.activeTabReselected.collect { route ->
+            if (route == AppRoute.Home) {
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
+
     val quickActions = listOf(
         HomeQuickAction(
             title = "Preparar rutinas",
             description = "Crea y ajusta tus bloques de entrenamiento antes de empezar la semana.",
             icon = Icons.AutoMirrored.Filled.List,
-            accentColor = MaterialTheme.colorScheme.primary,
-            accentBackground = MaterialTheme.colorScheme.primarySoft,
             onClick = onGoToRoutines
         ),
         HomeQuickAction(
             title = "Entrenar hoy",
             description = "Si ya tienes una rutina activa, entra al siguiente dia sin romper tu historial.",
             icon = Icons.Filled.PlayArrow,
-            accentColor = MaterialTheme.colorScheme.primary,
-            accentBackground = MaterialTheme.colorScheme.primarySoft,
             onClick = onGoToWorkout
         ),
         HomeQuickAction(
             title = "Revisar historial",
             description = "Consulta sesiones finalizadas y confirma que el historico sigue siendo fiable.",
             icon = Icons.Filled.History,
-            accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            accentBackground = MaterialTheme.colorScheme.surfaceAlt,
             onClick = onGoToHistory
         ),
         HomeQuickAction(
             title = "Consultar datos",
             description = "Mira volumen, progreso y marcas sin mezclar sesiones abiertas.",
             icon = Icons.Filled.BarChart,
-            accentColor = MaterialTheme.colorScheme.secondary,
-            accentBackground = MaterialTheme.colorScheme.surfaceAlt,
             onClick = onGoToStats
         )
     )
 
     Scaffold(
+        // The app shell already applies the system bar insets; without this the
+        // status bar padding lands twice and leaves a dead band above the content.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(horizontal = FitSpacing.screenHorizontal),
+            state = listState,
+            modifier = Modifier.padding(innerPadding),
+            contentPadding = PaddingValues(
+                start = FitSpacing.screenHorizontal,
+                top = FitSpacing.screenTop,
+                end = FitSpacing.screenHorizontal,
+                bottom = FitSpacing.screenBottom
+            ),
             verticalArrangement = Arrangement.spacedBy(FitSpacing.card)
         ) {
         item {
             Column(
-                modifier = Modifier.padding(top = FitSpacing.screenTop),
                 verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
             ) {
                 Text(
@@ -154,26 +176,19 @@ fun HomeScreen(
         }
 
         item {
-            Box(
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.extraLarge)
-                    .background(MaterialTheme.colorScheme.primaryDark)
-                    .fillMaxWidth()
-                    .padding(FitSpacing.cardPadding)
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(FitSpacing.mdLg)
-                ) {
-                    FitTrackBadge(
-                        label = "LOCAL-FIRST",
-                        tone = FitTrackBadgeTone.Active
-                    )
+            FitTrackHeroCard(
+                badge = "LOCAL-FIRST",
+                title = {
                     Text(
                         text = "FitTrackPlus",
                         style = MaterialTheme.typography.headlineLarge,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onHero
                     )
-
+                },
+                cta = if (hasActiveRoutine) "Ir a entrenar" else "Preparar rutina",
+                onCtaClick = if (hasActiveRoutine) onGoToWorkout else onGoToRoutines,
+                ctaIcon = if (hasActiveRoutine) Icons.Filled.PlayArrow else Icons.AutoMirrored.Filled.List,
+                content = {
                     if (uiState.isLoading) {
                         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
                             SkeletonText(
@@ -189,31 +204,17 @@ fun HomeScreen(
                         }
                     } else if (uiState.totalSessions > 0) {
                         Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                            MiniHeroTag(
+                            FitTrackHeroTag(
                                 if (uiState.sessionsThisWeek == 0) "Sin sesiones esta semana"
                                 else "${uiState.sessionsThisWeek} sesion${if (uiState.sessionsThisWeek > 1) "es" else ""} esta semana"
                             )
-                            MiniHeroTag("${uiState.totalSessions} en total")
+                            FitTrackHeroTag("${uiState.totalSessions} en total")
                         }
                     } else {
                         Text(
                             text = "Crea una rutina, activala y empieza a registrar sesiones.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.72f)
-                        )
-                    }
-
-                    Button(
-                        onClick = if (hasActiveRoutine) onGoToWorkout else onGoToRoutines
-                    ) {
-                        Icon(
-                            imageVector = if (hasActiveRoutine) Icons.Filled.PlayArrow else Icons.AutoMirrored.Filled.List,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = if (hasActiveRoutine) "Ir a entrenar" else "Preparar rutina",
-                            modifier = Modifier.padding(start = FitSpacing.sm)
+                            color = MaterialTheme.colorScheme.onHeroMuted
                         )
                     }
 
@@ -221,11 +222,11 @@ fun HomeScreen(
                         Text(
                             text = "Crea tu primera rutina y activala para empezar a entrenar.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.55f)
+                            color = MaterialTheme.colorScheme.onHeroMuted
                         )
                     }
                 }
-            }
+            )
         }
 
         item {
@@ -247,19 +248,10 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
                         verticalAlignment = Alignment.Top
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(MaterialTheme.shapes.medium)
-                                .background(MaterialTheme.colorScheme.primarySoft),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = (index + 1).toString(),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        FitTrackIconBadge(
+                            variant = FitTrackIconBadgeVariant.Number((index + 1).toString()),
+                            tone = FitTrackIconBadgeTone.Soft
+                        )
                         Column(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
@@ -386,7 +378,7 @@ private fun weekDayCellColors(
 ): Pair<Color, Color> = when {
     isToday -> cs.primary to cs.onPrimary
     isTrained -> cs.primarySoft to cs.primary
-    else -> cs.surfaceAlt to cs.onSurfaceVariant
+    else -> cs.surfaceVariant to cs.onSurfaceVariant
 }
 
 @Composable
@@ -469,22 +461,6 @@ private fun weeklySessionLabel(sessionsThisWeek: Int): String {
 }
 
 @Composable
-private fun MiniHeroTag(text: String) {
-    Box(
-        modifier = Modifier
-            .clip(MaterialTheme.shapes.medium)
-            .background(Color.White.copy(alpha = 0.10f))
-            .padding(horizontal = FitSpacing.smMd, vertical = FitSpacing.tiny)
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = Color.White.copy(alpha = 0.78f)
-        )
-    }
-}
-
-@Composable
 private fun QuickActionCard(action: HomeQuickAction) {
     FitTrackCard(
         modifier = Modifier
@@ -500,19 +476,10 @@ private fun QuickActionCard(action: HomeQuickAction) {
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.mdLg),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(MaterialTheme.shapes.large)
-                    .background(action.accentBackground),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = action.icon,
-                    contentDescription = null,
-                    tint = action.accentColor
-                )
-            }
+            FitTrackIconBadge(
+                variant = FitTrackIconBadgeVariant.Icon(action.icon),
+                tone = FitTrackIconBadgeTone.Soft
+            )
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
@@ -535,8 +502,6 @@ private data class HomeQuickAction(
     val title: String,
     val description: String,
     val icon: ImageVector,
-    val accentColor: Color,
-    val accentBackground: Color,
     val onClick: () -> Unit
 )
 

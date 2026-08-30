@@ -13,9 +13,11 @@ import com.alvarocervantes.fittrackplus.domain.model.RoutineDaySnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDraft
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseAlternativeDraft
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseAlternativeSnapshot
+import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseDraft
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSummary
+import com.alvarocervantes.fittrackplus.domain.model.TargetRepsRange
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -99,14 +101,10 @@ class DefaultRoutineRepository @Inject constructor(
                 .firstOrNull { it.exercise.id == routineExerciseId }
                 ?: error("No se encontro el ejercicio base para crear una alternativa.")
 
-            val alternative = RoutineExerciseAlternativeEntity(
+            val alternative = draft.toRoutineExerciseAlternativeEntity(
                 routineExerciseId = routineExerciseId,
                 variantKey = draft.variantKey ?: newVariantKey(),
-                name = draft.name.trim(),
-                targetSets = draft.targetSets,
-                targetRepsText = draft.targetRepsText.trim(),
                 position = exerciseWithAlternatives.alternatives.size,
-                notes = draft.notes?.trim()?.ifBlank { null }
             )
             val alternativeId = routineDao.insertExerciseAlternative(alternative)
             alternative.toSnapshot(id = alternativeId)
@@ -149,27 +147,19 @@ class DefaultRoutineRepository @Inject constructor(
             dayDraft.exercises.forEachIndexed { exerciseIndex, exerciseDraft ->
                 val variantKey = exerciseDraft.variantKey ?: newVariantKey()
                 val exerciseId = routineDao.insertExercise(
-                    RoutineExerciseEntity(
+                    exerciseDraft.toRoutineExerciseEntity(
                         routineDayId = dayId,
                         variantKey = variantKey,
                         defaultVariantKey = exerciseDraft.defaultVariantKey ?: variantKey,
-                        name = exerciseDraft.name.trim(),
-                        targetSets = exerciseDraft.targetSets,
-                        targetRepsText = exerciseDraft.targetRepsText.trim(),
                         position = exerciseIndex,
-                        notes = exerciseDraft.notes?.trim()?.ifBlank { null }
                     )
                 )
                 exerciseDraft.alternatives.forEachIndexed { alternativeIndex, alternativeDraft ->
                     routineDao.insertExerciseAlternative(
-                        RoutineExerciseAlternativeEntity(
+                        alternativeDraft.toRoutineExerciseAlternativeEntity(
                             routineExerciseId = exerciseId,
                             variantKey = alternativeDraft.variantKey ?: newVariantKey(),
-                            name = alternativeDraft.name.trim(),
-                            targetSets = alternativeDraft.targetSets,
-                            targetRepsText = alternativeDraft.targetRepsText.trim(),
                             position = alternativeIndex,
-                            notes = alternativeDraft.notes?.trim()?.ifBlank { null }
                         )
                     )
                 }
@@ -202,6 +192,8 @@ private fun RoutineWithDays.toSnapshot(): RoutineSnapshot {
                                 targetRepsText = exercise.targetRepsText,
                                 position = exercise.position,
                                 notes = exercise.notes,
+                                targetRepsMin = exercise.targetRepsMin,
+                                targetRepsMax = exercise.targetRepsMax,
                                 alternatives = exerciseWithAlternatives.alternatives
                                     .sortedBy { it.position }
                                     .map { alternative ->
@@ -222,7 +214,49 @@ private fun RoutineExerciseAlternativeEntity.toSnapshot(id: Long = this.id): Rou
         targetSets = targetSets,
         targetRepsText = targetRepsText,
         position = position,
-        notes = notes
+        notes = notes,
+        targetRepsMin = targetRepsMin,
+        targetRepsMax = targetRepsMax
+    )
+}
+
+internal fun RoutineExerciseDraft.toRoutineExerciseEntity(
+    routineDayId: Long,
+    position: Int,
+    variantKey: String,
+    defaultVariantKey: String = variantKey
+): RoutineExerciseEntity {
+    val targetRange = TargetRepsRange.parse(targetRepsText)
+    return RoutineExerciseEntity(
+        routineDayId = routineDayId,
+        variantKey = variantKey,
+        defaultVariantKey = defaultVariantKey,
+        name = name.trim(),
+        targetSets = targetSets,
+        targetRepsText = targetRepsText.trim(),
+        position = position,
+        notes = notes?.trim()?.ifBlank { null },
+        targetRepsMin = targetRange?.min,
+        targetRepsMax = targetRange?.max
+    )
+}
+
+private fun RoutineExerciseAlternativeDraft.toRoutineExerciseAlternativeEntity(
+    routineExerciseId: Long,
+    position: Int,
+    variantKey: String
+): RoutineExerciseAlternativeEntity {
+    val targetRange = TargetRepsRange.parse(targetRepsText)
+    return RoutineExerciseAlternativeEntity(
+        routineExerciseId = routineExerciseId,
+        variantKey = variantKey,
+        name = name.trim(),
+        targetSets = targetSets,
+        targetRepsText = targetRepsText.trim(),
+        position = position,
+        notes = notes?.trim()?.ifBlank { null },
+        targetRepsMin = targetRange?.min,
+        targetRepsMax = targetRange?.max
     )
 }
 
