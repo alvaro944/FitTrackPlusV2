@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -47,6 +48,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -962,7 +965,7 @@ private fun WeeklyStepsCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "%,d pasos".format(data.totalSteps),
+                text = String.format(STATS_LOCALE, "%,d pasos", data.totalSteps),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.accentWarm
             )
@@ -983,7 +986,9 @@ private fun DayBarsRow(
     val todayIndex = if (data.isCurrentWeek) LocalDate.now().dayOfWeek.value - 1 else -1
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)
     ) {
         dayLabels.forEachIndexed { index, label ->
@@ -1026,11 +1031,13 @@ private fun DayBarColumn(
     else MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
-        modifier = modifier.clickable(
-            onClickLabel = "Ver pasos del dia $label",
-            role = Role.Tab,
-            onClick = onSelect
-        ),
+        modifier = modifier
+            .semantics { selected = isSelected }
+            .clickable(
+                onClickLabel = "Ver pasos del dia $label",
+                role = Role.Tab,
+                onClick = onSelect
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
     ) {
@@ -1092,7 +1099,7 @@ private fun SelectedDayDetail(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "%,d / %,d pasos".format(steps, dailyGoal),
+                    text = String.format(STATS_LOCALE, "%,d / %,d pasos", steps, dailyGoal),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(

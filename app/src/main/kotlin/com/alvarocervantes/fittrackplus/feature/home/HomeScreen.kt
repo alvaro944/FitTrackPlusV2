@@ -72,6 +72,8 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+private val HOME_LOCALE = Locale("es", "ES")
+
 @Composable
 fun HomeScreen(
     onGoToRoutines: () -> Unit,
@@ -439,7 +441,7 @@ private fun StepProgressRow(
                 }
             } else {
                 Text(
-                    text = "%,d / %,d pasos".format(todaySteps, goal),
+                    text = String.format(HOME_LOCALE, "%,d / %,d pasos", todaySteps, goal),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -467,7 +469,7 @@ private fun weekDayLabels(): List<String> {
 }
 
 private fun weekDayFullNames(): List<String> {
-    return listOf("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo")
+    return listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
 }
 
 private fun pluralizeSesion(count: Int): String = if (count == 1) "sesion" else "sesiones"
@@ -554,7 +556,7 @@ private fun greetingForNow(): String {
 }
 
 private fun formatToday(): String {
-    return SimpleDateFormat("EEEE, d 'de' MMMM", Locale("es", "ES"))
+    return SimpleDateFormat("EEEE, d 'de' MMMM", HOME_LOCALE)
         .format(Date())
         .replaceFirstChar { char -> char.uppercase() }
 }
