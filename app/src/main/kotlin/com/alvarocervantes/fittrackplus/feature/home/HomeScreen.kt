@@ -42,6 +42,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -319,6 +321,7 @@ private fun WeekActivityStrip(
                 val isStepsCompleted = index in stepsDaysCompleted
                 WeekDayCell(
                     label = label,
+                    fullDayName = weekDayFullNames()[index],
                     isToday = isToday,
                     isTrained = isTrained,
                     isStepsCompleted = isStepsCompleted,
@@ -336,6 +339,7 @@ private fun WeekActivityStrip(
 @Composable
 private fun WeekDayCell(
     label: String,
+    fullDayName: String,
     isToday: Boolean,
     isTrained: Boolean,
     isStepsCompleted: Boolean,
@@ -345,12 +349,19 @@ private fun WeekDayCell(
     val (background, textColor) = weekDayCellColors(colorScheme, isToday, isTrained)
     val dotColor = weekDayCellDotColor(colorScheme, isToday, isTrained, isStepsCompleted)
     val hasActivity = isTrained || isStepsCompleted || isToday
+    val description = buildString {
+        append(fullDayName)
+        if (isToday) append(", hoy")
+        append(if (isTrained) ", entrenado" else ", sin entrenar")
+        if (isStepsCompleted) append(", objetivo de pasos cumplido")
+    }
 
     Column(
         modifier = modifier
             .clip(MaterialTheme.shapes.medium)
             .background(background)
-            .padding(vertical = FitSpacing.sm),
+            .padding(vertical = FitSpacing.sm)
+            .clearAndSetSemantics { contentDescription = description },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
     ) {
@@ -450,6 +461,10 @@ private fun StepProgressRow(
 
 private fun weekDayLabels(): List<String> {
     return listOf("L", "M", "X", "J", "V", "S", "D")
+}
+
+private fun weekDayFullNames(): List<String> {
+    return listOf("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo")
 }
 
 private fun weeklySessionLabel(sessionsThisWeek: Int): String {
