@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
@@ -88,8 +89,18 @@ private fun FitTrackStepperButton(
 ) {
     val visualSize: Dp = if (compact) 28.dp else 36.dp
     val iconSize: Dp = if (compact) 16.dp else 24.dp
-    // Keep the compact 28dp visual treatment while using Material's 48dp interactive bounds.
-    val sizeModifier = Modifier.minimumInteractiveComponentSize()
+    // Compact steppers sit two-per-row flanking a numeric field (workout weight/reps), which
+    // has Modifier.weight(1f) and shrinks to make room. The full 48dp Material touch target
+    // (minimumInteractiveComponentSize) takes 20dp more per button than the 28dp visual size,
+    // 40dp total, and was found to make the number field too narrow to read comfortably. 40dp
+    // is a middle ground: a real improvement over the untouched 28dp, without eating as much of
+    // the field's width. Only the roomy non-compact steppers (routine editor, settings) get the
+    // full 48dp minimum.
+    val sizeModifier: Modifier = if (compact) {
+        Modifier.sizeIn(minWidth = 40.dp, minHeight = 40.dp)
+    } else {
+        Modifier.minimumInteractiveComponentSize()
+    }
     Box(
         modifier = modifier
             .then(sizeModifier)
