@@ -779,7 +779,7 @@ private fun RoutineEditorContent(
 
         item {
             FitTrackAddButton(
-                label = "Anadir dia",
+                label = "Añadir dia",
                 onClick = onAddDay,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -997,7 +997,7 @@ private fun RoutineDayEditor(
             }
 
             FitTrackAddButton(
-                label = "Anadir ejercicio",
+                label = "Añadir ejercicio",
                 onClick = {
                     awaitingNewExerciseFocus = true
                     onAddExercise(dayIndex)
@@ -1061,7 +1061,7 @@ private fun RoutineExerciseEditor(
 
     if (showNotesDialog) {
         FitTrackInputDialog(
-            title = if (exercise.notes.isBlank()) "Anadir nota" else "Editar nota",
+            title = if (exercise.notes.isBlank()) "Añadir nota" else "Editar nota",
             value = notesDraft,
             onValueChange = { notesDraft = it },
             label = "Notas",
@@ -1507,7 +1507,7 @@ private fun NotesActionRow(
                 modifier = Modifier.size(18.dp)
             )
             Text(
-                text = if (hasNote) "Editar nota" else "Anadir nota",
+                text = if (hasNote) "Editar nota" else "Añadir nota",
                 modifier = Modifier.padding(start = FitSpacing.sm)
             )
         }
