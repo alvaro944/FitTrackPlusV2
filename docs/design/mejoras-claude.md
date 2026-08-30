@@ -482,6 +482,36 @@ ruta destructiva irreversible.
 
 ---
 
+### 41. El boton del menu flota sobre el contenido y abre por el lado contrario
+
+Encontrado al cerrar P3-2 de `docs/design/auditoria-ronda-3.md` (2026-08-30).
+
+`ShellMenuButton` (`core/design/AppShell.kt`) es un `Surface` de 40dp posicionado con
+`Modifier.align(Alignment.TopEnd)` dentro de un `Box`: no ocupa espacio de layout, se
+dibuja **encima** del contenido. De ahi salen dos problemas que comparten causa:
+
+- **Se solapa con lo que la pantalla ponga en esa esquina.** Se resolvio el caso de
+  Historial ocultando el boton mientras el detalle esta abierto
+  (`AppShellViewModel.setMenuButtonHidden`), pero es un parche por pantalla, no un
+  arreglo: cualquier cabecera futura con acciones `trailing` vuelve a chocar.
+- **Abre un `ModalNavigationDrawer` anclado al inicio (izquierda) desde un boton al
+  final (derecha).** El panel entra por el lado opuesto al que has tocado.
+
+Se intento mover el boton a `TopStart` y **se revirtio**: ahi es donde
+`FitTrackScreenHeader` dibuja el titulo de todas las pantallas, asi que cambiaba un
+solapamiento por otro peor.
+
+El arreglo de fondo es dejar de flotarlo: renderizar el boton **dentro** de
+`FitTrackScreenHeader`, en un slot propio antes del `leading`, para que participe del
+layout. Con eso desaparecen los dos problemas a la vez (nunca solapa, y queda en el lado
+del que abre el drawer) y `setMenuButtonHidden` se puede borrar. El coste es tocar la
+cabecera y sus llamadas en las cinco pantallas, mas decidir que pasa en el detalle de
+Historial, donde el slot ya lo ocupa la flecha de atras.
+
+**Esfuerzo**: medio — un cambio en `FitTrackScreenHeader` mas sus cinco llamadas.
+
+---
+
 ## Siguiente paso sugerido
 
 El usuario revisa entrada por entrada y marca cuales entran en el backlog real. Las descartadas se dejan aqui como registro. Las aceptadas se repriorizan en `docs/planning/roadmap-2.1.md` cuando pasan a ser direccion vigente.

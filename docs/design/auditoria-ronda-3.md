@@ -343,3 +343,43 @@ Arreglado el 2026-08-30 (`test` + `build` en verde):
 `minSdk` subio de 23 a **26** y `compileSdk` a **37** (exigido por Compose 1.12.0). Ambas
 decisiones estan documentadas en `docs/superpowers/specs/2026-08-29-dependency-upgrade.md`
 y son deliberadas. Deja fuera dispositivos por debajo de Android 8.0.
+
+---
+
+## Verificacion de P2 y P3 (2026-08-30)
+
+Revision de `refactor/input-and-nav` con `develop` ya mergeado dentro.
+`test` + `build` en verde.
+
+### P2 — 8 de 8, con tres huecos corregidos en la revision
+
+| # | Estado | Nota |
+|---|---|---|
+| P2-1 | OK | `KeyboardCapitalization.Words` en nombres. `normalizeEditorNameInput` y su gemela de Entrenar eliminadas. **Corregido en revision**: las notas no tenian `Sentences`, y `FitTrackInputDialog` seguia con `KeyboardOptions.Default` |
+| P2-2 | OK | **Corregido en revision**: el encadenado llego al editor de rutinas y a la fila de serie del historial, pero no a la del entrenamiento en vivo, que es la que se usa al registrar |
+| P2-3 | OK | `FitTrackInputDialog` migrado a `TextFieldValue`, asi que ya admite select-all. **Corregido en revision**: seguia reseleccionando en cada toque; ahora `SelectAllArming` lo limita a la primera entrada de foco, para poder corregir un decimal |
+| P2-4 | OK | `sanitizeWorkoutRepsInput` y corte de notacion cientifica. **Corregido en revision**: faltaban los topes de digitos |
+| P2-5 | Parcial | Saneado unificado en un solo sitio y notacion cientifica resuelta. El separador sigue fijado a coma en vez de derivarse del locale; se deja con P6 (i18n), porque hoy toda la copy es castellano literal |
+| P2-6 | OK | Errores diferidos hasta la interaccion |
+| P2-7 | OK | `maxLength` en `FitTrackSelectAllTextField` y `FitTrackInputDialog` |
+| P2-8 | OK | Pulsacion larga en steppers y tope del objetivo de pasos |
+
+### P3 — 7 de 8, 1 diferido
+
+| # | Estado | Nota |
+|---|---|---|
+| P3-1 | OK | Slot `leading` en `FitTrackScreenHeader`, atras a la izquierda, `Icons.AutoMirrored` |
+| P3-2 | Parcial | El drawer ya hace scroll. El desajuste de lado del boton queda diferido: entrada 41 de `mejoras-claude.md` |
+| P3-3 | OK | `activeTabReselected` consumido por las cinco pantallas |
+| P3-4 | OK | El menu ya no tiene callejones: widget es informativo y exportar funciona. Ajustes tiene su propio atras |
+| P3-5 | OK | `BackHandler` paginado y repeticion del tutorial desde Ajustes |
+| P3-6 | OK | Confirmaciones que faltaban, borrado de sesion, y confirmacion al cambiar de variante |
+| P3-7 | OK | Un solo enum de periodo con un orden y un defecto. **Anadido en revision**: accion "Limpiar" en la tarjeta de filtros, que faltaba para poder salir del filtro automatico por rutina activa |
+| P3-8 | OK | `SavedStateHandle` en Historial y Datos, `rememberSaveable` en lo local, y el tab inicial se consume una sola vez |
+
+### Correccion a la auditoria original
+
+La P3-2 proponia "mover el boton a TopStart, o anclar el drawer a la derecha". Se probo
+lo primero y **se revirtio**: `TopStart` es donde `FitTrackScreenHeader` dibuja el titulo
+de todas las pantallas, asi que cambiaba un solapamiento por otro peor. El arreglo real
+es sacar el boton del overlay y meterlo en la cabecera; queda en la entrada 41.
