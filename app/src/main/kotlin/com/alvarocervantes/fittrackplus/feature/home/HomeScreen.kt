@@ -59,6 +59,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
+import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
 import com.alvarocervantes.fittrackplus.core.design.surfaceCard
@@ -144,24 +145,11 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(FitSpacing.card)
         ) {
         item {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
-            ) {
-                Text(
-                    text = formatToday(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.textTertiary
-                )
-                Text(
-                    text = greetingForNow(),
-                    style = MaterialTheme.typography.displayLarge
-                )
-                Text(
-                    text = "Gestiona rutinas, registra sesiones y conserva tu historial local sin tocar el pasado.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            FitTrackScreenHeader(
+                eyebrow = formatToday(),
+                title = greetingForNow(),
+                subtitle = "Gestiona rutinas, registra sesiones y conserva tu historial local sin tocar el pasado."
+            )
         }
 
         item {
