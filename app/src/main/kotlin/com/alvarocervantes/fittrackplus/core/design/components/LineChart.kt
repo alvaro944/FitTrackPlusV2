@@ -45,6 +45,9 @@ fun LineChart(
     val dotOuterColor = MaterialTheme.colorScheme.primary
     val dotInnerColor = MaterialTheme.colorScheme.surface
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    // Read from the type scale, which is in sp, so the labels follow the user's font size setting.
+    // Drawing them at a dp size ignored that setting entirely.
+    val labelFontSize = MaterialTheme.typography.labelSmall.fontSize
 
     val sortedPoints = points.sortedBy { it.first }
 
@@ -82,7 +85,7 @@ fun LineChart(
         )
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = labelColor.toArgb()
-            textSize = 10.dp.toPx()
+            textSize = labelFontSize.toPx()
             textAlign = Paint.Align.CENTER
         }
 
