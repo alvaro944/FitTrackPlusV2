@@ -100,9 +100,9 @@ class DefaultWorkoutRepository @Inject constructor(
         }
     }
 
-    override suspend fun canReplaceWorkoutExerciseVariant(workoutExerciseId: Long): Boolean {
+    override suspend fun workoutExerciseHasLoggedSets(workoutExerciseId: Long): Boolean {
         workoutDao.getExercise(workoutExerciseId) ?: return false
-        return !hasRecordedData(workoutExerciseId)
+        return hasRecordedData(workoutExerciseId)
     }
 
     private suspend fun hasRecordedData(workoutExerciseId: Long): Boolean {
@@ -116,13 +116,11 @@ class DefaultWorkoutRepository @Inject constructor(
         exerciseName: String,
         targetRepsText: String,
         targetSets: Int,
-        notes: String?
+        notes: String?,
+        keepLoggedSets: Boolean
     ): Boolean {
         return database.withTransaction {
             val workoutExercise = workoutDao.getExercise(workoutExerciseId) ?: return@withTransaction false
-            if (hasRecordedData(workoutExerciseId)) {
-                return@withTransaction false
-            }
 
             val targetRange = TargetRepsRange.parse(targetRepsText)
             workoutDao.updateExercise(
@@ -135,16 +133,22 @@ class DefaultWorkoutRepository @Inject constructor(
                     targetRepsMaxSnapshot = targetRange?.max
                 )
             )
-            workoutDao.deleteSetsForExercise(workoutExerciseId)
-            repeat(targetSets) { setIndex ->
-                workoutDao.insertSet(
-                    WorkoutSetEntity(
-                        workoutExerciseId = workoutExerciseId,
-                        setNumber = setIndex + 1,
-                        weightKg = 0.0,
-                        reps = 0
+
+            // Relabelling an exercise you already trained must not throw the work away: the reps
+            // happened, only the variant they were filed under was wrong. Rebuilding the sets from
+            // the new prescription is only right when nothing has been logged yet.
+            if (!keepLoggedSets) {
+                workoutDao.deleteSetsForExercise(workoutExerciseId)
+                repeat(targetSets) { setIndex ->
+                    workoutDao.insertSet(
+                        WorkoutSetEntity(
+                            workoutExerciseId = workoutExerciseId,
+                            setNumber = setIndex + 1,
+                            weightKg = 0.0,
+                            reps = 0
+                        )
                     )
-                )
+                }
             }
             true
         }

@@ -350,4 +350,41 @@ class WorkoutInputDefaultsTest {
         assertTrue(arming.consume())
     }
 
+
+    @Test
+    fun clearingRepsOnTheSetBeingEditedIsNotRefilledBySuggestions() {
+        val sets = listOf(
+            WorkoutSetUiState(id = 1L, setNumber = 1, weightText = "60", repsText = "12", isCompleted = true),
+            WorkoutSetUiState(id = 2L, setNumber = 2, weightText = "", repsText = "")
+        )
+
+        val result = applyWorkoutSetInputSuggestions(
+            sets = sets,
+            targetRepsText = "8-12",
+            skipSetId = 2L
+        )
+
+        // The row the user just cleared stays cleared instead of a suggestion reappearing in it.
+        assertEquals("", result[1].repsText)
+    }
+
+    @Test
+    fun otherSetsStillGetTheirSuggestionWhileOneIsBeingEdited() {
+        val sets = listOf(
+            WorkoutSetUiState(id = 1L, setNumber = 1, weightText = "60", repsText = "10", isCompleted = true),
+            WorkoutSetUiState(id = 2L, setNumber = 2, weightText = "", repsText = ""),
+            WorkoutSetUiState(id = 3L, setNumber = 3, weightText = "", repsText = "")
+        )
+
+        val result = applyWorkoutSetInputSuggestions(
+            sets = sets,
+            targetRepsText = "8-12",
+            skipSetId = 2L
+        )
+
+        assertEquals("", result[1].repsText)
+        assertEquals("10", result[2].repsText)
+    }
+
+
 }

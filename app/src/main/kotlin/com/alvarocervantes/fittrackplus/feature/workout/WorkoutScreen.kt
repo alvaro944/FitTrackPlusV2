@@ -1063,8 +1063,14 @@ private fun ExerciseAlternativesDialog(
     pendingVariantKey?.let { variantKey ->
         FitTrackConfirmDialog(
             title = "Cambiar variante",
-            text = "Cambiaras el ejercicio activo de esta sesion. Las series objetivo se actualizaran " +
-                "segun la nueva variante.",
+            text = if (picker.hasLoggedSets) {
+                "Se conservaran las series que ya has registrado y solo cambiara la variante " +
+                    "a la que se atribuyen. Revisa el peso despues: puede no coincidir entre " +
+                    "una maquina y otra."
+            } else {
+                "Cambiaras el ejercicio activo de esta sesion. Las series objetivo se " +
+                    "actualizaran segun la nueva variante."
+            },
             confirmLabel = "Cambiar",
             dismissLabel = "Cancelar",
             onConfirm = {
@@ -1086,15 +1092,15 @@ private fun ExerciseAlternativesDialog(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (picker.draft == null) {
-                if (!picker.canSwapVariant) {
+                if (picker.hasLoggedSets) {
                     Text(
-                        text = "Ya has registrado series en este ejercicio, asi que no se puede " +
-                            "cambiar la variante en esta sesion. Puedes editarlas desde Rutinas.",
+                        text = "Ya has registrado series aqui. Si cambias de variante se " +
+                            "conservan, solo cambia el ejercicio al que se atribuyen.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                val optionsEnabled = picker.canSwapVariant && !picker.isSaving
+                val optionsEnabled = !picker.isSaving
                 picker.options.forEach { option ->
                     ExerciseVariantOptionCard(
                         option = option,
@@ -1107,7 +1113,7 @@ private fun ExerciseAlternativesDialog(
                 FitTrackTonalButton(
                     label = "Crear alternativa",
                     onClick = onStartCreating,
-                    enabled = picker.canSwapVariant && !picker.isSaving,
+                    enabled = !picker.isSaving,
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {

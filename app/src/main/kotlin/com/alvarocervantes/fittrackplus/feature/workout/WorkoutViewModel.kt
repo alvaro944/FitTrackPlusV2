@@ -225,20 +225,6 @@ class WorkoutViewModel @Inject constructor(
         val draft = picker.draft ?: return
         if (!draft.canSave || picker.isSaving) return
 
-        // The swap rebuilds this exercise's sets, so it is rejected once any set holds data.
-        // Check that before writing anything: otherwise the alternative is persisted in the
-        // routine, the swap fails, and every retry leaves another orphan copy behind.
-        if (!picker.canSwapVariant) {
-            _uiState.update { state ->
-                state.copy(
-                    alternativePicker = state.alternativePicker?.copy(draft = null),
-                    message = "Ya has registrado series en este ejercicio. " +
-                        "Crea la alternativa desde Rutinas."
-                )
-            }
-            return
-        }
-
         if (picker.hasVariantNamed(draft.name)) {
             _uiState.update { state ->
                 state.copy(message = "Ya existe una variante con ese nombre.")
@@ -266,7 +252,8 @@ class WorkoutViewModel @Inject constructor(
                     exerciseName = alternative.name,
                     targetRepsText = alternative.targetRepsText,
                     targetSets = alternative.targetSets,
-                    notes = alternative.notes
+                    notes = alternative.notes,
+                    keepLoggedSets = picker.hasLoggedSets
                 )
                 applied
             }.onSuccess { applied ->
@@ -279,14 +266,12 @@ class WorkoutViewModel @Inject constructor(
                         )
                     }
                 } else {
-                    // The pre-check passed but the swap still lost a race against a set write.
                     // The alternative is already saved in the routine, so close the dialog rather
                     // than inviting a retry that would create a duplicate.
                     _uiState.update { state ->
                         state.copy(
                             alternativePicker = null,
-                            message = "Alternativa guardada en la rutina, pero no se aplico: " +
-                                "ya has registrado series en este ejercicio."
+                            message = "Alternativa guardada en la rutina, pero no se pudo aplicar."
                         )
                     }
                 }
@@ -303,7 +288,7 @@ class WorkoutViewModel @Inject constructor(
 
     fun applyExerciseVariant(variantKey: String) {
         val picker = _uiState.value.alternativePicker ?: return
-        if (picker.isSaving || !picker.canSwapVariant) return
+        if (picker.isSaving) return
         val option = picker.options.firstOrNull { it.variantKey == variantKey } ?: return
 
         viewModelScope.launch {
@@ -316,21 +301,26 @@ class WorkoutViewModel @Inject constructor(
                 exerciseName = option.name,
                 targetRepsText = option.targetRepsText,
                 targetSets = option.targetSets,
-                notes = option.notes
+                notes = option.notes,
+                keepLoggedSets = picker.hasLoggedSets
             )
             if (applied) {
                 refreshActiveSessionFromRepository()
                 _uiState.update { state ->
                     state.copy(
                         alternativePicker = null,
-                        message = "Variante cambiada a ${option.name}."
+                        message = if (picker.hasLoggedSets) {
+                            "Variante cambiada a ${option.name}. Se han conservado tus series."
+                        } else {
+                            "Variante cambiada a ${option.name}."
+                        }
                     )
                 }
             } else {
                 _uiState.update { state ->
                     state.copy(
                         alternativePicker = null,
-                        message = "Ya has registrado series en este ejercicio."
+                        message = "No se pudo cambiar la variante."
                     )
                 }
             }
@@ -840,7 +830,7 @@ class WorkoutViewModel @Inject constructor(
             currentVariantKey = workoutExercise.variantKey,
             defaultVariantKey = routineExercise.defaultVariantKey,
             options = routineExercise.toVariantOptions(currentVariantKey = workoutExercise.variantKey),
-            canSwapVariant = workoutRepository.canReplaceWorkoutExerciseVariant(workoutExerciseId)
+            hasLoggedSets = workoutRepository.workoutExerciseHasLoggedSets(workoutExerciseId)
         )
     }
 }
@@ -920,7 +910,11 @@ data class ExerciseAlternativesUiState(
     val currentVariantKey: String,
     val defaultVariantKey: String,
     val options: List<ExerciseVariantOptionUiState>,
-    val canSwapVariant: Boolean = true,
+    /**
+     * True when this exercise already holds work. Swapping is still allowed — you may have logged
+     * onto the wrong machine — but the sets are kept instead of rebuilt, and the UI says so.
+     */
+    val hasLoggedSets: Boolean = false,
     val draft: ExerciseAlternativeDraftUiState? = null,
     val isSaving: Boolean = false
 ) {
@@ -1024,8 +1018,14 @@ private fun resolveExpandedExerciseId(
     }
 }
 
-private fun WorkoutExerciseUiState.withSuggestedInputs(): WorkoutExerciseUiState {
-    return copy(sets = applyWorkoutSetInputSuggestions(sets = sets, targetRepsText = targetRepsText))
+private fun WorkoutExerciseUiState.withSuggestedInputs(skipSetId: Long? = null): WorkoutExerciseUiState {
+    return copy(
+        sets = applyWorkoutSetInputSuggestions(
+            sets = sets,
+            targetRepsText = targetRepsText,
+            skipSetId = skipSetId
+        )
+    )
 }
 
 internal fun Double.toInputText(): String {
@@ -1085,9 +1085,17 @@ internal fun suggestWorkoutSetRepsInput(
     return targetRange?.first?.toString().orEmpty()
 }
 
+/**
+ * Pre-fills empty reps from the previous completed set or the target range.
+ *
+ * [skipSetId] is the set the user is editing right now. Without it, clearing a field immediately
+ * refilled it with a suggestion, so the value appeared to come back, and the next edit to the same
+ * row persisted that suggestion as if it had been typed.
+ */
 internal fun applyWorkoutSetInputSuggestions(
     sets: List<WorkoutSetUiState>,
-    targetRepsText: String
+    targetRepsText: String,
+    skipSetId: Long? = null
 ): List<WorkoutSetUiState> {
     var previousCompletedReps: Int? = null
     return sets.map { set ->
@@ -1096,6 +1104,7 @@ internal fun applyWorkoutSetInputSuggestions(
                 previousCompletedReps = set.repsText.toIntOrNull()
                 set
             }
+            set.id == skipSetId -> set
             set.repsText.isNotBlank() -> set
             else -> set.copy(
                 repsText = suggestWorkoutSetRepsInput(
@@ -1120,7 +1129,7 @@ internal fun updateWorkoutExercisesForSet(
                 sets = exercise.sets.map { set ->
                     if (set.id == setId) transform(set) else set
                 }
-            ).withSuggestedInputs()
+            ).withSuggestedInputs(skipSetId = setId)
         }
     }
 }
