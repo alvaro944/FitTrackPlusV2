@@ -319,19 +319,30 @@ private fun WeekActivityStrip(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)
         ) {
-            val todayIndex = (Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 5) % 7
-            weekDayLabels().forEachIndexed { index, label ->
-                val isToday = index == todayIndex
-                val isTrained = index in trainedDaysThisWeek
-                val isStepsCompleted = index in stepsDaysCompleted
-                WeekDayCell(
-                    label = label,
-                    fullDayName = weekDayFullNames()[index],
-                    isToday = isToday,
-                    isTrained = isTrained,
-                    isStepsCompleted = isStepsCompleted,
-                    modifier = Modifier.weight(1f)
-                )
+            if (isLoading) {
+                repeat(7) {
+                    SkeletonBlock(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = MaterialTheme.shapes.medium
+                    )
+                }
+            } else {
+                val todayIndex = (Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 5) % 7
+                weekDayLabels().forEachIndexed { index, label ->
+                    val isToday = index == todayIndex
+                    val isTrained = index in trainedDaysThisWeek
+                    val isStepsCompleted = index in stepsDaysCompleted
+                    WeekDayCell(
+                        label = label,
+                        fullDayName = weekDayFullNames()[index],
+                        isToday = isToday,
+                        isTrained = isTrained,
+                        isStepsCompleted = isStepsCompleted,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
 
