@@ -29,8 +29,8 @@ android {
         applicationId = "com.alvarocervantes.fittrackplus"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "0.7.0-dev"
+        versionCode = 8
+        versionName = "0.8.0"
         buildConfigField("String", "GIT_BRANCH", "\"$gitBranch\"")
         buildConfigField("String", "GIT_SHA", "\"$gitSha\"")
 

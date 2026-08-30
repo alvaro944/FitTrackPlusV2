@@ -512,6 +512,37 @@ Historial, donde el slot ya lo ocupa la flecha de atras.
 
 ---
 
+### 42. Exploracion "modern grit": decidir si se retoma o se archiva
+
+Rama `new-desing`, commit `bae2874`, **3.479 lineas**. Un sistema de diseño alternativo
+completo y paralelo al actual: paquete `grit/` con su propio `AppShell`, las cinco pantallas
+(Home, Rutinas, Entrenar, Historial, Datos), su set de componentes y su tema, mas un conmutador
+en runtime para alternar entre ese estilo y el vigente. Relacionado con la carpeta `design/`
+sin trackear.
+
+**No esta mergeado y no compite con lo hecho en las rondas 1-3**: aquellas unificaron el sistema
+actual, esto es una alternativa entera al mismo.
+
+**Etiquetado como `explore/modern-grit`**, asi que el commit es recuperable por nombre aunque la
+rama `new-desing` se borre. La decision de borrar la rama ya no tiene consecuencias: es
+cosmetica.
+
+Tres salidas posibles, por orden de coste:
+
+1. **Archivar**: borrar la rama y dejarlo en el tag. Se recupera con
+   `git checkout explore/modern-grit` el dia que haga falta.
+2. **Cosechar**: extraer las ideas concretas que aporten (un componente, una decision de
+   jerarquia) al sistema actual, sin traerse el paralelo.
+3. **Retomar**: mantener dos sistemas de diseño vivos con conmutador. Es la mas cara con
+   diferencia — duplica el coste de cada cambio de UI a partir de ese momento.
+
+La 3 solo tiene sentido si el conmutador es un objetivo de producto, no un resto de la
+exploracion.
+
+**Esfuerzo**: la decision es barata; ejecutar la 2 o la 3 no.
+
+---
+
 ## Siguiente paso sugerido
 
 El usuario revisa entrada por entrada y marca cuales entran en el backlog real. Las descartadas se dejan aqui como registro. Las aceptadas se repriorizan en `docs/planning/roadmap-2.1.md` cuando pasan a ser direccion vigente.

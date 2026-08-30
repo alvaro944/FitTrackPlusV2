@@ -53,6 +53,10 @@ Cambios cerrados:
   series registradas era la regla equivocada. Ahora se conservan las series y solo cambia la
   variante a la que se atribuyen, para el caso de haber registrado en la maquina equivocada.
 
+Version: `0.8.0` (versionCode 8), subida desde `0.7.0-dev`. Se quita el sufijo `-dev` porque
+main pasa a ser el punto de control oficial. No es 1.0 porque P5 y P6 estan sin empezar, quedan
+cuatro puntos de P4 y cuatro entradas de backlog abiertas. Etiquetado como `v0.8.0`.
+
 Pendiente:
 
 - **Terminar la pasada manual**. Checklist de 10 pasadas en
