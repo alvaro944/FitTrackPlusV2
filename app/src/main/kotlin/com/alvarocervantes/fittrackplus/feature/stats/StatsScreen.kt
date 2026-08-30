@@ -10,6 +10,7 @@ import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
 import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -1014,7 +1015,11 @@ private fun DayBarColumn(
     else MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
-        modifier = modifier.clickable(onClick = onSelect),
+        modifier = modifier.clickable(
+            onClickLabel = "Ver pasos del dia $label",
+            role = Role.Tab,
+            onClick = onSelect
+        ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
     ) {
