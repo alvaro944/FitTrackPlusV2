@@ -585,6 +585,9 @@ private fun SessionVolumeTrendCard(
                     "${session.totalVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}"
                 },
                 xAxisLabels = selectedSessions.map { session -> formatChartDate(session.finishedAt) },
+                chartDescription = "Tendencia de volumen a lo largo de ${selectedSessions.size} sesiones, " +
+                    "de ${selectedSessions.first().totalVolumeKg.toDisplayText(weightUnit)} a " +
+                    "${selectedSessions.last().totalVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}",
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(150.dp)
@@ -804,6 +807,10 @@ private fun ProgressChartCard(
                     selectedPointIndex = selectedIndex,
                     pointLabels = progressPoints.map { point -> point.toChartLabel(selectedMetric, weightUnit) },
                     xAxisLabels = progressPoints.map { point -> formatChartDate(point.finishedAt) },
+                    chartDescription = "Evolucion de ${selectedMetric.label} de $selectedExerciseName " +
+                        "a lo largo de ${progressPoints.size} sesiones, de " +
+                        "${progressPoints.first().toChartLabel(selectedMetric, weightUnit)} a " +
+                        progressPoints.last().toChartLabel(selectedMetric, weightUnit),
                     onPointSelected = { index ->
                         progressPoints.getOrNull(index)?.let { point ->
                             onSelectProgressPoint(point.sessionId)
