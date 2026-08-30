@@ -58,7 +58,12 @@ data class ExerciseRecords(
 data class HeatmapDay(
     val epochDay: Long,
     val totalVolumeKg: Double,
-    val intensityLevel: Int  // 0 = sin actividad, 1-4 = cuartiles del rango con actividad
+    val intensityLevel: Int,  // 0 = sin actividad, 1-4 = cuartiles del rango con actividad
+    /**
+     * Sesiones terminadas ese dia. Es lo que decide si el dia cuenta como entrenado: un
+     * entrenamiento de peso corporal tiene volumen 0 y aun asi es un dia entrenado.
+     */
+    val sessionCount: Int = 0
 )
 
 data class ExerciseSetRecord(

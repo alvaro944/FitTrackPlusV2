@@ -139,6 +139,32 @@ class GetWorkoutHeatmapUseCaseTest {
         }
     }
 
+
+    @Test
+    fun bodyweightSessionCountsAsATrainedDayDespiteZeroVolume() = runTest {
+        val repo = HeatmapWorkoutRepository(
+            listOf(
+                session(
+                    sessionId = 1,
+                    finishedAt = NOW_MS - DAY_MS,
+                    // Pull-ups: reps logged, no weight, so volume is zero.
+                    sets = listOf(set(weightKg = 0.0, reps = 10))
+                )
+            )
+        )
+        val useCase = GetWorkoutHeatmapUseCase(repo)
+
+        useCase(nowMillis = NOW_MS).test {
+            val days = awaitItem()
+            val trained = days.filter { it.sessionCount > 0 }
+            assertEquals(1, trained.size)
+            assertEquals(0.0, trained.first().totalVolumeKg, 0.001)
+            // Still marked active, otherwise the calendar shows an untrained day.
+            assertEquals(1, trained.first().intensityLevel)
+            awaitComplete()
+        }
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private fun session(

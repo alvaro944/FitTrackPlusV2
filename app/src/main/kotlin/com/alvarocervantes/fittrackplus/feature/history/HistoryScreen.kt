@@ -69,6 +69,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackErrorState
 import com.alvarocervantes.fittrackplus.core.design.FitTrackDropdownField
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCardBadge
@@ -558,9 +559,19 @@ private fun HistoryDetailContent(
                 }
             }
 
+            // A session is selected, nothing is loading, and no detail arrived: the read failed
+            // or the session is gone. Showing skeletons here left them shimmering forever with
+            // the back button as the only way out.
             else -> {
-                item { HistoryDetailSummarySkeleton() }
-                item { HistoryComparisonSkeleton() }
+                item {
+                    FitTrackErrorState(
+                        title = "No se pudo abrir la sesion",
+                        message = "No hemos podido cargar los detalles de este entrenamiento. " +
+                            "Puede que ya no exista.",
+                        onRetry = onBackToList,
+                        retryLabel = "Volver al historial"
+                    )
+                }
             }
         }
     }

@@ -59,6 +59,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackEmptyState
+import com.alvarocervantes.fittrackplus.core.design.FitTrackErrorState
 import com.alvarocervantes.fittrackplus.core.design.FitTrackDropdownField
 import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRow
 import com.alvarocervantes.fittrackplus.core.design.FitTrackKeyValueRowStyle
@@ -186,18 +187,10 @@ private fun StatsContent(
 
             state.message != null -> {
                 item {
-                    FitTrackCard {
-                        Text(
-                            text = "No se pudieron cargar los datos",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Text(
-                            text = state.message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    FitTrackErrorState(
+                        title = "No se pudieron cargar los datos",
+                        message = state.message
+                    )
                 }
             }
 
@@ -402,7 +395,7 @@ private fun ConsistencyCalendarCard(
     val currentMonth = YearMonth.now()
     val activeDays = remember(days) {
         days
-            .filter { day -> day.totalVolumeKg > 0.0 }
+            .filter { day -> day.sessionCount > 0 }
             .associateBy { day -> LocalDate.ofEpochDay(day.epochDay) }
     }
 
