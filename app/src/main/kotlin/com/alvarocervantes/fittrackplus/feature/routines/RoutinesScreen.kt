@@ -64,6 +64,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -82,6 +83,7 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackEntityListCardBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackFormDialogActions
 import com.alvarocervantes.fittrackplus.core.design.FitTrackInputDialog
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadge
+import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeSize
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeTone
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeVariant
 import com.alvarocervantes.fittrackplus.core.design.FitTrackOutlinedButton
@@ -855,37 +857,35 @@ private fun RoutineDayEditor(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
+            // The card is already the day's surface: no nested filled block, so the concentric
+            // radius rule holds and expansion is signalled by the chevron alone.
             Row(
                 modifier = Modifier
                     .weight(1f)
-                    .background(
-                        color = if (isExpanded) {
-                            MaterialTheme.colorScheme.primarySoft
+                    .clickable(
+                        onClickLabel = if (isExpanded) {
+                            "Colapsar dia ${dayIndex + 1}"
                         } else {
-                            MaterialTheme.colorScheme.surfaceAlt
+                            "Expandir dia ${dayIndex + 1}"
                         },
-                        shape = MaterialTheme.shapes.large
-                    )
-                    .clickable { onToggleExpanded(dayIndex) }
-                    .padding(FitSpacing.md),
+                        role = Role.Button,
+                        onClick = { onToggleExpanded(dayIndex) }
+                    ),
                 horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(width = 6.dp, height = 40.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = MaterialTheme.shapes.small
-                        )
+                FitTrackIconBadge(
+                    variant = FitTrackIconBadgeVariant.Number("${dayIndex + 1}"),
+                    tone = FitTrackIconBadgeTone.Soft
                 )
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
                 ) {
                     Text(
+                        // titleMedium, a step below the routine name that owns this editor.
                         text = day.name.ifBlank { "Dia ${dayIndex + 1}" },
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -899,23 +899,18 @@ private fun RoutineDayEditor(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                IconButton(
-                    onClick = { onToggleExpanded(dayIndex) },
-                    modifier = Modifier.minimumInteractiveComponentSize()
-                ) {
-                    Icon(
-                        imageVector = if (isExpanded) {
-                            Icons.Filled.KeyboardArrowUp
-                        } else {
-                            Icons.Filled.KeyboardArrowDown
-                        },
-                        contentDescription = if (isExpanded) {
-                            "Colapsar dia ${dayIndex + 1}"
-                        } else {
-                            "Expandir dia ${dayIndex + 1}"
-                        }
-                    )
-                }
+                // Decorative: the whole header row is the control, and it carries the label and
+                // role. A nested IconButton here would be a second click target saying the same
+                // thing twice to TalkBack.
+                Icon(
+                    imageVector = if (isExpanded) {
+                        Icons.Filled.KeyboardArrowUp
+                    } else {
+                        Icons.Filled.KeyboardArrowDown
+                    },
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
@@ -1172,21 +1167,21 @@ private fun RoutineExerciseEditor(
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceAlt, MaterialTheme.shapes.large)
-            .padding(FitSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(FitSpacing.smMd)
-    ) {
+    // Surface + border like every other container in the app, instead of the one borderless
+    // filled block it used to be.
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+      Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.smMd)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Ejercicio ${exerciseIndex + 1}",
-                style = MaterialTheme.typography.labelLarge
+            // The ordinal as a badge rather than a bold "Ejercicio N" label competing with the
+            // name field right below it.
+            FitTrackIconBadge(
+                variant = FitTrackIconBadgeVariant.Number("${exerciseIndex + 1}"),
+                tone = FitTrackIconBadgeTone.Soft,
+                size = FitTrackIconBadgeSize.Small
             )
             FitTrackReorderActions(
                 canMoveUp = canMoveUp,
@@ -1262,6 +1257,7 @@ private fun RoutineExerciseEditor(
                 showNotesDialog = true
             }
         )
+      }
     }
 }
 
@@ -1325,33 +1321,38 @@ private fun ExerciseAlternativesEditorDialog(
         onDismissRequest = onDismiss,
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
-                FitTrackCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    borderColor = if (exercise.defaultVariantKey == exercise.variantKey) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.borderLight
-                    }
-                ) {
+                val baseIsDefault = exercise.defaultVariantKey == null ||
+                    exercise.defaultVariantKey == exercise.variantKey
+                FitTrackCard(modifier = Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
-                        Text(
-                            text = exercise.name.ifBlank { "Ejercicio base" },
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        // Badge rather than a coloured border, matching how the workout tab marks
+                        // the default variant.
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = exercise.name.ifBlank { "Ejercicio base" },
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (baseIsDefault) {
+                                FitTrackBadge(label = "PREDET.", tone = FitTrackBadgeTone.Active)
+                            }
+                        }
                         Text(
                             text = "${exercise.targetSets} series · ${exercise.targetRepsText} reps",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(onClick = onSetBaseAsDefault) {
-                                Text(
-                                    if (exercise.defaultVariantKey == null || exercise.defaultVariantKey == exercise.variantKey) {
-                                        "Predeterminada"
-                                    } else {
-                                        "Usar por defecto"
-                                    }
-                                )
+                        // Only offered when it would change something: a button reading
+                        // "Predeterminada" on the item that already is one looks tappable and is not.
+                        if (!baseIsDefault) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                TextButton(onClick = onSetBaseAsDefault) {
+                                    Text("Usar por defecto")
+                                }
                             }
                         }
                     }
@@ -1359,14 +1360,8 @@ private fun ExerciseAlternativesEditorDialog(
 
                 exercise.alternatives.forEachIndexed { index, alternative ->
                     val isEditing = editingAlternativeIndex == index
-                    FitTrackCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        borderColor = if (exercise.defaultVariantKey == alternative.variantKey) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.borderLight
-                        }
-                    ) {
+                    val isDefault = exercise.defaultVariantKey == alternative.variantKey
+                    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
                         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
                             if (isEditing) {
                                 val notesFocusRequester = remember { FocusRequester() }
@@ -1422,24 +1417,40 @@ private fun ExerciseAlternativesEditorDialog(
                                     onConfirm = onCloseEditor
                                 )
                             } else {
-                                Text(text = alternative.name, style = MaterialTheme.typography.titleMedium)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = alternative.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (isDefault) {
+                                        FitTrackBadge(label = "PREDET.", tone = FitTrackBadgeTone.Active)
+                                    }
+                                }
                                 Text(
                                     text = "${alternative.targetSets} series · ${alternative.targetRepsText} reps",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                // FlowRow so three actions wrap instead of clipping off the
+                                // leading edge on a narrow screen.
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
                                     TextButton(onClick = { onEditAlternative(index) }) {
                                         Text("Editar")
                                     }
-                                    TextButton(onClick = { onSetAlternativeAsDefault(alternative.variantKey) }) {
-                                        Text(
-                                            if (exercise.defaultVariantKey == alternative.variantKey) {
-                                                "Predeterminada"
-                                            } else {
-                                                "Usar por defecto"
-                                            }
-                                        )
+                                    if (!isDefault) {
+                                        TextButton(
+                                            onClick = { onSetAlternativeAsDefault(alternative.variantKey) }
+                                        ) {
+                                            Text("Usar por defecto")
+                                        }
                                     }
                                     TextButton(onClick = { onRemoveAlternative(index) }) {
                                         Text("Eliminar")
