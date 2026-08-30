@@ -53,12 +53,11 @@ import com.alvarocervantes.fittrackplus.feature.onboarding.OnboardingScreen
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
-private val IntroBackground = Color(0xFFF4F4F1)
-private val IntroBackgroundSoft = Color(0xFFFAFAF7)
-private val IntroBackgroundEdge = Color(0xFFECEAE5)
-private val IntroGraphite = Color(0xFF161816)
-private val IntroEmerald = Color(0xFF1F6B57)
-private val IntroCopper = Color(0xFFC47A49)
+// The intro remains 1240 ms: it is short enough to avoid delaying app access while preserving
+// the entrance, detail reveal, and exit choreography of the launch transition.
+private const val INTRO_DETAILS_DELAY_MILLIS = 260L
+private const val INTRO_VISIBLE_DURATION_MILLIS = 760L
+private const val INTRO_EXIT_DURATION_MILLIS = 220L
 
 @Composable
 fun FitTrackPlusAppRoot(
@@ -81,14 +80,15 @@ private fun LaunchIntroScreen(
 ) {
     var isVisible by remember { mutableStateOf(false) }
     var showDetails by remember { mutableStateOf(false) }
+    val colors = MaterialTheme.colorScheme
 
     LaunchedEffect(Unit) {
         isVisible = true
-        delay(260)
+        delay(INTRO_DETAILS_DELAY_MILLIS)
         showDetails = true
-        delay(760)
+        delay(INTRO_VISIBLE_DURATION_MILLIS)
         isVisible = false
-        delay(220)
+        delay(INTRO_EXIT_DURATION_MILLIS)
         onFinished()
     }
 
@@ -141,7 +141,7 @@ private fun LaunchIntroScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(IntroBackground)
+            .background(colors.background)
             .graphicsLayer { alpha = rootAlpha }
     ) {
         IntroBackgroundLayers(
@@ -174,8 +174,8 @@ private fun LaunchIntroScreen(
                         .background(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    IntroEmerald.copy(alpha = 0.26f),
-                                    IntroEmerald.copy(alpha = 0.08f),
+                                    colors.primary.copy(alpha = 0.26f),
+                                    colors.primary.copy(alpha = 0.08f),
                                     Color.Transparent
                                 ),
                                 radius = 180f
@@ -200,7 +200,7 @@ private fun LaunchIntroScreen(
                                 brush = Brush.linearGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Color.White.copy(alpha = 0.18f),
+                                        colors.onBackground.copy(alpha = 0.18f),
                                         Color.Transparent
                                     ),
                                     start = Offset(shimmerSweep, 0f),
@@ -221,7 +221,7 @@ private fun LaunchIntroScreen(
                 Text(
                     text = buildAnnotatedString {
                         append("FIT")
-                        withStyle(style = SpanStyle(color = IntroEmerald)) {
+                        withStyle(style = SpanStyle(color = colors.primary)) {
                             append("TRACK")
                         }
                         append("PLUS")
@@ -229,7 +229,7 @@ private fun LaunchIntroScreen(
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 3.4.sp,
-                        color = IntroGraphite
+                        color = colors.onBackground
                     ),
                     textAlign = TextAlign.Center
                 )
@@ -242,7 +242,7 @@ private fun LaunchIntroScreen(
                             brush = Brush.horizontalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    IntroEmerald.copy(alpha = 0.45f),
+                                    colors.primary.copy(alpha = 0.45f),
                                     Color.Transparent
                                 )
                             )
@@ -253,7 +253,7 @@ private fun LaunchIntroScreen(
                     text = "Entrena · Progresa · Supera",
                     style = MaterialTheme.typography.labelMedium.copy(
                         letterSpacing = 2.6.sp,
-                        color = IntroGraphite.copy(alpha = 0.42f)
+                        color = colors.onBackground.copy(alpha = 0.42f)
                     ),
                     textAlign = TextAlign.Center
                 )
@@ -264,7 +264,7 @@ private fun LaunchIntroScreen(
                         .fillMaxWidth(0.16f)
                         .height(2.dp)
                         .clip(RoundedCornerShape(999.dp))
-                        .background(IntroGraphite.copy(alpha = 0.10f))
+                        .background(colors.onBackground.copy(alpha = 0.10f))
                 ) {
                     Box(
                         modifier = Modifier
@@ -273,7 +273,7 @@ private fun LaunchIntroScreen(
                             .clip(RoundedCornerShape(999.dp))
                             .background(
                                 brush = Brush.horizontalGradient(
-                                    colors = listOf(IntroEmerald, Color(0xFF3A8870))
+                                    colors = listOf(colors.primary, colors.tertiary)
                                 )
                             )
                     )
@@ -288,6 +288,8 @@ private fun IntroBackgroundLayers(
     modifier: Modifier,
     emeraldPulse: Float
 ) {
+    val colors = MaterialTheme.colorScheme
+
     Box(modifier = modifier) {
         Box(
             modifier = Modifier
@@ -295,9 +297,9 @@ private fun IntroBackgroundLayers(
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            IntroBackgroundSoft,
-                            IntroBackground,
-                            IntroBackgroundEdge
+                            colors.surface,
+                            colors.background,
+                            colors.surfaceVariant
                         ),
                         center = Offset(540f, 520f),
                         radius = 1200f
@@ -312,8 +314,8 @@ private fun IntroBackgroundLayers(
                     brush = Brush.radialGradient(
                         colors = listOf(
                             Color.Transparent,
-                            IntroGraphite.copy(alpha = 0.04f),
-                            IntroGraphite.copy(alpha = 0.10f)
+                            colors.onBackground.copy(alpha = 0.04f),
+                            colors.onBackground.copy(alpha = 0.10f)
                         ),
                         center = Offset(540f, 880f),
                         radius = 1250f
@@ -338,8 +340,8 @@ private fun IntroBackgroundLayers(
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            IntroEmerald.copy(alpha = 0.10f),
-                            IntroEmerald.copy(alpha = 0.03f),
+                            colors.primary.copy(alpha = 0.10f),
+                            colors.primary.copy(alpha = 0.03f),
                             Color.Transparent
                         ),
                         radius = 420f
@@ -356,7 +358,7 @@ private fun IntroBackgroundLayers(
                 .background(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            IntroCopper.copy(alpha = 0.08f),
+                            colors.secondary.copy(alpha = 0.08f),
                             Color.Transparent
                         ),
                         radius = 220f
