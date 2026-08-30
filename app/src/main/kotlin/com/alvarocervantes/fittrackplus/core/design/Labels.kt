@@ -55,7 +55,7 @@ fun FitTrackBadge(
     val background = when (tone) {
         FitTrackBadgeTone.Primary -> MaterialTheme.colorScheme.primarySoft
         FitTrackBadgeTone.Warm -> MaterialTheme.colorScheme.accentSoft
-        FitTrackBadgeTone.Neutral -> MaterialTheme.colorScheme.surfaceAlt
+        FitTrackBadgeTone.Neutral -> MaterialTheme.colorScheme.surfaceVariant
         FitTrackBadgeTone.Error -> MaterialTheme.colorScheme.errorSoft
         FitTrackBadgeTone.Active -> MaterialTheme.colorScheme.primary
     }

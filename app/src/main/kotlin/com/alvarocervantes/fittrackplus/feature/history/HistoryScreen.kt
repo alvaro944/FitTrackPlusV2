@@ -88,7 +88,6 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRow
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowEditFieldStyle
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowMode
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutHistoryDeltaDirection
 import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod

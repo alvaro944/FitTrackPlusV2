@@ -101,7 +101,6 @@ import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
 import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import com.alvarocervantes.fittrackplus.core.design.borderLight
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 
 private const val MAX_NAME_LENGTH = 60
 private const val MAX_NOTES_LENGTH = 500
@@ -385,7 +384,7 @@ private fun RoutineListContent(
                 item {
                     FitTrackCard(
                         modifier = Modifier.fillMaxWidth(),
-                        containerColor = MaterialTheme.colorScheme.surfaceAlt
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),

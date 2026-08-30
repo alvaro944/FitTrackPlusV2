@@ -119,7 +119,6 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackSetRowMode
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTargetPrescriptionFields
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
 import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import java.text.SimpleDateFormat

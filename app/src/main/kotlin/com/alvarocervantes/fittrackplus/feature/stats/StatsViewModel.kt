@@ -25,6 +25,7 @@ import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.update
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -47,7 +49,10 @@ class StatsViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+
     private val selectedPeriod = MutableStateFlow(WorkoutStatsPeriod.LastFourWeeks)
+    /** Bumped by [retry] to re-subscribe the stats flow after a failure. */
+    private val retryTrigger = MutableStateFlow(0)
     private val activeRoutineId = MutableStateFlow<Long?>(null)
     private val _selectedWeekStart = MutableStateFlow(currentWeekMonday())
     private val _uiState = MutableStateFlow(
@@ -76,7 +81,9 @@ class StatsViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        combine(selectedPeriod, activeRoutineId) { period, routineId -> period to routineId }
+        combine(selectedPeriod, activeRoutineId, retryTrigger) { period, routineId, _ ->
+            period to routineId
+        }
             .flatMapLatest { (period, routineId) ->
                 observeWorkoutStats(period = period).map { stats -> Triple(period, routineId, stats) }
             }
@@ -88,16 +95,20 @@ class StatsViewModel @Inject constructor(
                             isLoading = false,
                             activeRoutineId = routineId
                         )
-                    )
+                    ).copy(error = null)
                 }
             }
-            .catch { throwable ->
+            // retryWhen, not catch: catch terminates the upstream, so a single transient failure
+            // would leave the tab frozen for the life of the ViewModel.
+            .retryWhen { throwable, _ ->
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
-                        message = throwable.message ?: "No se pudieron cargar las estadisticas."
+                        error = throwable.message ?: "No se pudieron cargar las estadisticas."
                     )
                 }
+                delay(STATS_RETRY_DELAY_MS)
+                true
             }
             .launchIn(viewModelScope)
 
@@ -178,6 +189,12 @@ class StatsViewModel @Inject constructor(
         }
     }
 
+    /** Clears the error and re-subscribes the stats flow so the user can ask for another go. */
+    fun retry() {
+        _uiState.update { state -> state.copy(error = null, isLoading = true) }
+        retryTrigger.value += 1
+    }
+
     fun setPeriodFilter(period: WorkoutStatsPeriod) {
         selectedPeriod.value = period
     }
@@ -239,6 +256,7 @@ class StatsViewModel @Inject constructor(
     private companion object {
         const val VISIBLE_CALENDAR_MONTH_KEY = "visible_calendar_month"
         const val SELECTED_STEPS_DAY_KEY = "selected_steps_day_index"
+        const val STATS_RETRY_DELAY_MS = 3_000L
     }
 }
 
@@ -256,6 +274,12 @@ data class WeeklyStepsData(
 
 data class StatsUiState(
     val isLoading: Boolean = true,
+    /**
+     * A load failure that stays on screen until it resolves. Kept apart from [message], which is a
+     * transient snackbar the UI clears after showing: sharing one field made the error card vanish
+     * the moment the snackbar timed out.
+     */
+    val error: String? = null,
     val sessionVolumes: List<SessionVolumeUiState> = emptyList(),
     val exerciseProgress: List<ExerciseProgressUiState> = emptyList(),
     val exerciseRecords: List<ExerciseRecordsUiState> = emptyList(),

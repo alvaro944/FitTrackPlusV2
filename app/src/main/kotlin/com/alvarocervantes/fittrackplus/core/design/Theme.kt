@@ -54,7 +54,6 @@ val DarkColors = darkColorScheme(
 
 @Immutable
 data class FitTrackPlusExtraColors(
-    val surfaceAlt: Color,
     val surfaceCard: Color,
     val borderLight: Color,
     val textTertiary: Color,
@@ -78,7 +77,6 @@ data class FitTrackPlusExtraColors(
 )
 
 private val LightExtraColors = FitTrackPlusExtraColors(
-    surfaceAlt = Color(0xFFE8E5DD),
     surfaceCard = Color(0xFFF6F3EB),
     borderLight = Color(0xFFD5D0C5),
     textTertiary = Color(0xFF9AA09B),
@@ -96,7 +94,6 @@ private val LightExtraColors = FitTrackPlusExtraColors(
 )
 
 private val DarkExtraColors = FitTrackPlusExtraColors(
-    surfaceAlt = Color(0xFF272A27),
     surfaceCard = Color(0xFF2B2F2B),
     borderLight = Color(0xFF353835),
     textTertiary = Color(0xFF5E655F),
@@ -235,10 +232,6 @@ val ColorScheme.primarySoft: Color
 val ColorScheme.primaryDark: Color
     @Composable
     get() = FitTrackPlusStyle.extraColors.primaryDark
-
-val ColorScheme.surfaceAlt: Color
-    @Composable
-    get() = FitTrackPlusStyle.extraColors.surfaceAlt
 
 val ColorScheme.onHero: Color
     @Composable

@@ -413,12 +413,12 @@ Rehecho sobre el design system, **sin componentes nuevos** salvo un tamaño mas 
 
 | # | Estado | Nota |
 |---|---|---|
-| P4-1 | OK | `surfaceCard` ya no es identico a `surface`, asi que `FitTrackCard(highlighted = true)` hace algo. `surfaceAlt` sigue siendo un alias de `surfaceVariant`: es duplicacion, pero inofensiva, no una API muerta |
+| P4-1 | OK | `surfaceCard` ya no es identico a `surface`, asi que `FitTrackCard(highlighted = true)` hace algo. Y `surfaceAlt`, que era un alias byte a byte de `surfaceVariant`, se elimina: dos nombres para un mismo color son justo lo que las rondas 1 y 2 vinieron a quitar |
 | P4-2 | OK | Roles `onHero` y `onHeroMuted` resueltos por esquema, en lugar de `Color.White` literal sobre un fondo que en oscuro es verde claro |
 | P4-3 | OK | Insets zerados en Home, Ajustes, Historial y Datos. Home y Ajustes adoptan la receta compartida de `contentPadding` |
 | P4-4 | Pendiente | Siguen tres idiomas de cabecera: `FitTrackScreenHeader`, la pila propia de Home y el `TopAppBar` de Ajustes |
 | P4-5 | Pendiente | Los esqueletos siguen sin parecerse a lo que cargan, y falta el esqueleto de lista compartido |
-| P4-6 | OK | `FitTrackErrorState` en `core/design`. Arregla ademas la rama de Historial que dejaba los esqueletos brillando para siempre |
+| P4-6 | OK | `FitTrackErrorState` en `core/design`. Arregla ademas la rama de Historial que dejaba los esqueletos brillando para siempre. Corregido tras revision de Codex: el error de Datos compartia campo con el snackbar, asi que la tarjeta desaparecia al cerrarse este; ahora hay un `error` separado de `message`, `retryWhen` en vez de `catch` (que terminaba el flujo) y un reintento real |
 | P4-7 | OK | `fitTrackDeltaTone` como fuente unica, con `FitTrackDeltaMeaning.Neutral` para duracion. "Objetivo cumplido" usa el rol `success` que estaba sin usar |
 | P4-8 | Parcial | Las etiquetas ya usan sp y siguen el ajuste de fuente. Faltan eje Y, linea base y semantica para lector de pantalla |
 | P4-9 | OK | `HeatmapDay.sessionCount`: una sesion de peso corporal cuenta como dia entrenado aunque su volumen sea 0 |

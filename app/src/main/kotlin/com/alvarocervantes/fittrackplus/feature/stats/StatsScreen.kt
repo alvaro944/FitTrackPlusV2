@@ -75,7 +75,6 @@ import com.alvarocervantes.fittrackplus.core.design.accentSoft
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import com.alvarocervantes.fittrackplus.core.design.success
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.YearMonth
@@ -118,6 +117,7 @@ fun StatsScreen(
             state = state,
             contentPadding = padding,
             listState = listState,
+            onRetry = viewModel::retry,
             onPeriodFilterChange = viewModel::setPeriodFilter,
             onSelectRoutine = viewModel::selectRoutine,
             onSelectDay = viewModel::selectDay,
@@ -139,6 +139,7 @@ private fun StatsContent(
     state: StatsUiState,
     contentPadding: PaddingValues,
     listState: LazyListState,
+    onRetry: () -> Unit,
     onPeriodFilterChange: (WorkoutStatsPeriod) -> Unit,
     onSelectRoutine: (String) -> Unit,
     onSelectDay: (String) -> Unit,
@@ -186,11 +187,12 @@ private fun StatsContent(
                 item { StatsLoadingSkeleton() }
             }
 
-            state.message != null -> {
+            state.error != null -> {
                 item {
                     FitTrackErrorState(
                         title = "No se pudieron cargar los datos",
-                        message = state.message
+                        message = state.error,
+                        onRetry = onRetry
                     )
                 }
             }
@@ -506,7 +508,7 @@ private fun ConsistencyDayCell(
     val backgroundColor = when {
         hasWorkout -> MaterialTheme.colorScheme.primary
         isToday -> MaterialTheme.colorScheme.primarySoft
-        date != null -> MaterialTheme.colorScheme.surfaceAlt
+        date != null -> MaterialTheme.colorScheme.surfaceVariant
         else -> MaterialTheme.colorScheme.surface.copy(alpha = 0f)
     }
     val textColor = when {
@@ -1006,7 +1008,7 @@ private fun DayBarColumn(
         goalMet -> MaterialTheme.colorScheme.success
         isToday -> MaterialTheme.colorScheme.primary
         steps > 0 -> MaterialTheme.colorScheme.primarySoft
-        else -> MaterialTheme.colorScheme.surfaceAlt
+        else -> MaterialTheme.colorScheme.surfaceVariant
     }
     val labelColor = if (isSelected || isToday) MaterialTheme.colorScheme.primary
     else MaterialTheme.colorScheme.onSurfaceVariant

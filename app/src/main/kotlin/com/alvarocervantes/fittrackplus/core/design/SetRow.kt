@@ -89,10 +89,10 @@ fun FitTrackSetRow(
         when {
             isCompleted -> MaterialTheme.colorScheme.primarySoft
             isReadyToComplete -> MaterialTheme.colorScheme.primarySoft.copy(alpha = 0.45f)
-            else -> MaterialTheme.colorScheme.surfaceAlt
+            else -> MaterialTheme.colorScheme.surfaceVariant
         }
     } else {
-        MaterialTheme.colorScheme.surfaceAlt
+        MaterialTheme.colorScheme.surfaceVariant
     }
     val borderColor = if (isWorkoutStyle && isReadyToComplete) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)

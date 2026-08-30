@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 
 @Composable
 fun FitTrackSegmentedSelector(
@@ -28,7 +27,7 @@ fun FitTrackSegmentedSelector(
         modifier = modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.medium)
-            .background(MaterialTheme.colorScheme.surfaceAlt)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp)
     ) {
@@ -42,7 +41,7 @@ fun FitTrackSegmentedSelector(
                         if (selected) {
                             MaterialTheme.colorScheme.surface
                         } else {
-                            MaterialTheme.colorScheme.surfaceAlt
+                            MaterialTheme.colorScheme.surfaceVariant
                         }
                     )
                     .clickable { onSelect(index) }

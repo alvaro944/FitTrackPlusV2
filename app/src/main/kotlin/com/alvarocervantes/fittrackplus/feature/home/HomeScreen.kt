@@ -61,7 +61,6 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackProgressBar
 import com.alvarocervantes.fittrackplus.core.design.FitTrackSectionLabel
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import com.alvarocervantes.fittrackplus.core.design.primarySoft
-import com.alvarocervantes.fittrackplus.core.design.surfaceAlt
 import com.alvarocervantes.fittrackplus.core.design.surfaceCard
 import com.alvarocervantes.fittrackplus.core.design.textTertiary
 import java.text.SimpleDateFormat
@@ -379,7 +378,7 @@ private fun weekDayCellColors(
 ): Pair<Color, Color> = when {
     isToday -> cs.primary to cs.onPrimary
     isTrained -> cs.primarySoft to cs.primary
-    else -> cs.surfaceAlt to cs.onSurfaceVariant
+    else -> cs.surfaceVariant to cs.onSurfaceVariant
 }
 
 @Composable
