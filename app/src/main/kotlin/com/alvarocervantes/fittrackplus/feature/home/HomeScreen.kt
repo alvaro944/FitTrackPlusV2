@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -43,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
+import com.alvarocervantes.fittrackplus.core.design.onHero
+import com.alvarocervantes.fittrackplus.core.design.onHeroMuted
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeTone
@@ -124,18 +128,24 @@ fun HomeScreen(
     )
 
     Scaffold(
+        // The app shell already applies the system bar insets; without this the
+        // status bar padding lands twice and leaves a dead band above the content.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         LazyColumn(
             state = listState,
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(horizontal = FitSpacing.screenHorizontal),
+            modifier = Modifier.padding(innerPadding),
+            contentPadding = PaddingValues(
+                start = FitSpacing.screenHorizontal,
+                top = FitSpacing.screenTop,
+                end = FitSpacing.screenHorizontal,
+                bottom = FitSpacing.screenBottom
+            ),
             verticalArrangement = Arrangement.spacedBy(FitSpacing.card)
         ) {
         item {
             Column(
-                modifier = Modifier.padding(top = FitSpacing.screenTop),
                 verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
             ) {
                 Text(
@@ -173,7 +183,7 @@ fun HomeScreen(
                     Text(
                         text = "FitTrackPlus",
                         style = MaterialTheme.typography.headlineLarge,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onHero
                     )
                 },
                 cta = if (hasActiveRoutine) "Ir a entrenar" else "Preparar rutina",
@@ -205,7 +215,7 @@ fun HomeScreen(
                         Text(
                             text = "Crea una rutina, activala y empieza a registrar sesiones.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.72f)
+                            color = MaterialTheme.colorScheme.onHeroMuted
                         )
                     }
 
@@ -213,7 +223,7 @@ fun HomeScreen(
                         Text(
                             text = "Crea tu primera rutina y activala para empezar a entrenar.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.55f)
+                            color = MaterialTheme.colorScheme.onHeroMuted
                         )
                     }
                 }

@@ -130,13 +130,13 @@ fun FitTrackScreenHeader(
 fun FitTrackHeroTag(text: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .background(Color.White.copy(alpha = 0.10f), CircleShape)
+            .background(MaterialTheme.colorScheme.onHero.copy(alpha = 0.12f), CircleShape)
             .padding(horizontal = FitSpacing.smMd, vertical = FitSpacing.tiny)
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium,
-            color = Color.White.copy(alpha = 0.78f)
+            color = MaterialTheme.colorScheme.onHeroMuted
         )
     }
 }
