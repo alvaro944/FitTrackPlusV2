@@ -1006,7 +1006,7 @@ private fun ExerciseVariantOptionCard(
     FitTrackCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = enabled || option.isCurrent, onClick = onClick)
+            .clickable(enabled = enabled || option.isCurrent, role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
             Row(

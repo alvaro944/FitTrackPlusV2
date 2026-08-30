@@ -54,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -353,7 +354,11 @@ private fun DrawerActionRow(
             .background(
                 if (selected) MaterialTheme.colorScheme.primarySoft else MaterialTheme.colorScheme.surface
             )
-            .clickable(onClick = onClick)
+            .clickable(
+                role = Role.Button,
+                onClickLabel = "Abrir $title",
+                onClick = onClick
+            )
             .padding(FitSpacing.lg),
         horizontalArrangement = Arrangement.spacedBy(FitSpacing.md),
         verticalAlignment = Alignment.CenterVertically
@@ -415,7 +420,11 @@ private fun ShellMenuButton(
             .padding(top = topInset + FitSpacing.sm, end = FitSpacing.md)
             .size(40.dp)
             .clip(MaterialTheme.shapes.medium)
-            .clickable(onClick = onClick),
+            .clickable(
+                role = Role.Button,
+                onClickLabel = "Abrir menú",
+                onClick = onClick
+            ),
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = FitElevation.menuButton,
