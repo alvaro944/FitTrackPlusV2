@@ -196,8 +196,11 @@ fun HomeScreen(
                     } else if (uiState.totalSessions > 0) {
                         Row(horizontalArrangement = Arrangement.spacedBy(FitSpacing.sm)) {
                             FitTrackHeroTag(
-                                if (uiState.sessionsThisWeek == 0) "Sin sesiones esta semana"
-                                else "${uiState.sessionsThisWeek} sesion${if (uiState.sessionsThisWeek > 1) "es" else ""} esta semana"
+                                if (uiState.sessionsThisWeek == 0) {
+                                    "Sin sesiones esta semana"
+                                } else {
+                                    "${uiState.sessionsThisWeek} ${pluralizeSesion(uiState.sessionsThisWeek)} esta semana"
+                                }
                             )
                             FitTrackHeroTag("${uiState.totalSessions} en total")
                         }
@@ -467,10 +470,11 @@ private fun weekDayFullNames(): List<String> {
     return listOf("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo")
 }
 
+private fun pluralizeSesion(count: Int): String = if (count == 1) "sesion" else "sesiones"
+
 private fun weeklySessionLabel(sessionsThisWeek: Int): String {
-    val sessionWord = if (sessionsThisWeek == 1) "sesion" else "sesiones"
     val registeredWord = if (sessionsThisWeek == 1) "registrada" else "registradas"
-    return "$sessionsThisWeek $sessionWord $registeredWord"
+    return "$sessionsThisWeek ${pluralizeSesion(sessionsThisWeek)} $registeredWord"
 }
 
 @Composable
