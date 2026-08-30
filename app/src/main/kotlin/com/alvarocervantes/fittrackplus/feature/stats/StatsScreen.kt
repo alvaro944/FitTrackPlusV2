@@ -83,6 +83,10 @@ import java.time.format.TextStyle
 import java.util.Date
 import java.util.Locale
 
+// The UI is fixed Spanish by project design, so number and date formatting stays fixed
+// to this locale everywhere too, instead of mixing it with Locale.getDefault()/Locale.US.
+private val STATS_LOCALE = Locale("es", "ES")
+
 @Composable
 fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel()
@@ -448,7 +452,7 @@ private fun MonthConsistencyGrid(
     month: YearMonth,
     activeDays: Map<LocalDate, HeatmapDay>
 ) {
-    val locale = Locale("es", "ES")
+    val locale = STATS_LOCALE
     val firstDay = month.atDay(1)
     val leadingBlankDays = firstDay.dayOfWeek.value - 1
     val totalSlots = ((leadingBlankDays + month.lengthOfMonth() + 6) / 7) * 7
@@ -1065,7 +1069,7 @@ private fun SelectedDayDetail(
     dailySteps: Map<Int, Long>,
     dailyGoal: Int
 ) {
-    val locale = Locale("es", "ES")
+    val locale = STATS_LOCALE
     val date = weekStart.plusDays(dayIndex.toLong())
     val steps = dailySteps[dayIndex] ?: 0L
     val progress = if (dailyGoal > 0) (steps.toFloat() / dailyGoal).coerceIn(0f, 1f) else 0f
@@ -1117,11 +1121,11 @@ private fun formatStepsAbbreviated(steps: Long): String? {
     if (steps <= 0) return null
     if (steps < 1000) return steps.toString()
     val k = steps / 1000.0
-    return if (k >= 10) "${k.toInt()}k" else String.format(Locale.US, "%.1fk", k)
+    return if (k >= 10) "${k.toInt()}k" else String.format(STATS_LOCALE, "%.1fk", k)
 }
 
 private fun formatWeekRange(weekStart: LocalDate, weekEnd: LocalDate): String {
-    val locale = Locale("es", "ES")
+    val locale = STATS_LOCALE
     val startDay = weekStart.dayOfMonth
     val endDay = weekEnd.dayOfMonth
     val endMonth = weekEnd.month.getDisplayName(TextStyle.SHORT, locale).lowercase().trimEnd('.')
@@ -1197,11 +1201,11 @@ private fun StatsLoadingSkeleton() {
 }
 
 private fun formatDate(timestamp: Long): String {
-    return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(timestamp))
+    return SimpleDateFormat("dd/MM/yyyy HH:mm", STATS_LOCALE).format(Date(timestamp))
 }
 
 private fun formatChartDate(timestamp: Long): String {
-    return SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(timestamp))
+    return SimpleDateFormat("dd/MM", STATS_LOCALE).format(Date(timestamp))
 }
 
 private fun ProgressChartPointUiState.toChartLabel(metric: ProgressMetric, weightUnit: WeightUnit): String {
@@ -1217,7 +1221,7 @@ private fun Double.toDisplayText(): String {
     return if (this % 1.0 == 0.0) {
         toInt().toString()
     } else {
-        String.format(Locale.getDefault(), "%.1f", this)
+        String.format(STATS_LOCALE, "%.1f", this)
     }
 }
 
