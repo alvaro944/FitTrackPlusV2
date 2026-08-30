@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -292,10 +293,19 @@ private fun WeekActivityStrip(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            FitTrackBadge(
-                label = if (sessionsThisWeek > 0) "ACTIVA" else "SIN SESION",
-                tone = if (sessionsThisWeek > 0) FitTrackBadgeTone.Active else FitTrackBadgeTone.Neutral
-            )
+            if (isLoading) {
+                SkeletonBlock(
+                    modifier = Modifier
+                        .width(72.dp)
+                        .height(24.dp),
+                    shape = MaterialTheme.shapes.small
+                )
+            } else {
+                FitTrackBadge(
+                    label = if (sessionsThisWeek > 0) "ACTIVA" else "SIN SESION",
+                    tone = if (sessionsThisWeek > 0) FitTrackBadgeTone.Active else FitTrackBadgeTone.Neutral
+                )
+            }
         }
 
         Row(
