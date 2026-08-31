@@ -2,6 +2,7 @@ package com.alvarocervantes.fittrackplus.core.design.components
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LineChartTest {
@@ -52,6 +53,17 @@ class LineChartTest {
         assertEquals(42f, axis.minimum)
         assertEquals(42f, axis.maximum)
         assertEquals(1f, axis.span)
+    }
+
+    @Test
+    fun `point labels are limited to significant unique indices`() {
+        val indices = lineChartLabelIndices(
+            values = listOf(2f, 6f, 4f, 5f, 1f, 3f, 7f, 2f),
+            selectedPointIndex = 3
+        )
+
+        assertTrue(indices.size <= 5)
+        assertEquals(setOf(0, 3, 4, 6, 7), indices)
     }
 
 }

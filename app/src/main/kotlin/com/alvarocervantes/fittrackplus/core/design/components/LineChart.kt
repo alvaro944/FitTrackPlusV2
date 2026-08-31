@@ -58,6 +58,21 @@ private data class LineChartHorizontalPadding(
 private fun formatLineChartAxisLabel(value: Float): String =
     BigDecimal.valueOf(value.toDouble()).stripTrailingZeros().toPlainString()
 
+internal fun lineChartLabelIndices(
+    values: List<Float>,
+    selectedPointIndex: Int?
+): Set<Int> {
+    if (values.isEmpty()) return emptySet()
+
+    return buildSet {
+        add(0)
+        add(values.lastIndex)
+        add(values.indices.minBy { values[it] })
+        add(values.indices.maxBy { values[it] })
+        selectedPointIndex?.takeIf { it in values.indices }?.let(::add)
+    }
+}
+
 @Composable
 fun LineChart(
     points: List<Pair<Long, Float>>,
@@ -95,6 +110,10 @@ fun LineChart(
     val axisRange = calculateLineChartAxisRange(
         values = sortedPoints.map { it.second },
         baselineMode = baselineMode
+    )
+    val labelledPointIndices = lineChartLabelIndices(
+        values = sortedPoints.map { it.second },
+        selectedPointIndex = selectedPointIndex
     )
     val axisLabels = listOf(axisRange.maximum, axisRange.minimum).map(::formatLineChartAxisLabel)
     val density = LocalDensity.current
@@ -177,7 +196,7 @@ fun LineChart(
                 center = offset
             )
             drawCircle(color = dotInnerColor, radius = 2.dp.toPx(), center = offset)
-            pointLabels.getOrNull(index)?.let { label ->
+            pointLabels.getOrNull(index)?.takeIf { index in labelledPointIndices }?.let { label ->
                 drawContext.canvas.nativeCanvas.drawText(
                     label,
                     offset.x,
