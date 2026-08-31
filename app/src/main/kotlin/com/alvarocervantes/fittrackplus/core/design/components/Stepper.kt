@@ -89,15 +89,12 @@ private fun FitTrackStepperButton(
 ) {
     val visualSize: Dp = if (compact) 28.dp else 36.dp
     val iconSize: Dp = if (compact) 16.dp else 24.dp
-    // Compact steppers sit two-per-row flanking a numeric field (workout weight/reps), which
-    // has Modifier.weight(1f) and shrinks to make room. The full 48dp Material touch target
-    // (minimumInteractiveComponentSize) takes 20dp more per button than the 28dp visual size,
-    // 40dp total, and was found to make the number field too narrow to read comfortably. 40dp
-    // is a middle ground: a real improvement over the untouched 28dp, without eating as much of
-    // the field's width. Only the roomy non-compact steppers (routine editor, settings) get the
-    // full 48dp minimum.
+    // Compact steppers sit two-per-row flanking a numeric field (workout weight/reps). There the
+    // full 48dp Material touch target (minimumInteractiveComponentSize) consumes so much width the
+    // number no longer fits and the field looks broken. Compact mode keeps the original 28dp box;
+    // only the roomy non-compact steppers (routine editor, settings) get the 48dp minimum.
     val sizeModifier: Modifier = if (compact) {
-        Modifier.sizeIn(minWidth = 40.dp, minHeight = 40.dp)
+        Modifier.sizeIn(minWidth = visualSize, minHeight = visualSize)
     } else {
         Modifier.minimumInteractiveComponentSize()
     }
