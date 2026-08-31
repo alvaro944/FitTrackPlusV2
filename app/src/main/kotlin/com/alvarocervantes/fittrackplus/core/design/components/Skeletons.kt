@@ -1,9 +1,12 @@
 package com.alvarocervantes.fittrackplus.core.design.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -11,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 
 /**
@@ -63,4 +67,25 @@ fun SkeletonCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     FitTrackCard(modifier = modifier, content = content)
+}
+
+/**
+ * Skeleton generico de fila de lista: icono/marcador circular + dos lineas de texto
+ * (titulo y subtitulo). Pensado para listas de tarjetas simples (sesiones, ejercicios,
+ * accesos rapidos) donde no hace falta una forma mas especifica por pantalla.
+ */
+@Composable
+fun SkeletonListItem(modifier: Modifier = Modifier) {
+    SkeletonCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+            SkeletonBlock(
+                modifier = Modifier
+                    .width(40.dp)
+                    .height(40.dp),
+                shape = MaterialTheme.shapes.medium
+            )
+            SkeletonText(widthFraction = 0.55f, lineHeight = 18.dp)
+            SkeletonText(widthFraction = 0.35f)
+        }
+    }
 }

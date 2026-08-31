@@ -85,6 +85,7 @@ fun FitTrackScreenHeader(
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
+    eyebrow: String? = null,
     leading: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null
 ) {
@@ -105,6 +106,13 @@ fun FitTrackScreenHeader(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
         ) {
+            if (eyebrow != null) {
+                Text(
+                    text = eyebrow,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.textTertiary
+                )
+            }
             Text(
                 text = title,
                 style = MaterialTheme.typography.headlineMedium

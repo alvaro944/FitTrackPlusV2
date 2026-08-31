@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import android.graphics.Paint
 import kotlin.math.hypot
@@ -25,7 +27,8 @@ fun LineChart(
     selectedPointIndex: Int? = null,
     onPointSelected: ((Int) -> Unit)? = null,
     pointLabels: List<String> = emptyList(),
-    xAxisLabels: List<String> = emptyList()
+    xAxisLabels: List<String> = emptyList(),
+    chartDescription: String? = null
 ) {
     if (points.size < 2) {
         Box(
@@ -50,9 +53,16 @@ fun LineChart(
     val labelFontSize = MaterialTheme.typography.labelSmall.fontSize
 
     val sortedPoints = points.sortedBy { it.first }
+    val effectiveDescription = chartDescription ?: buildString {
+        append("Grafica con ${sortedPoints.size} puntos")
+        pointLabels.firstOrNull()?.let { append(", desde $it") }
+        pointLabels.lastOrNull()?.let { append(" hasta $it") }
+    }
 
     Canvas(
-        modifier = modifier.pointerInput(sortedPoints, onPointSelected) {
+        modifier = modifier
+            .semantics { contentDescription = effectiveDescription }
+            .pointerInput(sortedPoints, onPointSelected) {
             if (onPointSelected == null) return@pointerInput
             detectTapGestures { tapOffset ->
                 val offsets = sortedPoints.chartOffsets(

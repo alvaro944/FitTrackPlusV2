@@ -10,6 +10,7 @@ import com.alvarocervantes.fittrackplus.core.navigation.AppRoute
 import com.alvarocervantes.fittrackplus.core.navigation.AppShellViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -46,6 +48,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -81,6 +85,10 @@ import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Date
 import java.util.Locale
+
+// The UI is fixed Spanish by project design, so number and date formatting stays fixed
+// to this locale everywhere too, instead of mixing it with Locale.getDefault()/Locale.US.
+private val STATS_LOCALE = Locale("es", "ES")
 
 @Composable
 fun StatsScreen(
@@ -447,7 +455,7 @@ private fun MonthConsistencyGrid(
     month: YearMonth,
     activeDays: Map<LocalDate, HeatmapDay>
 ) {
-    val locale = Locale("es", "ES")
+    val locale = STATS_LOCALE
     val firstDay = month.atDay(1)
     val leadingBlankDays = firstDay.dayOfWeek.value - 1
     val totalSlots = ((leadingBlankDays + month.lengthOfMonth() + 6) / 7) * 7
@@ -584,6 +592,9 @@ private fun SessionVolumeTrendCard(
                     "${session.totalVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}"
                 },
                 xAxisLabels = selectedSessions.map { session -> formatChartDate(session.finishedAt) },
+                chartDescription = "Tendencia de volumen a lo largo de ${selectedSessions.size} sesiones, " +
+                    "de ${selectedSessions.first().totalVolumeKg.toDisplayText(weightUnit)} a " +
+                    "${selectedSessions.last().totalVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}",
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(150.dp)
@@ -803,6 +814,10 @@ private fun ProgressChartCard(
                     selectedPointIndex = selectedIndex,
                     pointLabels = progressPoints.map { point -> point.toChartLabel(selectedMetric, weightUnit) },
                     xAxisLabels = progressPoints.map { point -> formatChartDate(point.finishedAt) },
+                    chartDescription = "Evolucion de ${selectedMetric.label} de $selectedExerciseName " +
+                        "a lo largo de ${progressPoints.size} sesiones, de " +
+                        "${progressPoints.first().toChartLabel(selectedMetric, weightUnit)} a " +
+                        progressPoints.last().toChartLabel(selectedMetric, weightUnit),
                     onPointSelected = { index ->
                         progressPoints.getOrNull(index)?.let { point ->
                             onSelectProgressPoint(point.sessionId)
@@ -950,7 +965,7 @@ private fun WeeklyStepsCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "%,d pasos".format(data.totalSteps),
+                text = String.format(STATS_LOCALE, "%,d pasos", data.totalSteps),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.accentWarm
             )
@@ -971,7 +986,9 @@ private fun DayBarsRow(
     val todayIndex = if (data.isCurrentWeek) LocalDate.now().dayOfWeek.value - 1 else -1
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(FitSpacing.xs)
     ) {
         dayLabels.forEachIndexed { index, label ->
@@ -1014,7 +1031,13 @@ private fun DayBarColumn(
     else MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
-        modifier = modifier.clickable(onClick = onSelect),
+        modifier = modifier
+            .semantics { selected = isSelected }
+            .clickable(
+                onClickLabel = "Ver pasos del dia $label",
+                role = Role.Tab,
+                onClick = onSelect
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(FitSpacing.tiny)
     ) {
@@ -1053,7 +1076,7 @@ private fun SelectedDayDetail(
     dailySteps: Map<Int, Long>,
     dailyGoal: Int
 ) {
-    val locale = Locale("es", "ES")
+    val locale = STATS_LOCALE
     val date = weekStart.plusDays(dayIndex.toLong())
     val steps = dailySteps[dayIndex] ?: 0L
     val progress = if (dailyGoal > 0) (steps.toFloat() / dailyGoal).coerceIn(0f, 1f) else 0f
@@ -1076,7 +1099,7 @@ private fun SelectedDayDetail(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "%,d / %,d pasos".format(steps, dailyGoal),
+                    text = String.format(STATS_LOCALE, "%,d / %,d pasos", steps, dailyGoal),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
@@ -1105,11 +1128,11 @@ private fun formatStepsAbbreviated(steps: Long): String? {
     if (steps <= 0) return null
     if (steps < 1000) return steps.toString()
     val k = steps / 1000.0
-    return if (k >= 10) "${k.toInt()}k" else String.format(Locale.US, "%.1fk", k)
+    return if (k >= 10) "${k.toInt()}k" else String.format(STATS_LOCALE, "%.1fk", k)
 }
 
 private fun formatWeekRange(weekStart: LocalDate, weekEnd: LocalDate): String {
-    val locale = Locale("es", "ES")
+    val locale = STATS_LOCALE
     val startDay = weekStart.dayOfMonth
     val endDay = weekEnd.dayOfMonth
     val endMonth = weekEnd.month.getDisplayName(TextStyle.SHORT, locale).lowercase().trimEnd('.')
@@ -1185,11 +1208,11 @@ private fun StatsLoadingSkeleton() {
 }
 
 private fun formatDate(timestamp: Long): String {
-    return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(timestamp))
+    return SimpleDateFormat("dd/MM/yyyy HH:mm", STATS_LOCALE).format(Date(timestamp))
 }
 
 private fun formatChartDate(timestamp: Long): String {
-    return SimpleDateFormat("dd/MM", Locale.getDefault()).format(Date(timestamp))
+    return SimpleDateFormat("dd/MM", STATS_LOCALE).format(Date(timestamp))
 }
 
 private fun ProgressChartPointUiState.toChartLabel(metric: ProgressMetric, weightUnit: WeightUnit): String {
@@ -1205,7 +1228,7 @@ private fun Double.toDisplayText(): String {
     return if (this % 1.0 == 0.0) {
         toInt().toString()
     } else {
-        String.format(Locale.getDefault(), "%.1f", this)
+        String.format(STATS_LOCALE, "%.1f", this)
     }
 }
 
