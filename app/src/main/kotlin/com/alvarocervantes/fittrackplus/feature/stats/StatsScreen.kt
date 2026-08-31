@@ -58,6 +58,7 @@ import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import com.alvarocervantes.fittrackplus.core.design.components.LineChart
+import com.alvarocervantes.fittrackplus.core.design.components.LineChartBaselineMode
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
@@ -588,6 +589,8 @@ private fun SessionVolumeTrendCard(
                 points = selectedSessions.map { session ->
                     session.finishedAt to weightUnit.fromKilograms(session.totalVolumeKg).toFloat()
                 },
+                // Volume is absolute, so zero is meaningful; exercise progress stays auto-scaled.
+                baselineMode = LineChartBaselineMode.ZeroBaseline,
                 pointLabels = selectedSessions.map { session ->
                     "${session.totalVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}"
                 },
