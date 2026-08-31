@@ -32,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -128,20 +127,6 @@ private fun LaunchIntroScreen(
         ),
         label = "introEmeraldPulse"
     )
-    // No delayMillis here: the whole intro is only visible for ~1240ms (see the constants
-    // above), barely more than one sweep. A per-cycle pause left the highlight parked at its
-    // start position for most of that window, reading as a stuck patch rather than a moving
-    // shine — most noticeable in dark theme, where the contrast against the background is high.
-    val shimmerSweep by pulseTransition.animateFloat(
-        initialValue = -220f,
-        targetValue = 420f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1600),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "introShimmerSweep"
-    )
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -198,24 +183,6 @@ private fun LaunchIntroScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp)
-                        .drawWithContent {
-                            drawContent()
-                            // A light glint sweeping across the logo, not text-on-background
-                            // content: it should read as a highlight in both themes, so it stays
-                            // a fixed light tint instead of following colors.onBackground (which
-                            // is near-black in light theme and rendered as a dark smudge).
-                            drawRect(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        Color.White.copy(alpha = 0.18f),
-                                        Color.Transparent
-                                    ),
-                                    start = Offset(shimmerSweep, 0f),
-                                    end = Offset(shimmerSweep + 120f, size.height)
-                                )
-                            )
-                        }
                 )
             }
 
