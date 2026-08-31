@@ -24,7 +24,8 @@ class LineChartTest {
             points.chartOffsets(
                 width = 200f,
                 height = 120f,
-                padH = 18f,
+                padLeft = 18f,
+                padRight = 18f,
                 padTop = 22f,
                 padBottom = 26f,
                 axisRange = automaticAxis
@@ -32,7 +33,8 @@ class LineChartTest {
             points.chartOffsets(
                 width = 200f,
                 height = 120f,
-                padH = 18f,
+                padLeft = 18f,
+                padRight = 18f,
                 padTop = 22f,
                 padBottom = 26f,
                 axisRange = zeroAnchoredAxis
