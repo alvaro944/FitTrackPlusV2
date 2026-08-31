@@ -20,6 +20,32 @@ import androidx.compose.ui.unit.dp
 import android.graphics.Paint
 import kotlin.math.hypot
 
+enum class LineChartBaselineMode {
+    AutoRange,
+    ZeroBaseline
+}
+
+internal data class LineChartAxisRange(
+    val minimum: Float,
+    val maximum: Float
+) {
+    val span: Float = (maximum - minimum).takeIf { it != 0f } ?: 1f
+}
+
+internal fun calculateLineChartAxisRange(
+    values: List<Float>,
+    baselineMode: LineChartBaselineMode
+): LineChartAxisRange {
+    require(values.isNotEmpty()) { "A chart axis requires at least one value." }
+
+    val maximum = values.maxOrNull() ?: 0f
+    val minimum = when (baselineMode) {
+        LineChartBaselineMode.AutoRange -> values.minOrNull() ?: 0f
+        LineChartBaselineMode.ZeroBaseline -> 0f
+    }
+    return LineChartAxisRange(minimum = minimum, maximum = maximum)
+}
+
 @Composable
 fun LineChart(
     points: List<Pair<Long, Float>>,
@@ -28,7 +54,8 @@ fun LineChart(
     onPointSelected: ((Int) -> Unit)? = null,
     pointLabels: List<String> = emptyList(),
     xAxisLabels: List<String> = emptyList(),
-    chartDescription: String? = null
+    chartDescription: String? = null,
+    baselineMode: LineChartBaselineMode = LineChartBaselineMode.AutoRange
 ) {
     if (points.size < 2) {
         Box(
@@ -53,6 +80,10 @@ fun LineChart(
     val labelFontSize = MaterialTheme.typography.labelSmall.fontSize
 
     val sortedPoints = points.sortedBy { it.first }
+    val axisRange = calculateLineChartAxisRange(
+        values = sortedPoints.map { it.second },
+        baselineMode = baselineMode
+    )
     val effectiveDescription = chartDescription ?: buildString {
         append("Grafica con ${sortedPoints.size} puntos")
         pointLabels.firstOrNull()?.let { append(", desde $it") }
@@ -70,7 +101,8 @@ fun LineChart(
                     height = size.height.toFloat(),
                     padH = 18.dp.toPx(),
                     padTop = 22.dp.toPx(),
-                    padBottom = 26.dp.toPx()
+                    padBottom = 26.dp.toPx(),
+                    axisRange = axisRange
                 )
                 val hitIndex = offsets
                     .mapIndexed { index, offset -> index to offset.distanceTo(tapOffset) }
@@ -91,7 +123,8 @@ fun LineChart(
             height = size.height,
             padH = padH,
             padTop = padTop,
-            padBottom = padBottom
+            padBottom = padBottom,
+            axisRange = axisRange
         )
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = labelColor.toArgb()
@@ -139,22 +172,20 @@ fun LineChart(
     }
 }
 
-private fun List<Pair<Long, Float>>.chartOffsets(
+internal fun List<Pair<Long, Float>>.chartOffsets(
     width: Float,
     height: Float,
     padH: Float,
     padTop: Float,
-    padBottom: Float
+    padBottom: Float,
+    axisRange: LineChartAxisRange
 ): List<Offset> {
-    val minY = minOf { it.second }
-    val maxY = maxOf { it.second }
-    val yRange = if (maxY == minY) 1f else maxY - minY
     val chartW = width - padH * 2
     val chartH = height - padTop - padBottom
     return mapIndexed { index, (_, value) ->
         Offset(
             x = padH + (index.toFloat() / (size - 1)) * chartW,
-            y = padTop + chartH - ((value - minY) / yRange) * chartH
+            y = padTop + chartH - ((value - axisRange.minimum) / axisRange.span) * chartH
         )
     }
 }
