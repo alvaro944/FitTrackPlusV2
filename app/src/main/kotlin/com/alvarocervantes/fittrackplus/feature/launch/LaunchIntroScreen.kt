@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -204,16 +205,21 @@ private fun LaunchIntroScreen(
                             // content: it should read as a highlight in both themes, so it stays
                             // a fixed light tint instead of following colors.onBackground (which
                             // is near-black in light theme and rendered as a dark smudge).
+                            // SrcAtop composites the gradient only where the logo already drew
+                            // opaque pixels, so the shine follows the logo's actual silhouette
+                            // instead of painting a hard-edged rectangle over its transparent
+                            // padding (which read as a sticker stuck on top of the scene).
                             drawRect(
                                 brush = Brush.linearGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Color.White.copy(alpha = 0.18f),
+                                        Color.White.copy(alpha = 0.55f),
                                         Color.Transparent
                                     ),
                                     start = Offset(shimmerSweep, 0f),
                                     end = Offset(shimmerSweep + 120f, size.height)
-                                )
+                                ),
+                                blendMode = BlendMode.SrcAtop
                             )
                         }
                 )
