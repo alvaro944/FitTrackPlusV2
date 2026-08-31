@@ -3,7 +3,7 @@
 **Fecha:** 2026-08-30
 **Origen:** `docs/design/auditoria-ronda-3.md`, seccion P6, item P6-1.
 **Plan de ejecucion:** `docs/superpowers/plans/2026-08-30-string-resources-migration.md`
-**Prerequisito — CRITICO:** esta rama NO debe arrancar hasta que `refactor/home-stats-visual-locale` y `fix/shared-accessibility-and-copy` esten ambas fusionadas en `develop`. Es un cambio global (toca practicamente cada pantalla), y ejecutarlo en paralelo con esas dos ramas activas garantiza conflictos de merge en casi todos los ficheros. Es deliberadamente secuencial, no paralelo.
+**Prerequisito — CUMPLIDO (2026-08-31):** `refactor/home-stats-visual-locale` y `fix/shared-accessibility-and-copy` estan ambas fusionadas en `develop` y sus ramas borradas. Esta spec queda desbloqueada. Se mantiene la nota original porque explica por que era secuencial: Es un cambio global (toca practicamente cada pantalla), y ejecutarlo en paralelo con esas dos ramas activas garantiza conflictos de merge en casi todos los ficheros. Es deliberadamente secuencial, no paralelo.
 
 ---
 

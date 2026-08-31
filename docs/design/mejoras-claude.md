@@ -543,6 +543,26 @@ exploracion.
 
 ---
 
+### 43. Cerrado por decision: area tactil del stepper compacto (P5-2)
+
+Los botones del stepper compacto (los +/- de peso y repeticiones durante el entrenamiento) miden
+28dp, por debajo del minimo tactil de 48dp de Material, y son los controles mas pulsados de la
+app.
+
+**Se intento y se revirtio.** Subirlos a 40dp estruja los campos de peso y repeticiones: es la
+misma trampa documentada en `phase-log.md` el 2026-07-05 (Bug D), donde pasar de 28dp a 48dp por
+boton robaba ~80dp de ancho a la fila y los numeros dejaban de caber. Con cuatro botones por fila
+(dos de peso, dos de reps) el ancho es el recurso escaso.
+
+**Decision del dueño el 2026-08-31: se queda como esta.** En uso real el tamaño actual funciona y
+la alternativa se ve peor. **No es deuda pendiente.**
+
+Si alguna vez se retoma, el unico enfoque viable es ampliar el area tactil **sin ocupar layout**
+(el area de toque crece, la caja visual no), no subir el tamaño del boton. Cualquier intento de
+volver a tocar el ancho deberia releer antes la entrada del 2026-07-05.
+
+---
+
 ## Siguiente paso sugerido
 
 El usuario revisa entrada por entrada y marca cuales entran en el backlog real. Las descartadas se dejan aqui como registro. Las aceptadas se repriorizan en `docs/planning/roadmap-2.1.md` cuando pasan a ser direccion vigente.

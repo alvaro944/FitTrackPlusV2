@@ -483,7 +483,7 @@ Cerrados desde la revision anterior:
 | # | Estado | Nota |
 |---|---|---|
 | P5-1 | OK | De 3 a 9 ficheros con `Role.` declarado en pulsables |
-| P5-2 | **Revertido a proposito** | Se subio el area tactil del stepper compacto a 40dp y se revirtio: estrujaba los campos de peso/reps. Es exactamente la trampa documentada en el phase-log del 2026-07-05 (Bug D), donde 48dp por boton robaban ~80dp de ancho a la fila. Necesita un enfoque que amplie el area sin ocupar layout |
+| P5-2 | **Cerrado: no se arregla** | Se subio el area tactil del stepper compacto a 40dp y se revirtio porque estrujaba los campos de peso/reps — la misma trampa del phase-log del 2026-07-05 (Bug D), donde 48dp por boton robaban ~80dp de ancho a la fila. **Decision del dueño el 2026-08-31: se queda como esta.** En uso real el tamaño actual funciona y la alternativa se ve peor. No es deuda pendiente |
 | P5-3 | OK | TalkBack ya no lee el id de Room |
 | P5-4 | OK | Celdas del calendario y tira semanal de Home con `contentDescription` |
 | P5-5 | OK | La grafica de progreso tiene descripcion accesible |
@@ -500,7 +500,11 @@ Cerrados desde la revision anterior:
 ### Lo que queda del plan principal
 
 1. **P6-1**: migracion de literales a `stringResource`. Es la pieza grande que queda.
+   Spec y plan ya escritos y desbloqueados.
 2. **P4-8**: eje Y y linea base en las graficas.
-3. **P5-2**: area tactil del stepper, con un enfoque que no robe ancho.
-4. **Backlog**: entradas 38 a 42 de `mejoras-claude.md`.
-5. **Pasada manual** sin terminar, y `main` 24 commits por detras de `develop`.
+   Spec: `docs/superpowers/specs/2026-08-31-chart-scale-honesty.md`.
+3. **Backlog**: entradas 38 a 42 de `mejoras-claude.md`.
+4. **Pasada manual** sin terminar, y `main` por detras de `develop`.
+
+P5-2 queda cerrado por decision, no pendiente. Con eso **P5 se da por completo**: los cuatro
+puntos accionables estan hechos y el quinto se descarta a proposito.

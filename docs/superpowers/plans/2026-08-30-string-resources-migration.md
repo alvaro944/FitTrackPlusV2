@@ -1,6 +1,9 @@
 # Plan: Migrar literales de texto a stringResource (P6-1)
 
-> **NO empezar esta rama todavia.** Prerequisito bloqueante: `refactor/home-stats-visual-locale`
+> **DESBLOQUEADO el 2026-08-31**: el prerequisito ya se cumple, las dos ramas estan fusionadas
+> en `develop` y borradas. Crear `refactor/string-resources` desde `develop` y seguir el plan.
+>
+> Nota original, que explica por que era secuencial: prerequisito bloqueante era `refactor/home-stats-visual-locale`
 > y `fix/shared-accessibility-and-copy` deben estar ambas fusionadas en `develop` primero. Es un
 > cambio global que toca casi cada pantalla — ejecutarlo mientras esas dos ramas siguen vivas
 > garantiza conflictos de merge. Cuando ambas esten fusionadas, crear la rama
