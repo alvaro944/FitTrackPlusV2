@@ -221,7 +221,7 @@ fun LineChart(
     }
 }
 
-private fun resolveChartDescription(
+internal fun resolveChartDescription(
     chartDescription: String?,
     points: List<Pair<Long, Float>>,
     pointLabels: List<String>,

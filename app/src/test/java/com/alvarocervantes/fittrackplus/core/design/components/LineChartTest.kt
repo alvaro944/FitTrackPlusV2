@@ -66,4 +66,29 @@ class LineChartTest {
         assertEquals(setOf(0, 3, 4, 6, 7), indices)
     }
 
+    @Test
+    fun `default chart description includes its axis range while custom copy wins`() {
+        val axisRange = calculateLineChartAxisRange(
+            values = listOf(100f, 105f),
+            baselineMode = LineChartBaselineMode.AutoRange
+        )
+        val defaultDescription = resolveChartDescription(
+            chartDescription = null,
+            points = listOf(1L to 100f, 2L to 105f),
+            pointLabels = listOf("100 kg", "105 kg"),
+            axisRange = axisRange
+        )
+
+        assertTrue(defaultDescription.contains("eje de 100 a 105"))
+        assertEquals(
+            "Custom chart description",
+            resolveChartDescription(
+                chartDescription = "Custom chart description",
+                points = listOf(1L to 100f, 2L to 105f),
+                pointLabels = emptyList(),
+                axisRange = axisRange
+            )
+        )
+    }
+
 }
