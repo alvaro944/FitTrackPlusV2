@@ -196,11 +196,15 @@ private fun LaunchIntroScreen(
                         .padding(horizontal = 8.dp)
                         .drawWithContent {
                             drawContent()
+                            // A light glint sweeping across the logo, not text-on-background
+                            // content: it should read as a highlight in both themes, so it stays
+                            // a fixed light tint instead of following colors.onBackground (which
+                            // is near-black in light theme and rendered as a dark smudge).
                             drawRect(
                                 brush = Brush.linearGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        colors.onBackground.copy(alpha = 0.18f),
+                                        Color.White.copy(alpha = 0.18f),
                                         Color.Transparent
                                     ),
                                     start = Offset(shimmerSweep, 0f),
