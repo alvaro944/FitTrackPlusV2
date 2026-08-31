@@ -131,7 +131,12 @@ fun LineChart(
             right = minimumPadding
         )
     }
-    val effectiveDescription = resolveChartDescription(chartDescription, sortedPoints, pointLabels)
+    val effectiveDescription = resolveChartDescription(
+        chartDescription = chartDescription,
+        points = sortedPoints,
+        pointLabels = pointLabels,
+        axisRange = axisRange
+    )
 
     Canvas(
         modifier = modifier
@@ -219,9 +224,11 @@ fun LineChart(
 private fun resolveChartDescription(
     chartDescription: String?,
     points: List<Pair<Long, Float>>,
-    pointLabels: List<String>
+    pointLabels: List<String>,
+    axisRange: LineChartAxisRange
 ): String = chartDescription ?: buildString {
     append("Grafica con ${points.size} puntos")
+    append(", eje de ${formatLineChartAxisLabel(axisRange.minimum)} a ${formatLineChartAxisLabel(axisRange.maximum)}")
     pointLabels.firstOrNull()?.let { append(", desde $it") }
     pointLabels.lastOrNull()?.let { append(" hasta $it") }
 }
