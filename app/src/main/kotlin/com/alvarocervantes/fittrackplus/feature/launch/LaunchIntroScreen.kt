@@ -128,11 +128,15 @@ private fun LaunchIntroScreen(
         ),
         label = "introEmeraldPulse"
     )
+    // No delayMillis here: the whole intro is only visible for ~1240ms (see the constants
+    // above), barely more than one sweep. A per-cycle pause left the highlight parked at its
+    // start position for most of that window, reading as a stuck patch rather than a moving
+    // shine — most noticeable in dark theme, where the contrast against the background is high.
     val shimmerSweep by pulseTransition.animateFloat(
         initialValue = -220f,
         targetValue = 420f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1600, delayMillis = 500),
+            animation = tween(durationMillis = 1600),
             repeatMode = RepeatMode.Restart
         ),
         label = "introShimmerSweep"
