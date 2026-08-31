@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -330,6 +331,7 @@ private fun SetCompletionControl(
         tone = if (isCompleted) FitTrackIconBadgeTone.Filled else FitTrackIconBadgeTone.Outlined,
         modifier = Modifier
             .padding(top = 6.dp)
+            .minimumInteractiveComponentSize()
             .clickable(enabled = isCompleted || isReadyToComplete, onClick = onClick)
             .semantics { this.contentDescription = contentDescription }
     )

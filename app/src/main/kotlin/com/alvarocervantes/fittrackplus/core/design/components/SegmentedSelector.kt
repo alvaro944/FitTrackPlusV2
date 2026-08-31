@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 
@@ -44,7 +45,11 @@ fun FitTrackSegmentedSelector(
                             MaterialTheme.colorScheme.surfaceVariant
                         }
                     )
-                    .clickable { onSelect(index) }
+                    .clickable(
+                        role = Role.Tab,
+                        onClickLabel = "Seleccionar $option",
+                        onClick = { onSelect(index) }
+                    )
                     .padding(vertical = FitSpacing.sm),
                 contentAlignment = Alignment.Center
             ) {

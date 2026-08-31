@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
@@ -85,7 +86,11 @@ private fun ThemeModeTile(
                     Modifier
                 }
             )
-            .clickable(onClick = onClick)
+            .clickable(
+                role = Role.RadioButton,
+                onClickLabel = "Seleccionar tema ${mode.label}",
+                onClick = onClick
+            )
             .padding(if (showRadio) FitSpacing.sm else FitSpacing.md),
         verticalArrangement = Arrangement.spacedBy(FitSpacing.sm),
         horizontalAlignment = Alignment.Start
