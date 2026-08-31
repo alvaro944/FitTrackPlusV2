@@ -58,6 +58,8 @@ import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import com.alvarocervantes.fittrackplus.core.design.components.LineChart
+import com.alvarocervantes.fittrackplus.core.design.components.LineChartBaselineMode
+import com.alvarocervantes.fittrackplus.core.design.components.calculateLineChartAxisRange
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadgeTone
@@ -584,15 +586,19 @@ private fun SessionVolumeTrendCard(
         }
 
         if (selectedSessions.size >= 2) {
+            val chartPoints = selectedSessions.map { session ->
+                session.finishedAt to weightUnit.fromKilograms(session.totalVolumeKg).toFloat()
+            }
             LineChart(
-                points = selectedSessions.map { session ->
-                    session.finishedAt to weightUnit.fromKilograms(session.totalVolumeKg).toFloat()
-                },
+                points = chartPoints,
+                // Volume is absolute, so zero is meaningful; exercise progress stays auto-scaled.
+                baselineMode = LineChartBaselineMode.ZeroBaseline,
                 pointLabels = selectedSessions.map { session ->
                     "${session.totalVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}"
                 },
                 xAxisLabels = selectedSessions.map { session -> formatChartDate(session.finishedAt) },
                 chartDescription = "Tendencia de volumen a lo largo de ${selectedSessions.size} sesiones, " +
+                    "${chartPoints.toAxisRangeDescription(LineChartBaselineMode.ZeroBaseline, weightUnit.label)}, " +
                     "de ${selectedSessions.first().totalVolumeKg.toDisplayText(weightUnit)} a " +
                     "${selectedSessions.last().totalVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}",
                 modifier = Modifier
@@ -809,13 +815,15 @@ private fun ProgressChartCard(
                 val selectedIndex = selectedProgressPoint?.let { selected ->
                     progressPoints.indexOfFirst { point -> point.sessionId == selected.sessionId }
                 }?.takeIf { index -> index >= 0 }
+                val chartUnit = if (selectedMetric == ProgressMetric.Reps) null else weightUnit.label
                 LineChart(
                     points = chartValues,
                     selectedPointIndex = selectedIndex,
                     pointLabels = progressPoints.map { point -> point.toChartLabel(selectedMetric, weightUnit) },
                     xAxisLabels = progressPoints.map { point -> formatChartDate(point.finishedAt) },
                     chartDescription = "Evolucion de ${selectedMetric.label} de $selectedExerciseName " +
-                        "a lo largo de ${progressPoints.size} sesiones, de " +
+                        "a lo largo de ${progressPoints.size} sesiones, " +
+                        "${chartValues.toAxisRangeDescription(LineChartBaselineMode.AutoRange, chartUnit)}, de " +
                         "${progressPoints.first().toChartLabel(selectedMetric, weightUnit)} a " +
                         progressPoints.last().toChartLabel(selectedMetric, weightUnit),
                     onPointSelected = { index ->
@@ -1234,3 +1242,12 @@ private fun Double.toDisplayText(): String {
 
 private fun Double.toDisplayText(weightUnit: WeightUnit): String =
     weightUnit.fromKilograms(this).toDisplayText()
+
+private fun List<Pair<Long, Float>>.toAxisRangeDescription(
+    baselineMode: LineChartBaselineMode,
+    unit: String?
+): String {
+    val range = calculateLineChartAxisRange(map { it.second }, baselineMode)
+    val suffix = unit?.let { " $it" }.orEmpty()
+    return "eje de ${range.minimum.toDouble().toDisplayText()} a ${range.maximum.toDouble().toDisplayText()}$suffix"
+}
