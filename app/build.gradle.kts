@@ -89,6 +89,15 @@ detekt {
     source.setFrom("src/main/kotlin")
 }
 
+// detekt's embedded Kotlin compiler tops out well below the newest JDKs, and it otherwise
+// inherits whatever JVM the Gradle daemon happens to run on. When the daemon comes up on a
+// newer JDK (for example via gradle/gradle-daemon-jvm.properties) the task dies with
+// "Invalid value passed to --jvm-target". Pin it to the same target the app compiles against
+// so `build` does not depend on which JDK started the daemon.
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    jvmTarget = JavaVersion.VERSION_17.toString()
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
