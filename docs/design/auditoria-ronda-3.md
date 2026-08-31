@@ -458,3 +458,49 @@ Dos causas:
 **Leccion**: al arreglar el bug original hice honesto el pre-chequeo, pero no cuestione
 la regla que estaba protegiendo. Un bloqueo correctamente implementado sigue siendo un
 bloqueo equivocado si impide el caso en el que mas falta hace.
+
+---
+
+## Verificacion de P5 y P6, y cierre de P4 (2026-08-31)
+
+Trabajo ejecutado en dos ramas hermanas en paralelo (`fix/shared-accessibility-and-copy` y
+`refactor/home-stats-visual-locale`, sin ficheros compartidos), ya mergeadas a `develop` y
+las ramas borradas. Verificado leyendo el codigo en `develop`, no las specs.
+
+### P4 — 10 de 11
+
+Cerrados desde la revision anterior:
+
+| # | Estado | Nota |
+|---|---|---|
+| P4-4 | OK | Home y Ajustes ya usan `FitTrackScreenHeader`. Se acaban los tres idiomas de cabecera |
+| P4-5 | OK | `SkeletonListItem` como esqueleto de lista compartido, y el badge de Home deja de decir "SIN SESION" antes de que lleguen los datos |
+| P4-10 | OK | `LaunchIntroScreen` sin un solo `Color(0xFF...)`: respeta el tema oscuro y su duracion fija queda documentada |
+| P4-8 | Parcial | Las etiquetas escalan con la fuente del sistema y la grafica tiene `contentDescription`. **Sigue sin eje Y ni linea base**: normaliza a `minY..maxY`, asi que 100→101 kg se dibuja igual que 50→150 |
+
+### P5 — 4 de 5
+
+| # | Estado | Nota |
+|---|---|---|
+| P5-1 | OK | De 3 a 9 ficheros con `Role.` declarado en pulsables |
+| P5-2 | **Revertido a proposito** | Se subio el area tactil del stepper compacto a 40dp y se revirtio: estrujaba los campos de peso/reps. Es exactamente la trampa documentada en el phase-log del 2026-07-05 (Bug D), donde 48dp por boton robaban ~80dp de ancho a la fila. Necesita un enfoque que amplie el area sin ocupar layout |
+| P5-3 | OK | TalkBack ya no lee el id de Room |
+| P5-4 | OK | Celdas del calendario y tira semanal de Home con `contentDescription` |
+| P5-5 | OK | La grafica de progreso tiene descripcion accesible |
+
+### P6 — 3 de 4
+
+| # | Estado | Nota |
+|---|---|---|
+| P6-1 | **Pendiente** | Cero `stringResource` en el proyecto. Spec escrita y por fases en `docs/superpowers/specs/2026-08-30-string-resources-migration.md`, sin ejecutar |
+| P6-2 | OK | "Anadir" corregido, cero ocurrencias |
+| P6-3 | OK | Plurales correctos en widget y Home |
+| P6-4 | OK | Politica de locale unificada en constantes con nombre (`STATS_LOCALE`, `HOME_LOCALE`, `spanishCollator()`) en vez de literales repartidos |
+
+### Lo que queda del plan principal
+
+1. **P6-1**: migracion de literales a `stringResource`. Es la pieza grande que queda.
+2. **P4-8**: eje Y y linea base en las graficas.
+3. **P5-2**: area tactil del stepper, con un enfoque que no robe ancho.
+4. **Backlog**: entradas 38 a 42 de `mejoras-claude.md`.
+5. **Pasada manual** sin terminar, y `main` 24 commits por detras de `develop`.
