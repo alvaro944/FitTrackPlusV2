@@ -350,6 +350,15 @@ class WorkoutInputDefaultsTest {
         assertTrue(arming.consume())
     }
 
+    @Test
+    fun selectAllArming_keepsFocusSelectionArmedUntilTheFirstPointerRelease() {
+        val arming = SelectAllArming()
+
+        assertTrue(arming.shouldSelectOnFocus())
+        assertTrue(arming.consume())
+        assertFalse(arming.shouldSelectOnFocus())
+    }
+
 
     @Test
     fun clearingRepsOnTheSetBeingEditedIsNotRefilledBySuggestions() {

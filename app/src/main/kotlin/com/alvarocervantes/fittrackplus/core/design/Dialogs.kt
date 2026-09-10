@@ -41,6 +41,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.window.Dialog
 import com.alvarocervantes.fittrackplus.core.design.components.DisableNativeTextToolbar
 import com.alvarocervantes.fittrackplus.core.design.components.maybeSelectAllOnFocusValue
+import com.alvarocervantes.fittrackplus.core.design.components.rememberSelectAllArming
 import com.alvarocervantes.fittrackplus.core.design.components.syncTextFieldValue
 
 /** Standard two-button confirmation dialog. */
@@ -107,12 +108,13 @@ fun FitTrackInputDialog(
     minLines: Int = 1,
     maxLines: Int = Int.MAX_VALUE,
     confirmEnabled: Boolean = true,
-    selectAllOnFocus: Boolean = false,
+    selectAllOnFocus: Boolean = true,
     maxLength: Int? = null,
     extraContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     var fieldValue by remember { mutableStateOf(TextFieldValue(value)) }
     val interactionSource = remember { MutableInteractionSource() }
+    val arming = rememberSelectAllArming()
 
     LaunchedEffect(value) {
         fieldValue = syncTextFieldValue(fieldValue, value)
@@ -120,7 +122,7 @@ fun FitTrackInputDialog(
 
     LaunchedEffect(interactionSource) {
         interactionSource.interactions.collect { interaction ->
-            if (interaction is PressInteraction.Release) {
+            if (interaction is PressInteraction.Release && arming.consume()) {
                 fieldValue = maybeSelectAllOnFocusValue(fieldValue, selectAllOnFocus)
             }
         }
@@ -156,7 +158,11 @@ fun FitTrackInputDialog(
                             .fillMaxWidth()
                             .onFocusChanged { focusState ->
                                 if (focusState.isFocused) {
-                                    fieldValue = maybeSelectAllOnFocusValue(fieldValue, selectAllOnFocus)
+                                    if (arming.shouldSelectOnFocus()) {
+                                        fieldValue = maybeSelectAllOnFocusValue(fieldValue, selectAllOnFocus)
+                                    }
+                                } else {
+                                    arming.rearm()
                                 }
                             }
                     )

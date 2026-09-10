@@ -48,6 +48,9 @@ class SelectAllArming internal constructor() {
         return true
     }
 
+    /** Keeps focus selection armed until the pointer release can override Compose's caret placement. */
+    fun shouldSelectOnFocus(): Boolean = armed
+
     /** Re-arms the field so the next time it gains focus it selects everything again. */
     fun rearm() {
         armed = true
@@ -119,7 +122,7 @@ fun FitTrackSelectAllTextField(
             },
             modifier = modifier.onFocusChanged { focusState ->
                 if (focusState.isFocused) {
-                    if (arming.consume()) {
+                    if (arming.shouldSelectOnFocus()) {
                         fieldValue = maybeSelectAllOnFocusValue(fieldValue, selectAllOnFocus)
                     }
                 } else {

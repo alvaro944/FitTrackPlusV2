@@ -722,7 +722,6 @@ private fun RoutineEditorContent(
                         { Text(error) }
                     },
                     singleLine = true,
-                    selectAllOnFocus = false,
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
                         imeAction = ImeAction.Done
@@ -945,7 +944,6 @@ private fun RoutineDayEditor(
                     { Text(error) }
                 },
                 singleLine = true,
-                selectAllOnFocus = false,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Words,
                     imeAction = ImeAction.Next
@@ -1224,7 +1222,6 @@ private fun RoutineExerciseEditor(
                 { Text(error) }
             },
             singleLine = true,
-            selectAllOnFocus = false,
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Words,
                 imeAction = ImeAction.Done
@@ -1369,7 +1366,6 @@ private fun ExerciseAlternativesEditorDialog(
                                     onValueChange = { onAlternativeNameChange(index, it) },
                                     label = { Text("Nombre") },
                                     singleLine = true,
-                                    selectAllOnFocus = false,
                                     keyboardOptions = KeyboardOptions(
                                         capitalization = KeyboardCapitalization.Words,
                                         imeAction = ImeAction.Next
@@ -1399,7 +1395,6 @@ private fun ExerciseAlternativesEditorDialog(
                                     label = { Text("Notas") },
                                     singleLine = false,
                                     minLines = 2,
-                                    selectAllOnFocus = false,
                                     keyboardOptions = KeyboardOptions(
                                         capitalization = KeyboardCapitalization.Sentences,
                                         imeAction = ImeAction.Done

@@ -345,7 +345,6 @@ private fun FinishWorkoutDialog(
                 label = { Text("Notas de la sesion") },
                 singleLine = false,
                 minLines = 3,
-                selectAllOnFocus = false,
                 modifier = Modifier.fillMaxWidth()
             )
         },
@@ -1123,7 +1122,6 @@ private fun ExerciseAlternativesDialog(
                     onValueChange = onDraftNameChange,
                     label = { Text("Nombre") },
                     singleLine = true,
-                    selectAllOnFocus = false,
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
                         imeAction = ImeAction.Next
@@ -1147,7 +1145,6 @@ private fun ExerciseAlternativesDialog(
                     label = { Text("Notas") },
                     singleLine = false,
                     minLines = 2,
-                    selectAllOnFocus = false,
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Sentences,
                         imeAction = ImeAction.Done

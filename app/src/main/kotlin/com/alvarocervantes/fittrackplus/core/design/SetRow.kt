@@ -134,7 +134,6 @@ fun FitTrackSetRow(
                     label = { Text("Notas") },
                     singleLine = false,
                     minLines = 2,
-                    selectAllOnFocus = false,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = FitSpacing.xs)
@@ -399,7 +398,7 @@ private fun SetRowWeightField(
                         .heightIn(min = 56.dp)
                         .onFocusChanged {
                             if (it.isFocused) {
-                                if (arming.consume()) fieldValue = selectAllOnFocusValue(fieldValue)
+                                if (arming.shouldSelectOnFocus()) fieldValue = selectAllOnFocusValue(fieldValue)
                             } else {
                                 arming.rearm()
                             }
@@ -481,7 +480,7 @@ private fun SetRowRepsField(
                         .focusRequester(focusRequester)
                         .onFocusChanged {
                             if (it.isFocused) {
-                                if (arming.consume()) fieldValue = selectAllOnFocusValue(fieldValue)
+                                if (arming.shouldSelectOnFocus()) fieldValue = selectAllOnFocusValue(fieldValue)
                             } else {
                                 arming.rearm()
                             }
