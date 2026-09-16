@@ -2,8 +2,10 @@ package com.alvarocervantes.fittrackplus.data.repository
 
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseAlternativeSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseSnapshot
+import com.alvarocervantes.fittrackplus.data.local.entity.WorkoutExerciseEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.fail
 import org.junit.Test
 
 class TargetRepsSnapshotMappingTest {
@@ -78,6 +80,35 @@ class TargetRepsSnapshotMappingTest {
         assertEquals(6, entity.targetRepsMinSnapshot)
         assertEquals(8, entity.targetRepsMaxSnapshot)
         assertEquals("Use a shallow incline", entity.notes)
+    }
+
+    @Test
+    fun createsWorkoutExerciseWithNoFirstSetRirReported() {
+        val entity = routineExercise(
+            targetRepsText = "8-12",
+            targetRepsMin = 8,
+            targetRepsMax = 12
+        ).toWorkoutExerciseEntity(sessionId = 42)
+
+        assertNull(entity.firstSetRir)
+    }
+
+    @Test
+    fun rejectsFirstSetRirOutsideSupportedRange() {
+        try {
+            WorkoutExerciseEntity(
+                sessionId = 42,
+                exerciseTemplateId = 7,
+                performedVariantKey = "bench",
+                exerciseNameSnapshot = "Bench press",
+                targetRepsSnapshot = "8-12",
+                position = 0,
+                firstSetRir = 11
+            )
+            fail("Expected first-set RIR outside 0..10 to be rejected")
+        } catch (_: IllegalArgumentException) {
+            // Expected: first-set RIR is an optional, bounded measurement.
+        }
     }
 
     private fun routineExercise(

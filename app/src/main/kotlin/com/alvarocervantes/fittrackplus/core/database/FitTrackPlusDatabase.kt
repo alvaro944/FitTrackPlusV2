@@ -25,7 +25,7 @@ import com.alvarocervantes.fittrackplus.domain.model.TargetRepsRange
         WorkoutExerciseEntity::class,
         WorkoutSetEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class FitTrackPlusDatabase : RoomDatabase() {
@@ -36,6 +36,12 @@ abstract class FitTrackPlusDatabase : RoomDatabase() {
 val MIGRATION_5_6 = object : Migration(5, 6) {
     override fun migrate(database: SupportSQLiteDatabase) {
         database.execSQL("ALTER TABLE `workout_exercises` ADD COLUMN `notes` TEXT")
+    }
+}
+
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE `workout_exercises` ADD COLUMN `firstSetRir` INTEGER")
     }
 }
 

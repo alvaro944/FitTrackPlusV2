@@ -31,5 +31,12 @@ data class WorkoutExerciseEntity(
     val notes: String? = null,
     val position: Int,
     val targetRepsMinSnapshot: Int? = null,
-    val targetRepsMaxSnapshot: Int? = null
-)
+    val targetRepsMaxSnapshot: Int? = null,
+    val firstSetRir: Int? = null
+) {
+    init {
+        require(firstSetRir == null || firstSetRir in 0..10) {
+            "First-set RIR must be between 0 and 10"
+        }
+    }
+}

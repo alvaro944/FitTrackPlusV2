@@ -252,7 +252,8 @@ private fun RoutineExerciseSnapshot.toWorkoutExerciseEntity(
         notes = activeVariant.notes,
         position = position,
         targetRepsMinSnapshot = activeVariant.targetRepsMin,
-        targetRepsMaxSnapshot = activeVariant.targetRepsMax
+        targetRepsMaxSnapshot = activeVariant.targetRepsMax,
+        firstSetRir = null
     )
 }
 
