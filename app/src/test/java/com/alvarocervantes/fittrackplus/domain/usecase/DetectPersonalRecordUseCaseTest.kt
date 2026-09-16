@@ -95,5 +95,7 @@ class DetectPersonalRecordUseCaseTest {
         override suspend fun getLastRepsForExerciseSet(exerciseName: String, setNumber: Int): Int? = null
         override suspend fun getMaxWeightForExercise(exerciseName: String): Double? = maxWeight
         override suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double? = maxVolume
+        override suspend fun getRecentAverageRepsForExercise(variantKey: String, limit: Int): List<Double> =
+            error("Not used")
     }
 }

@@ -84,4 +84,6 @@ private class FakeReopenWorkoutRepository(
     override suspend fun getLastRepsForExerciseSet(variantKey: String, setNumber: Int): Int? = null
     override suspend fun getMaxWeightForExercise(variantKey: String): Double? = null
     override suspend fun getMaxSetVolumeForExercise(variantKey: String): Double? = null
+    override suspend fun getRecentAverageRepsForExercise(variantKey: String, limit: Int): List<Double> =
+        error("Not used")
 }

@@ -125,5 +125,7 @@ class GetWorkoutStreakUseCaseTest {
         override suspend fun getLastRepsForExerciseSet(exerciseName: String, setNumber: Int): Int? = null
         override suspend fun getMaxWeightForExercise(exerciseName: String): Double? = null
         override suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double? = null
+        override suspend fun getRecentAverageRepsForExercise(variantKey: String, limit: Int): List<Double> =
+            error("Not used")
     }
 }
