@@ -1,5 +1,11 @@
 # Spec: Recomendaciones de carga por ejercicio
 
+> **SUPERSEDED PARCIALMENTE (2026-09-16).**
+> Para ejercicios marcados como PRIMARY, la progresion la decide
+> `docs/superpowers/specs/2026-09-16-progression-engine-primary-v1.md`.
+> Para SECONDARY y ACCESSORY esta spec **sigue vigente** y `GetProgressionHintUseCase`
+> se mantiene sin cambios.
+
 **Fecha:** 2026-06-10
 **Rama:** `codex/ux-improvements`
 **Estado:** aprobada

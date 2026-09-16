@@ -1,5 +1,10 @@
 # Spec: RIR por ejercicio y metrica de calidad de esfuerzo
 
+> **SUPERSEDED (2026-09-16) — NUNCA EJECUTADA.**
+> Sustituida por `docs/superpowers/specs/2026-09-16-progression-engine-primary-v1.md`.
+> Se conserva porque documenta el razonamiento original y el porque de las correcciones
+> C1-C5 de la spec nueva. **No implementar desde aqui.**
+
 **Fecha:** 2026-07-30
 **Fase:** 2b del arco de periodizacion (`docs/design/mejoras-claude.md`, entrada 19)
 **Plan de ejecucion:** `docs/superpowers/plans/2026-07-30-effort-quality-rir.md`
