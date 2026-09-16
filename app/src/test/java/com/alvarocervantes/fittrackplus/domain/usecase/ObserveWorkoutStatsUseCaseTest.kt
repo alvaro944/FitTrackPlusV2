@@ -497,6 +497,7 @@ private class StatsWorkoutRepository(
     ): Long = error("Not used")
 
     override suspend fun updateSet(setId: Long, weightKg: Double, reps: Int) = error("Not used")
+    override suspend fun updateExerciseFirstSetRir(workoutExerciseId: Long, rir: Int?) {}
     override suspend fun finishSession(sessionId: Long, notes: String?) = error("Not used")
     override suspend fun discardSession(sessionId: Long) = error("Not used")
     override suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double? = null

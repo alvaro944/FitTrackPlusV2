@@ -394,6 +394,37 @@ class WorkoutViewModel @Inject constructor(
         }
     }
 
+    fun updateExerciseFirstSetRir(workoutExerciseId: Long, rir: Int?) {
+        if (rir != null && rir !in 0..10) {
+            _uiState.update { state ->
+                state.copy(message = "El RIR de la primera serie debe estar entre 0 y 10.")
+            }
+            return
+        }
+        _uiState.update { state ->
+            val session = state.activeSession ?: return@update state
+            state.copy(
+                activeSession = session.copy(
+                    exercises = session.exercises.map { exercise ->
+                        if (exercise.id == workoutExerciseId) exercise.copy(firstSetRir = rir) else exercise
+                    }
+                )
+            )
+        }
+        viewModelScope.launch {
+            runCatching {
+                workoutRepository.updateExerciseFirstSetRir(workoutExerciseId, rir)
+            }.onFailure { throwable ->
+                _uiState.update { state ->
+                    state.copy(
+                        message = throwable.message
+                            ?: "No se pudo guardar el RIR de la primera serie."
+                    )
+                }
+            }
+        }
+    }
+
     fun updateSetWeight(setId: Long, weightText: String) {
         val set = _uiState.value.activeSession?.findSet(setId) ?: return
         val sanitizedWeightText = sanitizeWorkoutWeightInput(weightText)
@@ -882,6 +913,7 @@ data class WorkoutExerciseUiState(
     val name: String,
     val targetRepsText: String,
     val notes: String? = null,
+    val firstSetRir: Int? = null,
     val sets: List<WorkoutSetUiState>
 )
 
@@ -976,6 +1008,7 @@ private fun WorkoutSessionWithExercises.toUiState(weightUnit: WeightUnit): Activ
                     name = exerciseWithSets.exercise.exerciseNameSnapshot,
                     targetRepsText = exerciseWithSets.exercise.targetRepsSnapshot,
                     notes = exerciseWithSets.exercise.notes,
+                    firstSetRir = exerciseWithSets.exercise.firstSetRir,
                     sets = exerciseWithSets.sets
                         .sortedBy { it.setNumber }
                         .map { set ->
@@ -995,6 +1028,13 @@ private fun WorkoutSessionWithExercises.toUiState(weightUnit: WeightUnit): Activ
                 )
             }
     )
+}
+
+internal fun firstSetRirFromSelection(selectedIndex: Int): Int {
+    return when (selectedIndex) {
+        0, 1, 2, 3, 4 -> selectedIndex
+        else -> throw IllegalArgumentException("First-set RIR selection must be between 0 and 4")
+    }
 }
 
 private fun ActiveWorkoutSessionUiState.findSet(setId: Long): WorkoutSetUiState? {

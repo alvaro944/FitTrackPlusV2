@@ -16,6 +16,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+@Suppress("TooManyFunctions")
 class DefaultWorkoutRepository @Inject constructor(
     private val database: FitTrackPlusDatabase,
     private val workoutDao: WorkoutDao
@@ -163,6 +164,13 @@ class DefaultWorkoutRepository @Inject constructor(
                 isCompleted = false
             )
         )
+    }
+
+    override suspend fun updateExerciseFirstSetRir(workoutExerciseId: Long, rir: Int?) {
+        require(rir == null || rir in 0..10) {
+            "First-set RIR must be between 0 and 10"
+        }
+        workoutDao.updateExerciseFirstSetRir(workoutExerciseId, rir)
     }
 
     override suspend fun updateSetCompletion(setId: Long, isCompleted: Boolean) {

@@ -135,6 +135,8 @@ private class SetUpdateWorkoutRepository : WorkoutRepository {
         lastCompletion = isCompleted
     }
 
+    override suspend fun updateExerciseFirstSetRir(workoutExerciseId: Long, rir: Int?) {}
+
     override suspend fun finishSession(sessionId: Long, notes: String?) = Unit
     override suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double? = null
     override suspend fun getLastRepsForExerciseSet(exerciseName: String, setNumber: Int): Int? = null

@@ -89,6 +89,7 @@ private class ProgressionHintWorkoutRepository(
         weekNumber: Int
     ): Long = error("Not used")
     override suspend fun updateSet(setId: Long, weightKg: Double, reps: Int) = error("Not used")
+    override suspend fun updateExerciseFirstSetRir(workoutExerciseId: Long, rir: Int?) {}
     override suspend fun finishSession(sessionId: Long, notes: String?) = error("Not used")
     override suspend fun getLastWeightKgForExerciseSet(variantKey: String, setNumber: Int): Double? = null
     override suspend fun getLastRepsForExerciseSet(variantKey: String, setNumber: Int): Int? = null

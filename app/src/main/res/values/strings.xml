@@ -11,4 +11,14 @@
     <!-- Widget -->
     <string name="widget_description">Racha y sesiones de la semana</string>
 
+    <!-- Workout effort -->
+    <string name="workout_first_set_rir_question">Repeticiones que te sobraron en la primera serie</string>
+    <string name="workout_first_set_rir_option_zero">0</string>
+    <string name="workout_first_set_rir_option_one">1</string>
+    <string name="workout_first_set_rir_option_two">2</string>
+    <string name="workout_first_set_rir_option_three">3</string>
+    <string name="workout_first_set_rir_option_four_plus">4+</string>
+    <string name="workout_first_set_rir_guidance">0 = fallo · Zona útil: 1-3 · 4+ = lejos del fallo</string>
+    <string name="workout_first_set_rir_clear">No reportado</string>
+
 </resources>

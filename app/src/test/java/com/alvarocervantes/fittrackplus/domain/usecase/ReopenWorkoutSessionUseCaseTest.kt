@@ -72,6 +72,7 @@ private class FakeReopenWorkoutRepository(
     ): Long = error("Not used")
 
     override suspend fun updateSet(setId: Long, weightKg: Double, reps: Int) = Unit
+    override suspend fun updateExerciseFirstSetRir(workoutExerciseId: Long, rir: Int?) {}
     override suspend fun finishSession(sessionId: Long, notes: String?) = Unit
 
     override suspend fun reopenSession(sessionId: Long) {

@@ -71,6 +71,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -97,6 +98,8 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeVariant
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import com.alvarocervantes.fittrackplus.core.design.components.ConfettiAnimation
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSegmentedSelector
+import com.alvarocervantes.fittrackplus.R
 import com.alvarocervantes.fittrackplus.domain.model.PrType
 import com.alvarocervantes.fittrackplus.domain.model.ProgressionHint
 import com.alvarocervantes.fittrackplus.feature.routines.isValidTargetReps
@@ -268,6 +271,7 @@ fun WorkoutScreen(
                 onSetWeightChange = viewModel::updateSetWeight,
                 onSetRepsChange = viewModel::updateSetReps,
                 onSetNotesChange = viewModel::updateSetNotes,
+                onFirstSetRirChange = viewModel::updateExerciseFirstSetRir,
                 onCompleteSet = viewModel::completeSet,
                 onStepWeight = viewModel::stepSetWeight,
                 onStepReps = viewModel::stepSetReps,
@@ -372,6 +376,7 @@ private fun WorkoutContent(
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
     onSetNotesChange: (Long, String) -> Unit,
+    onFirstSetRirChange: (Long, Int?) -> Unit,
     onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit,
@@ -460,6 +465,7 @@ private fun WorkoutContent(
                         onSetWeightChange = onSetWeightChange,
                         onSetRepsChange = onSetRepsChange,
                         onSetNotesChange = onSetNotesChange,
+                        onFirstSetRirChange = onFirstSetRirChange,
                         onCompleteSet = onCompleteSet,
                         onStepWeight = onStepWeight,
                         onStepReps = onStepReps
@@ -836,6 +842,7 @@ private fun WorkoutExerciseCard(
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
     onSetNotesChange: (Long, String) -> Unit,
+    onFirstSetRirChange: (Long, Int?) -> Unit,
     onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit
@@ -938,6 +945,10 @@ private fun WorkoutExerciseCard(
             }
 
             if (isExpanded) {
+                FirstSetRirSelector(
+                    firstSetRir = exercise.firstSetRir,
+                    onFirstSetRirChange = { rir -> onFirstSetRirChange(exercise.id, rir) }
+                )
                 if (exercise.sets.isEmpty()) {
                     Text(
                         text = "Sin series configuradas",
@@ -959,6 +970,45 @@ private fun WorkoutExerciseCard(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FirstSetRirSelector(
+    firstSetRir: Int?,
+    onFirstSetRirChange: (Int?) -> Unit
+) {
+    val options = listOf(
+        stringResource(R.string.workout_first_set_rir_option_zero),
+        stringResource(R.string.workout_first_set_rir_option_one),
+        stringResource(R.string.workout_first_set_rir_option_two),
+        stringResource(R.string.workout_first_set_rir_option_three),
+        stringResource(R.string.workout_first_set_rir_option_four_plus)
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+        Text(
+            text = stringResource(R.string.workout_first_set_rir_question),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        FitTrackSegmentedSelector(
+            options = options,
+            selectedIndex = firstSetRir?.coerceAtMost(4) ?: -1,
+            onSelect = { index -> onFirstSetRirChange(firstSetRirFromSelection(index)) }
+        )
+        Text(
+            text = stringResource(R.string.workout_first_set_rir_guidance),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (firstSetRir != null) {
+            TextButton(
+                onClick = { onFirstSetRirChange(null) },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(stringResource(R.string.workout_first_set_rir_clear))
             }
         }
     }
