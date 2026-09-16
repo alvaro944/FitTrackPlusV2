@@ -314,9 +314,13 @@ private class HistoryDetailWorkoutRepository(
     ): Long = error("Not used")
 
     override suspend fun updateSet(setId: Long, weightKg: Double, reps: Int) = error("Not used")
+    override suspend fun updateSetCompletion(setId: Long, isCompleted: Boolean) = error("Not used")
+    override suspend fun updateSetNotes(setId: Long, notes: String?) = error("Not used")
     override suspend fun finishSession(sessionId: Long, notes: String?) = error("Not used")
     override suspend fun getLastWeightKgForExerciseSet(exerciseName: String, setNumber: Int): Double? = null
     override suspend fun getLastRepsForExerciseSet(exerciseName: String, setNumber: Int): Int? = null
     override suspend fun getMaxWeightForExercise(exerciseName: String): Double? = null
     override suspend fun getMaxSetVolumeForExercise(exerciseName: String): Double? = null
+    override suspend fun getRecentAverageRepsForExercise(variantKey: String, limit: Int): List<Double> =
+        error("Not used")
 }

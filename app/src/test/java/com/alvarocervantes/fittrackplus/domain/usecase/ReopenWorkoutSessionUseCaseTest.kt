@@ -72,6 +72,8 @@ private class FakeReopenWorkoutRepository(
     ): Long = error("Not used")
 
     override suspend fun updateSet(setId: Long, weightKg: Double, reps: Int) = Unit
+    override suspend fun updateSetCompletion(setId: Long, isCompleted: Boolean) = error("Not used")
+    override suspend fun updateSetNotes(setId: Long, notes: String?) = error("Not used")
     override suspend fun finishSession(sessionId: Long, notes: String?) = Unit
 
     override suspend fun reopenSession(sessionId: Long) {
@@ -82,4 +84,6 @@ private class FakeReopenWorkoutRepository(
     override suspend fun getLastRepsForExerciseSet(variantKey: String, setNumber: Int): Int? = null
     override suspend fun getMaxWeightForExercise(variantKey: String): Double? = null
     override suspend fun getMaxSetVolumeForExercise(variantKey: String): Double? = null
+    override suspend fun getRecentAverageRepsForExercise(variantKey: String, limit: Int): List<Double> =
+        error("Not used")
 }
