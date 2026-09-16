@@ -46,8 +46,8 @@ interface WorkoutRepository {
         keepLoggedSets: Boolean = false
     ): Boolean = error("Not implemented")
     suspend fun updateSet(setId: Long, weightKg: Double, reps: Int)
-    suspend fun updateSetCompletion(setId: Long, isCompleted: Boolean) = Unit
-    suspend fun updateSetNotes(setId: Long, notes: String?) = Unit
+    suspend fun updateSetCompletion(setId: Long, isCompleted: Boolean)
+    suspend fun updateSetNotes(setId: Long, notes: String?)
     suspend fun finishSession(sessionId: Long, notes: String? = null)
     suspend fun discardSession(sessionId: Long): Unit = error("Not implemented")
     suspend fun reopenSession(sessionId: Long): Unit = error("Not implemented")
