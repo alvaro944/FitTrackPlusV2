@@ -115,6 +115,8 @@ class Migration7To8Test {
             """.trimIndent()
         )
 
+        // MigrationTestHelper exposes a raw connection, so enable SQLite foreign keys explicitly.
+        execSQL("PRAGMA foreign_keys = ON")
         execSQL("DELETE FROM workout_exercises WHERE id = 1")
 
         query("SELECT workoutExerciseId FROM progression_exposures WHERE variantKey = 'squat'")

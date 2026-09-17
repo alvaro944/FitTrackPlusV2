@@ -67,6 +67,7 @@ android {
         }
         getByName("androidTest") {
             kotlin.srcDir("src/androidTest/kotlin")
+            assets.srcDirs(files("$projectDir/schemas"))
         }
     }
 }
