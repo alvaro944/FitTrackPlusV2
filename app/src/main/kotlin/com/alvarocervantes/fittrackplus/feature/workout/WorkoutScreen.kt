@@ -272,6 +272,7 @@ fun WorkoutScreen(
                 onSetRepsChange = viewModel::updateSetReps,
                 onSetNotesChange = viewModel::updateSetNotes,
                 onFirstSetRirChange = viewModel::updateExerciseFirstSetRir,
+                onToggleBadDay = viewModel::toggleBadDay,
                 onCompleteSet = viewModel::completeSet,
                 onStepWeight = viewModel::stepSetWeight,
                 onStepReps = viewModel::stepSetReps,
@@ -377,6 +378,7 @@ private fun WorkoutContent(
     onSetRepsChange: (Long, String) -> Unit,
     onSetNotesChange: (Long, String) -> Unit,
     onFirstSetRirChange: (Long, Int?) -> Unit,
+    onToggleBadDay: (Long) -> Unit,
     onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit,
@@ -459,6 +461,7 @@ private fun WorkoutContent(
                         exercise = exercise,
                         weightUnitLabel = state.weightUnit.label,
                         hint = state.hints[exercise.id] ?: ProgressionHint.NONE,
+                        progression = state.primaryProgression[exercise.id],
                         isExpanded = state.expandedExerciseId == exercise.id,
                         onOpenAlternatives = onOpenExerciseAlternatives,
                         onToggleExpanded = onToggleExerciseExpanded,
@@ -466,6 +469,7 @@ private fun WorkoutContent(
                         onSetRepsChange = onSetRepsChange,
                         onSetNotesChange = onSetNotesChange,
                         onFirstSetRirChange = onFirstSetRirChange,
+                        onToggleBadDay = onToggleBadDay,
                         onCompleteSet = onCompleteSet,
                         onStepWeight = onStepWeight,
                         onStepReps = onStepReps
@@ -836,6 +840,7 @@ private fun WorkoutExerciseCard(
     exercise: WorkoutExerciseUiState,
     weightUnitLabel: String,
     hint: ProgressionHint,
+    progression: PrimaryProgressionUiState?,
     isExpanded: Boolean,
     onOpenAlternatives: (Long) -> Unit,
     onToggleExpanded: (Long) -> Unit,
@@ -843,6 +848,7 @@ private fun WorkoutExerciseCard(
     onSetRepsChange: (Long, String) -> Unit,
     onSetNotesChange: (Long, String) -> Unit,
     onFirstSetRirChange: (Long, Int?) -> Unit,
+    onToggleBadDay: (Long) -> Unit,
     onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit
@@ -945,6 +951,13 @@ private fun WorkoutExerciseCard(
             }
 
             if (isExpanded) {
+                progression?.let { primary ->
+                    PrimaryPrescriptionCard(
+                        progression = primary,
+                        weightUnitLabel = weightUnitLabel,
+                        onToggleBadDay = { onToggleBadDay(exercise.id) }
+                    )
+                }
                 FirstSetRirSelector(
                     firstSetRir = exercise.firstSetRir,
                     onFirstSetRirChange = { rir -> onFirstSetRirChange(exercise.id, rir) }
@@ -1384,4 +1397,85 @@ private fun progressionHintSupportText(hint: ProgressionHint): String {
         ProgressionHint.DOWN -> "No has alcanzado el rango las ultimas sesiones. Considera bajar peso."
         ProgressionHint.NONE -> ""
     }
+}
+
+/**
+ * What the engine prescribes for a PRIMARY exercise today, and why it decided that.
+ *
+ * R19 makes the explanation mandatory. A weight with no reason turns the engine back into a black
+ * box, and an engine the user cannot follow is an engine the user stops trusting.
+ */
+@Composable
+private fun PrimaryPrescriptionCard(
+    progression: PrimaryProgressionUiState,
+    weightUnitLabel: String,
+    onToggleBadDay: () -> Unit
+) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(FitSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+        ) {
+            Text(
+                text = stringResource(
+                    R.string.workout_primary_prescription,
+                    progression.prescribedLoadKg.formatLoad(),
+                    weightUnitLabel,
+                    progression.repMin,
+                    progression.repMax,
+                    progression.targetRir
+                ),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = progression.decisionReason,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            progression.displayedE1rmKg?.let { e1rm ->
+                Text(
+                    text = stringResource(
+                        R.string.workout_primary_e1rm,
+                        e1rm.formatLoad(),
+                        weightUnitLabel
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            progression.suggestedRemainingSetLoadKg?.let { suggested ->
+                Text(
+                    text = stringResource(
+                        R.string.workout_primary_suggested_next,
+                        suggested.formatLoad(),
+                        weightUnitLabel
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.workout_primary_bad_day),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Switch(checked = progression.isBadDay, onCheckedChange = { onToggleBadDay() })
+            }
+            if (progression.isBadDay) {
+                Text(
+                    text = stringResource(R.string.workout_primary_bad_day_guidance),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+private fun Double.formatLoad(): String {
+    return if (this % 1.0 == 0.0) toInt().toString() else String.format(Locale.getDefault(), "%.1f", this)
 }

@@ -3,6 +3,8 @@ package com.alvarocervantes.fittrackplus.domain.model.progression
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -10,7 +12,7 @@ class ProgressionDecisionTest {
 
     @Test
     fun `one failed exposure at a confirmed load keeps that lane load`() {
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             progressingProfile(consecutiveFailStrength = 0),
             listOf(exposure(type = ExposureType.STRENGTH, outcome = OutcomeClass.FAILED))
         )
@@ -26,7 +28,7 @@ class ProgressionDecisionTest {
 
     @Test
     fun `two failed exposures in the same lane reduce one increment`() {
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             progressingProfile(consecutiveFailStrength = 1),
             listOf(
                 exposure(type = ExposureType.STRENGTH, outcome = OutcomeClass.FAILED, index = 1),
@@ -42,7 +44,7 @@ class ProgressionDecisionTest {
 
     @Test
     fun `failed pending confirmation reverts to the previous load`() {
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             progressingProfile(
                 loadStrengthKg = 100.0,
                 previousLoadStrengthKg = 95.0,
@@ -63,11 +65,11 @@ class ProgressionDecisionTest {
 
     @Test
     fun `easy and strong outcomes raise only their own lane`() {
-        val easyPrescription = calculateNextPrescription(
+        val easyPrescription = requirePrescription(
             progressingProfile(loadStrengthKg = 100.0),
             listOf(exposure(type = ExposureType.STRENGTH, outcome = OutcomeClass.EASY))
         )
-        val strongPrescription = calculateNextPrescription(
+        val strongPrescription = requirePrescription(
             progressingProfile(loadStrengthKg = 100.0),
             listOf(exposure(type = ExposureType.STRENGTH, outcome = OutcomeClass.STRONG))
         )
@@ -101,8 +103,8 @@ class ProgressionDecisionTest {
         )
         val raisedSets = loweredSets.copy(intraSessionAdjustmentSteps = ProgressionTuning.STEP_STRONG)
 
-        val afterLoweredSets = calculateNextPrescription(baseProfile, listOf(earlierFailedExposure, loweredSets))
-        val afterRaisedSets = calculateNextPrescription(baseProfile, listOf(earlierFailedExposure, raisedSets))
+        val afterLoweredSets = requirePrescription(baseProfile, listOf(earlierFailedExposure, loweredSets))
+        val afterRaisedSets = requirePrescription(baseProfile, listOf(earlierFailedExposure, raisedSets))
 
         assertEquals(97.5, requireNotNull(afterLoweredSets.nextProfile.loadStrengthKg), 0.0)
         assertEquals(
@@ -113,7 +115,7 @@ class ProgressionDecisionTest {
 
     @Test
     fun `recovery cooldown blocks every trigger before four exposures`() {
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             progressingProfile(
                 exposuresSinceRecovery = ProgressionTuning.RECOVERY_COOLDOWN_EXPOSURES - 2,
                 hardExposureStreak = ProgressionTuning.R1_HARD_STREAK_CAP - 1
@@ -126,7 +128,7 @@ class ProgressionDecisionTest {
 
     @Test
     fun `unknown trend does not block hard streak trigger`() {
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             progressingProfile(
                 exposuresSinceRecovery = ProgressionTuning.RECOVERY_COOLDOWN_EXPOSURES - 1,
                 hardExposureStreak = ProgressionTuning.R1_HARD_STREAK_CAP - 1
@@ -146,7 +148,7 @@ class ProgressionDecisionTest {
             exposure(OutcomeClass.ON_TARGET, surplus = -1, index = 3)
         )
 
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             progressingProfile(exposuresSinceRecovery = ProgressionTuning.RECOVERY_COOLDOWN_EXPOSURES - 1),
             lowSurplus
         )
@@ -157,7 +159,7 @@ class ProgressionDecisionTest {
 
     @Test
     fun `unknown trend does not block stall trigger`() {
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             progressingProfile(
                 exposuresSinceRecovery = ProgressionTuning.RECOVERY_COOLDOWN_EXPOSURES - 1,
                 stallCount = ProgressionTuning.R4_STALL_COUNT
@@ -171,7 +173,7 @@ class ProgressionDecisionTest {
 
     @Test
     fun `unknown trend does not block repeated hard exposure trigger`() {
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             progressingProfile(
                 exposuresSinceRecovery = ProgressionTuning.RECOVERY_COOLDOWN_EXPOSURES - 1,
                 hardExposureStreak = ProgressionTuning.R5_HARD_STREAK - 1
@@ -195,7 +197,7 @@ class ProgressionDecisionTest {
             consecutiveFailStrength = 1
         )
 
-        val prescription = calculateNextPrescription(profile, badDayExposures)
+        val prescription = requirePrescription(profile, badDayExposures)
 
         assertEquals(StrengthTrend.UNKNOWN, calculateStrengthTrend(profile, badDayExposures))
         assertEquals(ProgressionState.PROGRESSING, prescription.nextProfile.state)
@@ -205,7 +207,7 @@ class ProgressionDecisionTest {
 
     @Test
     fun `two failed evaluations return to calibrating`() {
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             progressingProfile(
                 state = ProgressionState.EVALUATING,
                 evaluationFailStreak = 1,
@@ -234,7 +236,7 @@ class ProgressionDecisionTest {
             nextExposureType = ExposureType.VOLUME
         ).copy(volumePointCount = 1, strengthPointCount = 1)
 
-        val prescription = calculateNextPrescription(profile, calibrationHistory)
+        val prescription = requirePrescription(profile, calibrationHistory)
 
         assertEquals(ProgressionState.PROGRESSING, prescription.nextProfile.state)
         assertEquals(ExposureType.VOLUME, prescription.type)
@@ -242,7 +244,7 @@ class ProgressionDecisionTest {
 
     @Test
     fun `last recovery exposure moves to evaluation`() {
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             progressingProfile(
                 state = ProgressionState.RECOVERING,
                 recoveryExposuresRemaining = 1
@@ -256,7 +258,7 @@ class ProgressionDecisionTest {
 
     @Test
     fun `passed evaluation restores normal progression and resets recovery counters`() {
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             progressingProfile(
                 state = ProgressionState.EVALUATING,
                 hardExposureStreak = 4,
@@ -276,7 +278,7 @@ class ProgressionDecisionTest {
 
     @Test
     fun `first failed evaluation demotes both lanes and keeps progressing`() {
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             progressingProfile(state = ProgressionState.EVALUATING, loadVolumeKg = 80.0, loadStrengthKg = 100.0),
             listOf(exposure(type = ExposureType.EVALUATION, outcome = OutcomeClass.FAILED, surplus = -1))
         )
@@ -289,7 +291,7 @@ class ProgressionDecisionTest {
 
     @Test
     fun `calibration starts volume at the floor of its range`() {
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             ExerciseProgressionProfile(
                 variantKey = "squat",
                 loadVolumeKg = 70.0,
@@ -306,15 +308,15 @@ class ProgressionDecisionTest {
 
     @Test
     fun `specificity changes both lane prescriptions as strength approaches the goal`() {
-        val base = calculateNextPrescription(
+        val base = requirePrescription(
             progressingProfile(goalWeightKg = 100.0, ewmaStrengthE1rm = 84.0),
             emptyList()
         )
-        val specific = calculateNextPrescription(
+        val specific = requirePrescription(
             progressingProfile(goalWeightKg = 100.0, ewmaStrengthE1rm = 90.0),
             emptyList()
         )
-        val peaking = calculateNextPrescription(
+        val peaking = requirePrescription(
             progressingProfile(
                 goalWeightKg = 100.0,
                 ewmaStrengthE1rm = 96.0,
@@ -333,7 +335,7 @@ class ProgressionDecisionTest {
 
     @Test
     fun `displayed e1rm comes from the strength ewma`() {
-        val prescription = calculateNextPrescription(
+        val prescription = requirePrescription(
             progressingProfile(ewmaStrengthE1rm = 130.0, ewmaVolumeE1rm = 150.0),
             emptyList()
         )
@@ -342,6 +344,15 @@ class ProgressionDecisionTest {
         assertNotEquals(prescription.nextProfile.ewmaVolumeE1rm, prescription.displayedE1rm)
         assertTrue(prescription.decisionReason.isNotBlank())
     }
+
+    /**
+     * The engine returns null when calibration has no seed. Every test below exercises a seeded
+     * profile, so they assert on a prescription that must exist.
+     */
+    private fun requirePrescription(
+        profile: ExerciseProgressionProfile,
+        recentExposures: List<ProgressionExposure>
+    ): ProgressionPrescription = requireNotNull(calculateNextPrescription(profile, recentExposures))
 
     private fun progressingProfile(
         state: ProgressionState = ProgressionState.PROGRESSING,
@@ -412,5 +423,44 @@ class ProgressionDecisionTest {
             intraSessionAdjustmentSteps = intraSessionAdjustmentSteps,
             decisionReason = "test"
         )
+    }
+}
+
+/**
+ * Regression test for the crash found on 2026-09-17 during the manual pass: marking an exercise as
+ * PRIMARY created a profile in CALIBRATING with no starting load, and the engine threw
+ * IllegalStateException the moment the workout screen asked for a prescription.
+ *
+ * An exercise with no history to calibrate from is an ordinary state, not a programming error.
+ */
+class ProgressionCalibrationSeedTest {
+
+    @Test
+    fun `an unseeded calibrating profile yields no prescription instead of throwing`() {
+        val unseeded = ExerciseProgressionProfile(
+            variantKey = "bench",
+            state = ProgressionState.CALIBRATING,
+            loadVolumeKg = null,
+            loadStrengthKg = null
+        )
+
+        val prescription = calculateNextPrescription(unseeded, emptyList())
+
+        assertNull(prescription)
+    }
+
+    @Test
+    fun `a seeded calibrating profile does yield a prescription`() {
+        val seeded = ExerciseProgressionProfile(
+            variantKey = "bench",
+            state = ProgressionState.CALIBRATING,
+            loadVolumeKg = 60.0,
+            loadStrengthKg = 60.0
+        )
+
+        val prescription = calculateNextPrescription(seeded, emptyList())
+
+        assertNotNull(prescription)
+        assertTrue(requireNotNull(prescription).decisionReason.isNotBlank())
     }
 }

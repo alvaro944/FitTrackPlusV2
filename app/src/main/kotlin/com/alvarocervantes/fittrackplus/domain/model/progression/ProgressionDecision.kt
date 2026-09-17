@@ -30,10 +30,24 @@ private enum class LoadDecision {
     UNCHANGED
 }
 
+/**
+ * Returns null when calibration has no starting load yet.
+ *
+ * A freshly marked PRIMARY exercise with no history has nothing to calibrate from, and that is an
+ * ordinary state, not a programming error. Throwing here crashed the workout screen the first time
+ * an exercise was promoted, so the absence is now part of the contract: the caller seeds the profile
+ * or shows nothing.
+ */
 fun calculateNextPrescription(
     profile: ExerciseProgressionProfile,
     recentExposures: List<ProgressionExposure>
-): ProgressionPrescription {
+): ProgressionPrescription? {
+    if (profile.state == ProgressionState.CALIBRATING &&
+        profile.loadVolumeKg == null &&
+        profile.loadStrengthKg == null
+    ) {
+        return null
+    }
     val exposures = recentExposures.sortedBy(ProgressionExposure::exposureIndex)
     val lastExposure = exposures.lastOrNull()
     val measuredProfile = lastExposure?.let { updateE1rmEwmas(profile, it) } ?: profile

@@ -30,6 +30,13 @@
     <string name="stats_effort_quality_summary">Zona útil: %1$s%% de %2$d ejercicios con RIR reportado</string>
     <string name="stats_effort_quality_distribution">Al fallo: %1$d · Zona útil: %2$d · Lejos del fallo: %3$d</string>
 
+    <!-- Workout primary progression -->
+    <string name="workout_primary_prescription">%1$s %2$s · %3$d-%4$d reps · RIR %5$d</string>
+    <string name="workout_primary_e1rm">Fuerza estimada: %1$s %2$s</string>
+    <string name="workout_primary_suggested_next">Sugerido para las siguientes series: %1$s %2$s</string>
+    <string name="workout_primary_bad_day">Mal dia</string>
+    <string name="workout_primary_bad_day_guidance">Esta exposicion se guarda pero no se juzga: no cuenta para la tendencia ni para las descargas.</string>
+
     <!-- Routine progression role -->
     <string name="routine_progression_role_label">Rol de progresión</string>
     <string name="routine_progression_role_primary">PRIMARY</string>

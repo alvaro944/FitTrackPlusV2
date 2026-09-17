@@ -21,6 +21,13 @@ import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
 import com.alvarocervantes.fittrackplus.domain.usecase.DetectPersonalRecordUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.FinishWorkoutSessionUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.GetNextWorkoutPreviewUseCase
+import com.alvarocervantes.fittrackplus.domain.model.progression.ProgressionPrescription
+import com.alvarocervantes.fittrackplus.domain.model.progression.calculateSurplus
+import com.alvarocervantes.fittrackplus.domain.model.progression.intraSessionAdjustmentSteps
+import com.alvarocervantes.fittrackplus.domain.model.progression.intraSessionSuggestedLoadKg
+import com.alvarocervantes.fittrackplus.domain.model.progression.ExerciseRole
+import com.alvarocervantes.fittrackplus.domain.usecase.CalculateNextPrescriptionUseCase
+import com.alvarocervantes.fittrackplus.domain.usecase.RecordProgressionExposureUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.GetProgressionHintUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.StartWorkoutSessionUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.UpdateWorkoutSetUseCase
@@ -53,7 +60,9 @@ class WorkoutViewModel @Inject constructor(
     private val finishWorkoutSession: FinishWorkoutSessionUseCase,
     private val updateWorkoutSet: UpdateWorkoutSetUseCase,
     private val detectPersonalRecord: DetectPersonalRecordUseCase,
-    private val getProgressionHint: GetProgressionHintUseCase
+    private val getProgressionHint: GetProgressionHintUseCase,
+    private val calculateNextPrescription: CalculateNextPrescriptionUseCase,
+    private val recordProgressionExposure: RecordProgressionExposureUseCase
 ) : ViewModel() {
 
     companion object {
@@ -72,6 +81,9 @@ class WorkoutViewModel @Inject constructor(
 
     private val _restTimerFinishedHapticEvent = Channel<Unit>(Channel.BUFFERED)
     val restTimerFinishedHapticEvent = _restTimerFinishedHapticEvent.receiveAsFlow()
+
+    /** Prescriptions in play this session, keyed by workout exercise id. Needed to write the exposure on finish. */
+    private var activePrescriptions: Map<Long, ProgressionPrescription> = emptyMap()
 
     private var restTimerJob: Job? = null
     private var celebrationDismissJob: Job? = null
@@ -366,6 +378,9 @@ class WorkoutViewModel @Inject constructor(
                 ?.toUiState(_uiState.value.weightUnit)
                 ?.let { enrichWorkoutSession(it) }
             val hints = activeSession?.let { loadProgressionHints(it) }.orEmpty()
+            val primaryProgression = activeSession
+                ?.let { loadPrimaryProgression(it, _uiState.value.activeRoutineId) }
+                .orEmpty()
 
             _uiState.update { state ->
                 state.copy(
@@ -374,6 +389,7 @@ class WorkoutViewModel @Inject constructor(
                     activeSession = activeSession,
                     expandedExerciseId = resolveExpandedExerciseId(activeSession),
                     hints = hints,
+                    primaryProgression = primaryProgression,
                     message = if (activeSession == null) "No se pudo cargar la sesion iniciada." else null
                 )
             }
@@ -411,6 +427,8 @@ class WorkoutViewModel @Inject constructor(
                 )
             )
         }
+        // Recomputed after the new RIR is in state: the probe surplus depends on it.
+        _uiState.value.activeSession?.let { refreshProbeSuggestion(it) }
         viewModelScope.launch {
             runCatching {
                 workoutRepository.updateExerciseFirstSetRir(workoutExerciseId, rir)
@@ -560,6 +578,7 @@ class WorkoutViewModel @Inject constructor(
                     finishWorkoutSession(sessionId, notes)
                 }
             }.onSuccess {
+                recordPrimaryExposures(session, discarded = shouldDiscardSession)
                 savedStateHandle.remove<Long>(SESSION_KEY)
                 stopRestTimerJob()
                 val cancelledTimer = _uiState.value.restTimer.cancelRestTimer()
@@ -572,6 +591,7 @@ class WorkoutViewModel @Inject constructor(
                         activeSession = null,
                         expandedExerciseId = null,
                         hints = emptyMap(),
+                        primaryProgression = emptyMap(),
                         preview = nextPreview?.toUiState(),
                         restTimer = cancelledTimer,
                         celebration = if (!shouldDiscardSession && prCount > 0) CelebrationData(prCount) else null,
@@ -705,6 +725,9 @@ class WorkoutViewModel @Inject constructor(
             null
         }
         val hints = activeSession?.let { loadProgressionHints(it) }.orEmpty()
+        val primaryProgression = activeSession
+            ?.let { loadPrimaryProgression(it, activeRoutineId) }
+            .orEmpty()
         hasLoadedWorkoutState = true
         val timerAfterLoading = if (activeSession == null) {
             _uiState.value.restTimer.cancelRestTimer()
@@ -721,6 +744,7 @@ class WorkoutViewModel @Inject constructor(
                     preferredExerciseId = state.expandedExerciseId
                 ),
                 hints = hints,
+                primaryProgression = primaryProgression,
                 preview = preview,
                 restTimer = timerAfterLoading
             )
@@ -773,6 +797,9 @@ class WorkoutViewModel @Inject constructor(
                 )
             )
         }
+        // Single funnel for set edits, so the probe suggestion is recomputed wherever the first
+        // set changes: completed, un-completed or retyped.
+        _uiState.value.activeSession?.let { refreshProbeSuggestion(it) }
     }
 
     private fun launchRestTimerJob() {
@@ -832,6 +859,7 @@ class WorkoutViewModel @Inject constructor(
                 hints = hints
             )
         }
+        refreshed?.let { refreshProbeSuggestion(it) }
     }
 
     private suspend fun loadProgressionHints(
@@ -843,6 +871,132 @@ class WorkoutViewModel @Inject constructor(
                 targetRepsText = exercise.targetRepsText
             )
         }
+    }
+
+    /**
+     * Resolves the engine prescription for the exercises the routine marks as PRIMARY.
+     *
+     * The role lives on the routine, not on the session snapshot, so a demotion takes effect on the
+     * next session rather than rewriting one in progress.
+     */
+    private suspend fun loadPrimaryProgression(
+        session: ActiveWorkoutSessionUiState,
+        routineId: Long?
+    ): Map<Long, PrimaryProgressionUiState> {
+        val routine = routineId?.let { routineRepository.getRoutineSnapshot(it) } ?: return emptyMap()
+        val prescriptions = mutableMapOf<Long, ProgressionPrescription>()
+        val uiStates = mutableMapOf<Long, PrimaryProgressionUiState>()
+
+        session.exercises.forEach { exercise ->
+            val routineExerciseId = exercise.exerciseTemplateId ?: return@forEach
+            val role = routine.findExercise(routineExerciseId)?.progressionRole
+            if (role != ExerciseRole.PRIMARY) return@forEach
+            val prescription = calculateNextPrescription(exercise.variantKey) ?: return@forEach
+            prescriptions[exercise.id] = prescription
+            uiStates[exercise.id] = PrimaryProgressionUiState(
+                prescribedLoadKg = prescription.prescribedLoadKg,
+                repMin = prescription.prescribedRepMin,
+                repMax = prescription.prescribedRepMax,
+                targetRir = prescription.prescribedTargetRir,
+                prescribedSets = prescription.prescribedSets,
+                decisionReason = prescription.decisionReason,
+                displayedE1rmKg = prescription.displayedE1rm,
+                isBadDay = _uiState.value.primaryProgression[exercise.id]?.isBadDay == true
+            )
+        }
+        activePrescriptions = prescriptions
+        return uiStates
+    }
+
+    /**
+     * Marks the exercise as a bad day. A flagged exposure is stored but not judged: it counts for
+     * neither the trend nor the recovery triggers. Being ill is not losing strength.
+     */
+    fun toggleBadDay(workoutExerciseId: Long) {
+        _uiState.update { state ->
+            val current = state.primaryProgression[workoutExerciseId] ?: return@update state
+            state.copy(
+                primaryProgression = state.primaryProgression +
+                    (workoutExerciseId to current.copy(isBadDay = !current.isBadDay))
+            )
+        }
+    }
+
+    /**
+     * Recomputes the load proposed for the sets after the probe.
+     *
+     * The probe always runs at the prescribed load, and the next exposure's decision reads the probe
+     * and nothing else. This suggestion is a proposal for today only: it never feeds back into the
+     * engine, because counting it twice would make the engine amplify its own correction.
+     */
+    private fun refreshProbeSuggestion(session: ActiveWorkoutSessionUiState) {
+        val progression = _uiState.value.primaryProgression
+        if (progression.isEmpty()) return
+
+        val updated = progression.mapValues { (exerciseId, uiState) ->
+            val prescription = activePrescriptions[exerciseId] ?: return@mapValues uiState
+            val profile = prescription.nextProfile
+            val probe = session.exercises
+                .firstOrNull { it.id == exerciseId }
+                ?.sets
+                ?.minByOrNull { it.setNumber }
+                ?.takeIf { it.isCompleted }
+                ?: return@mapValues uiState.copy(suggestedRemainingSetLoadKg = null)
+            val reps = probe.repsText.toIntOrNull() ?: return@mapValues uiState
+            val rir = session.exercises.firstOrNull { it.id == exerciseId }?.firstSetRir
+            val surplus = calculateSurplus(
+                probeReps = reps,
+                probeRir = rir,
+                prescribedRepMin = uiState.repMin,
+                prescribedRepMax = uiState.repMax,
+                prescribedTargetRir = uiState.targetRir
+            )
+            val steps = intraSessionAdjustmentSteps(surplus, profile.state, prescription.type)
+            uiState.copy(
+                suggestedRemainingSetLoadKg = intraSessionSuggestedLoadKg(
+                    prescribedLoadKg = uiState.prescribedLoadKg,
+                    loadIncrementKg = profile.loadIncrementKg,
+                    steps = steps
+                ).takeIf { steps != 0 }
+            )
+        }
+        _uiState.update { state -> state.copy(primaryProgression = updated) }
+    }
+
+    /**
+     * R22: exposures are written only when the session really finishes, never while it is open.
+     * A discarded session produced no training, so it produces no exposure either.
+     */
+    private suspend fun recordPrimaryExposures(
+        session: ActiveWorkoutSessionUiState,
+        discarded: Boolean
+    ) {
+        if (discarded) {
+            activePrescriptions = emptyMap()
+            return
+        }
+        val progression = _uiState.value.primaryProgression
+        session.exercises.forEach { exercise ->
+            val prescription = activePrescriptions[exercise.id] ?: return@forEach
+            val probe = exercise.sets.minByOrNull { it.setNumber } ?: return@forEach
+            if (!probe.isCompleted) return@forEach
+            val reps = probe.repsText.toIntOrNull() ?: return@forEach
+            runCatching {
+                recordProgressionExposure(
+                    RecordProgressionExposureUseCase.Input(
+                        variantKey = exercise.variantKey,
+                        workoutExerciseId = exercise.id,
+                        performedAt = System.currentTimeMillis(),
+                        prescription = prescription,
+                        probeReps = reps,
+                        probeRir = exercise.firstSetRir,
+                        completedSetCount = exercise.sets.count { it.isCompleted },
+                        userFlaggedBadDay = progression[exercise.id]?.isBadDay == true
+                    )
+                )
+            }
+        }
+        activePrescriptions = emptyMap()
     }
 
     @Suppress("ReturnCount")
@@ -875,6 +1029,8 @@ data class WorkoutUiState(
     val activeSession: ActiveWorkoutSessionUiState? = null,
     val expandedExerciseId: Long? = null,
     val hints: Map<Long, ProgressionHint> = emptyMap(),
+    /** Engine state for PRIMARY exercises only. Others keep using [hints]. */
+    val primaryProgression: Map<Long, PrimaryProgressionUiState> = emptyMap(),
     val alternativePicker: ExerciseAlternativesUiState? = null,
     val restTimer: RestTimerUiState = RestTimerUiState(),
     val weightUnit: WeightUnit = WeightUnit.Kilograms,
@@ -883,6 +1039,25 @@ data class WorkoutUiState(
 )
 
 data class CelebrationData(val prCount: Int)
+
+/**
+ * What the engine prescribes for one PRIMARY exercise in this session, and why.
+ *
+ * [decisionReason] is not decoration: R19 requires every prescription to explain itself. A weight
+ * with no reason turns the engine back into a black box.
+ */
+data class PrimaryProgressionUiState(
+    val prescribedLoadKg: Double,
+    val repMin: Int,
+    val repMax: Int,
+    val targetRir: Int,
+    val prescribedSets: Int,
+    val decisionReason: String,
+    val displayedE1rmKg: Double?,
+    val isBadDay: Boolean = false,
+    /** Proposed for the sets after the probe. Null until the probe is logged. Never imposed. */
+    val suggestedRemainingSetLoadKg: Double? = null
+)
 
 data class WorkoutPreviewUiState(
     val routineName: String,
