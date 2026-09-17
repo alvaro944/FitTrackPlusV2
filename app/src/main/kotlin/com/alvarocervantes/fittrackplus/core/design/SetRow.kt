@@ -267,7 +267,7 @@ private fun SetRowContent(
                         onValueChange = onRepsChange,
                         label = { Text("reps") },
                         keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
+                            keyboardType = KeyboardType.Decimal,
                             imeAction = ImeAction.Done
                         ),
                         modifier = Modifier
@@ -468,7 +468,7 @@ private fun SetRowRepsField(
                     placeholder = { Text("Reps") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
+                        keyboardType = KeyboardType.Decimal,
                         imeAction = ImeAction.Done
                     ),
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),

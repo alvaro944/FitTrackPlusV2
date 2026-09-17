@@ -2,6 +2,26 @@
 
 Este documento resume donde estamos, que se ha hecho y cual es el siguiente paso.
 
+## 2026-09-17 - Pulido visual de entrada de datos pendiente de pasada manual
+
+Estado:
+
+- Implementado en `fix/input-visual-polish` desde `develop`.
+- `test` y `build` en verde; esto solo verifica que no se ha roto el proyecto, no los dos sintomas visuales.
+
+Cambios pendientes de confirmacion visual:
+
+- Repeticiones usa `KeyboardType.Decimal`, igual que peso, para evitar que Android reinicie la conexion de entrada al alternar los campos. La tecla decimal en reps es esperada; el saneado existente mantiene las reps como enteros.
+- `MainActivity` declara `windowSoftInputMode="adjustResize"` para suavizar el redimensionado con teclado en Compose.
+- Experimento B1: se elimina `android:background` del tema nativo; se conserva el resto de atributos de seleccion ya verificados. La hipotesis es que ese atributo heredado pintaba el fondo del popup del handle.
+
+Pendiente de pasada manual en emulador/dispositivo:
+
+- Saltar entre peso y reps, tambien entre filas, y comprobar que el teclado no desaparece ni reaparece.
+- Confirmar que pesos decimales siguen entrando y que `8.5` en reps no persiste un decimal ni rompe el guardado.
+- Revisar el handle de seleccion, el panel copiar/pegar, el fondo general de la app y otros popups donde se recordaban recuadros similares.
+- Si el recuadro del handle sigue visible, no aplicar otro intento: usar Layout Inspector para identificar la View y el fondo concretos.
+
 ## 2026-08-31 - Auditoria ronda 3 en main: P0 a P4 y actualizacion de dependencias
 
 Estado:

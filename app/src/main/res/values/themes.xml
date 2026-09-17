@@ -18,7 +18,6 @@
         <item name="colorSecondary">@color/v2_copper_secondary</item>
         <item name="colorOnSecondary">@color/blanco</item>
 
-        <item name="android:background">@color/base</item>
         <item name="colorOnBackground">@color/negro</item>
 
         <item name="colorSurface">@color/blanco</item>
