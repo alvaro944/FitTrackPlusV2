@@ -2181,6 +2181,44 @@ Pendiente:
 - Estado: se revierten ambos intentos para no dejar cambios sin efecto.
 - Deuda futura: investigar la capa real que pinta ese fondo blanco (posible popup/superficie del sistema, OEM o composición del handle de Compose) y resolverlo con validación manual en dispositivo real. No aplicar más cambios sin una reproducción/control visual claro.
 
+## 2026-09-17 - Progression Engine PRIMARY V1: motor completo y cableado
+
+Rama `feature/progression-engine-primary`, 20 commits por delante de `develop`.
+Spec: `docs/superpowers/specs/2026-09-16-progression-engine-primary-v1.md`.
+
+### Que entra
+
+- **Capa de medicion** (tareas 1-5): RIR de la primera serie persistido (DB v7), selector de un toque, e1RM con confianza sobre reps efectivas, graficas honestas y metrica de calidad de esfuerzo. Validado manualmente por el dueño.
+- **Motor** (tareas 6-9): modelo de dominio con 47 constantes en un solo `ProgressionTuning`, calculo de exposicion (surplus, cuatro guardas, dos EWMA por carril, tendencia asimetrica), decision de carga y maquina de estados. Todo funciones puras, sin Room ni Android.
+- **Persistencia** (tarea 7): DB v8 con `exercise_progression_profiles` y `progression_exposures`, migracion **verificada en dispositivo**.
+- **UI** (tareas 11, 10, 12): rol de progresion en el editor de rutinas con limite de 3 PRIMARY, ajuste intra-sesion por la probe, y tarjeta de prescripcion con su explicacion y toggle de mal dia.
+
+233 tests unitarios en verde, build y detekt en verde.
+
+### Defectos que solo aparecieron en la pasada visual
+
+Los tres se encontraron ejecutando la app, no corriendo tests. Merece la pena anotarlo:
+
+1. **Crash al abrir Workout con un PRIMARY recien marcado.** La tarea 11 creaba el perfil en `CALIBRATING` sin carga semilla; la tarea 9 lanzaba `IllegalStateException` al pedir prescripcion. **Cada tarea estaba verde por separado.** El fallo vivia en la costura, que es justo lo que ningun test unitario de las dos miraba. Arreglo: `calculateNextPrescription` devuelve `null` sin semilla, y el caso de uso siembra desde `getMaxWeightForExercise`. Con test de regresion.
+2. **`UnknownFormatConversionException`** al renderizar la tarjeta: los marcadores `%1$s`/`%3$d` de `strings.xml` se habian quedado en `%1`/`%3`. Causa: `sd` interpreta `$s` y `$d` como referencias a grupos de captura y se los come. **Leccion de herramienta: no usar `sd` para escribir format strings de Android.**
+3. **Los 3 tests instrumentados podridos** (`WorkoutDaoTest` x2, `UserPreferencesRepositoryTest`), verificados como preexistentes ejecutandolos en `develop`. Van en rama aparte.
+
+### PENDIENTE que bloquea el cierre de fase
+
+**`decisionReason` se genera en ingles dentro del motor y la app es en español.**
+
+`ProgressionDecision.kt` construye ~20 textos como "Calibration exposure to establish a reliable baseline." y la tarjeta los muestra tal cual. R19 exige que el usuario lea la explicacion; una explicacion que no entiende no cumple el requisito.
+
+El arreglo correcto **no** es traducir los literales: es que el dominio devuelva un **codigo de razon** (enum o sealed class) y que la UI lo mapee a `strings.xml`. Es el mismo patron que ya aplicamos con `LoadDecision.REVERTED`: la capa de decision expresa QUE decidio, no COMO se cuenta.
+
+No se hace en esta pasada a proposito. Son ~20 puntos de retorno en el fichero mas critico del proyecto, sus tests aseveran sobre el texto, y hacerlo con prisa al final de una sesion larga es la forma tipica de meter un bug sutil en la logica que decide cargas reales. Va en su propia pasada, con su propia verificacion.
+
+### Pendiente de pasada manual del dueño
+
+- Flujo completo: marcar PRIMARY, entrenar, ver la prescripcion, ajustar por la probe, finalizar y comprobar que la siguiente exposicion cambia.
+- Que el limite de 3 PRIMARY avisa con mensaje.
+- Que el toggle de mal dia hace que la exposicion no cuente.
+
 ## 2026-09-17 - Verificada en dispositivo la migracion Room 7->8 del motor
 
 - Contexto: `Migration7To8Test` es el **primer test de migracion del proyecto**. Al ejecutarlo se descubrio que la infraestructura para ello no existia.
