@@ -11,6 +11,7 @@ import com.alvarocervantes.fittrackplus.domain.model.ExerciseSetRecord
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutSessionVolume
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStats
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
+import com.alvarocervantes.fittrackplus.domain.model.progression.calculateStrengthEstimate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -152,15 +153,23 @@ private fun Map<String, List<ExerciseSnapshot>>.toExerciseProgress(): List<Exerc
 }
 
 private fun ExerciseSnapshot.toProgressEntry(): ExerciseProgressEntry {
+    val strengthEstimate = exercise.sets
+        .firstOrNull { set -> set.setNumber == 1 }
+        ?.let { set ->
+            calculateStrengthEstimate(
+                loadKg = set.weightKg,
+                reps = set.reps,
+                rir = exercise.exercise.firstSetRir
+            )
+        }
     return ExerciseProgressEntry(
         sessionId = sessionId,
         finishedAt = finishedAt,
         volumeKg = exercise.sets.sumOf { set -> set.volumeKg() },
         maxWeightKg = exercise.sets.maxOfOrNull { set -> set.weightKg } ?: 0.0,
         totalReps = exercise.sets.sumOf { set -> set.reps },
-        estimatedOneRepMaxKg = exercise.sets.maxOfOrNull { set ->
-            set.estimatedOneRepMaxKg()
-        } ?: 0.0
+        estimatedOneRepMaxKg = strengthEstimate?.e1rmKg,
+        e1rmConfidence = strengthEstimate?.confidence
     )
 }
 
@@ -184,8 +193,11 @@ private fun Map<String, List<ExerciseSnapshot>>.toExerciseRecords(): List<Exerci
                 .filter { record -> record.weightKg > 0.0 && record.reps > 0 }
                 .maxByOrNull { record -> record.setVolumeKg },
             bestEstimatedOneRepMax = records
-                .filter { record -> record.weightKg > 0.0 && record.reps > 0 }
-                .maxByOrNull { record -> record.estimatedOneRepMaxKg }
+                .mapNotNull { record ->
+                    record.estimatedOneRepMaxKg?.let { estimate -> record to estimate }
+                }
+                .maxByOrNull { (_, estimate) -> estimate }
+                ?.first
         )
     }.sortedBy { records -> records.exerciseName.lowercase() }
 }
@@ -195,7 +207,8 @@ private fun List<ExerciseSnapshot>.toSetRecords(): List<ExerciseSetRecord> {
         snapshot.exercise.sets.map { set ->
             set.toRecord(
                 sessionId = snapshot.sessionId,
-                finishedAt = snapshot.finishedAt
+                finishedAt = snapshot.finishedAt,
+                rir = snapshot.exercise.exercise.firstSetRir.takeIf { set.setNumber == 1 }
             )
         }
     }
@@ -237,24 +250,23 @@ private fun WorkoutSetEntity.volumeKg(): Double {
     return weightKg * reps
 }
 
-private fun WorkoutSetEntity.estimatedOneRepMaxKg(): Double {
-    return if (weightKg > 0.0 && reps > 0) {
-        weightKg * (1.0 + reps / 30.0)
-    } else {
-        0.0
-    }
-}
-
 private fun WorkoutSetEntity.toRecord(
     sessionId: Long,
-    finishedAt: Long
+    finishedAt: Long,
+    rir: Int?
 ): ExerciseSetRecord {
+    val strengthEstimate = calculateStrengthEstimate(
+        loadKg = weightKg,
+        reps = reps,
+        rir = rir
+    )
     return ExerciseSetRecord(
         sessionId = sessionId,
         finishedAt = finishedAt,
         weightKg = weightKg,
         reps = reps,
         setVolumeKg = volumeKg(),
-        estimatedOneRepMaxKg = estimatedOneRepMaxKg()
+        estimatedOneRepMaxKg = strengthEstimate?.e1rmKg,
+        e1rmConfidence = strengthEstimate?.confidence
     )
 }

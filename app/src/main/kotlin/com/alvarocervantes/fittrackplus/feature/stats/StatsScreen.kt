@@ -48,15 +48,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alvarocervantes.fittrackplus.R
 import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
+import com.alvarocervantes.fittrackplus.domain.model.progression.E1rmConfidence
 import com.alvarocervantes.fittrackplus.core.design.components.LineChart
 import com.alvarocervantes.fittrackplus.core.design.components.LineChartBaselineMode
 import com.alvarocervantes.fittrackplus.core.design.components.calculateLineChartAxisRange
@@ -267,10 +270,10 @@ private fun StatsContent(
                         ProgressChartCard(
                             exercises = state.focusedExerciseProgress,
                             selectedExerciseName = state.selectedExerciseName,
-                            progressPoints = state.progressPoints,
+                            progressPoints = state.chartProgressPoints,
                             chartValues = state.progressChartValues,
                             selectedMetric = state.selectedProgressMetric,
-                            selectedProgressPoint = state.selectedProgressPoint,
+                            selectedProgressPoint = state.selectedChartProgressPoint,
                             weightUnit = state.weightUnit,
                             onSelectExercise = onSelectExercise,
                             onSelectProgressMetric = onSelectProgressMetric,
@@ -671,9 +674,9 @@ private fun ExerciseProgressCard(progress: ExerciseProgressUiState, weightUnit: 
                     )
                 }
             }
-            if (latest != null) {
+            latest?.estimatedOneRepMaxKg?.let { estimate ->
                 FitTrackBadge(
-                    label = "1RM ${latest.estimatedOneRepMaxKg.toDisplayText(weightUnit)} ${weightUnit.label}",
+                    label = "1RM ${estimate.toDisplayText(weightUnit)} ${weightUnit.label}",
                     tone = FitTrackBadgeTone.Primary
                 )
             }
@@ -734,8 +737,14 @@ private fun ExerciseRecordsCard(records: ExerciseRecordsUiState, weightUnit: Wei
         RecordRow("Volumen set", records.bestSetVolume?.let { "${it.setVolumeKg.toDisplayText(weightUnit)} ${weightUnit.label}" })
         RecordRow(
             label = "1RM estimado",
-            value = records.bestEstimatedOneRepMax?.let {
-                "${it.estimatedOneRepMaxKg.toDisplayText(weightUnit)} ${weightUnit.label}"
+            value = records.bestEstimatedOneRepMax?.let { record ->
+                record.estimatedOneRepMaxKg?.let { estimate ->
+                    estimatedOneRepMaxDisplayText(
+                        estimate = estimate,
+                        confidence = record.e1rmConfidence,
+                        weightUnit = weightUnit
+                    )
+                }
             }
         )
     }
@@ -887,11 +896,17 @@ private fun ProgressPointDetails(
                 compact = true
             )
         }
-        Text(
-            text = "${point.totalReps} reps - 1RM ${point.estimatedOneRepMaxKg.toDisplayText(weightUnit)} ${weightUnit.label}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        point.estimatedOneRepMaxKg?.let { estimate ->
+            Text(
+                text = "${point.totalReps} reps - " + estimatedOneRepMaxDisplayText(
+                    estimate = estimate,
+                    confidence = point.e1rmConfidence,
+                    weightUnit = weightUnit
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -1228,7 +1243,29 @@ private fun ProgressChartPointUiState.toChartLabel(metric: ProgressMetric, weigh
         ProgressMetric.MaxWeight -> "${maxWeightKg.toDisplayText(weightUnit)} ${weightUnit.label}"
         ProgressMetric.Reps -> totalReps.toString()
         ProgressMetric.Volume -> "${volumeKg.toDisplayText(weightUnit)} ${weightUnit.label}"
-        ProgressMetric.EstimatedOneRepMax -> "${estimatedOneRepMaxKg.toDisplayText(weightUnit)} ${weightUnit.label}"
+        ProgressMetric.EstimatedOneRepMax -> estimatedOneRepMaxKg
+            ?.let { estimate -> "${estimate.toDisplayText(weightUnit)} ${weightUnit.label}" }
+            .orEmpty()
+    }
+}
+
+@Composable
+private fun estimatedOneRepMaxDisplayText(
+    estimate: Double,
+    confidence: E1rmConfidence?,
+    weightUnit: WeightUnit
+): String {
+    return listOfNotNull(
+        "${estimate.toDisplayText(weightUnit)} ${weightUnit.label}",
+        confidence?.let { e1rmConfidenceDisplayText(it) }
+    ).joinToString(" · ")
+}
+
+@Composable
+private fun e1rmConfidenceDisplayText(confidence: E1rmConfidence): String {
+    return when (confidence) {
+        E1rmConfidence.HIGH -> stringResource(R.string.stats_e1rm_confidence_high)
+        E1rmConfidence.MEDIUM -> stringResource(R.string.stats_e1rm_confidence_medium)
     }
 }
 

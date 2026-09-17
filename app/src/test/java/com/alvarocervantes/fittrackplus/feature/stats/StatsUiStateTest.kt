@@ -3,6 +3,7 @@ package com.alvarocervantes.fittrackplus.feature.stats
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
+import com.alvarocervantes.fittrackplus.domain.model.progression.E1rmConfidence
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -33,6 +34,57 @@ class StatsUiStateTest {
         assertEquals(ProgressMetric.Reps, repsState.selectedProgressMetric)
         assertEquals(listOf(8f, 10f), repsState.progressChartValues.map { it.second })
         assertNull(repsState.selectedProgressPoint)
+    }
+
+    @Test
+    fun estimatedOneRepMaxChartOmitsNonEstimablePointsWithoutChangingOtherMetrics() {
+        val progress = sampleExerciseProgress().copy(
+            entries = listOf(
+                ExerciseProgressEntryUiState(
+                    sessionId = 1,
+                    finishedAt = 100,
+                    volumeKg = 500.0,
+                    maxWeightKg = 90.0,
+                    totalReps = 8,
+                    estimatedOneRepMaxKg = null,
+                    e1rmConfidence = null
+                ),
+                ExerciseProgressEntryUiState(
+                    sessionId = 2,
+                    finishedAt = 200,
+                    volumeKg = 800.0,
+                    maxWeightKg = 95.0,
+                    totalReps = 10,
+                    estimatedOneRepMaxKg = 126.6,
+                    e1rmConfidence = E1rmConfidence.MEDIUM
+                )
+            )
+        )
+        val state = sampleStatsUiState(exerciseProgress = listOf(progress))
+            .withSelectedExerciseScope("ppl|push|bench press")
+
+        val estimatedState = state.withProgressMetric(ProgressMetric.EstimatedOneRepMax)
+        val maxWeightState = state.withProgressMetric(ProgressMetric.MaxWeight)
+
+        assertEquals(listOf(2L), estimatedState.chartProgressPoints.map { it.sessionId })
+        assertEquals(listOf(126.6f), estimatedState.progressChartValues.map { it.second })
+        assertEquals(listOf(1L, 2L), maxWeightState.chartProgressPoints.map { it.sessionId })
+    }
+
+    @Test
+    fun estimatedOneRepMaxChartIsEmptyWhenNoPointIsEstimable() {
+        val progress = sampleExerciseProgress().copy(
+            entries = sampleExerciseProgress().entries.map { entry ->
+                entry.copy(estimatedOneRepMaxKg = null, e1rmConfidence = null)
+            }
+        )
+        val state = sampleStatsUiState(exerciseProgress = listOf(progress))
+            .withSelectedExerciseScope("ppl|push|bench press")
+            .withProgressMetric(ProgressMetric.EstimatedOneRepMax)
+
+        assertEquals(emptyList<ProgressChartPointUiState>(), state.chartProgressPoints)
+        assertEquals(emptyList<Pair<Long, Float>>(), state.progressChartValues)
+        assertNull(state.selectedChartProgressPoint)
     }
 
     @Test
@@ -183,7 +235,8 @@ class StatsUiStateTest {
             weightKg = 100.0,
             reps = 8,
             setVolumeKg = 800.0,
-            estimatedOneRepMaxKg = 126.6
+            estimatedOneRepMaxKg = 126.6,
+            e1rmConfidence = E1rmConfidence.MEDIUM
         )
         val state = sampleStatsUiState(
             exerciseRecords = listOf(
@@ -309,7 +362,8 @@ class StatsUiStateTest {
                 volumeKg = 800.0,
                 maxWeightKg = 95.0,
                 totalReps = 10,
-                estimatedOneRepMaxKg = 126.6
+                estimatedOneRepMaxKg = 126.6,
+                e1rmConfidence = E1rmConfidence.MEDIUM
             ),
             ExerciseProgressEntryUiState(
                 sessionId = 1,
@@ -317,7 +371,8 @@ class StatsUiStateTest {
                 volumeKg = 500.0,
                 maxWeightKg = 90.0,
                 totalReps = 8,
-                estimatedOneRepMaxKg = 114.0
+                estimatedOneRepMaxKg = 114.0,
+                e1rmConfidence = E1rmConfidence.MEDIUM
             )
         )
     )
@@ -347,6 +402,7 @@ class StatsUiStateTest {
         maxWeightKg = 90.0,
         volumeKg = 500.0,
         totalReps = 8,
-        estimatedOneRepMaxKg = 114.0
+        estimatedOneRepMaxKg = 114.0,
+        e1rmConfidence = E1rmConfidence.MEDIUM
     )
 }

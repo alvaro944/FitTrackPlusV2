@@ -21,4 +21,8 @@
     <string name="workout_first_set_rir_guidance">0 = fallo · Zona útil: 1-3 · 4+ = lejos del fallo</string>
     <string name="workout_first_set_rir_clear">No reportado</string>
 
+    <!-- Stats strength estimate -->
+    <string name="stats_e1rm_confidence_high">Confianza alta</string>
+    <string name="stats_e1rm_confidence_medium">Confianza media</string>
+
 </resources>

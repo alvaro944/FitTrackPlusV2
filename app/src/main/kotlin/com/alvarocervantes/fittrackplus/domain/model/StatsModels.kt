@@ -1,5 +1,7 @@
 package com.alvarocervantes.fittrackplus.domain.model
 
+import com.alvarocervantes.fittrackplus.domain.model.progression.E1rmConfidence
+
 data class WorkoutStats(
     val sessionVolumes: List<WorkoutSessionVolume>,
     val exerciseProgress: List<ExerciseProgress>,
@@ -39,7 +41,8 @@ data class ExerciseProgressEntry(
     val volumeKg: Double,
     val maxWeightKg: Double,
     val totalReps: Int,
-    val estimatedOneRepMaxKg: Double
+    val estimatedOneRepMaxKg: Double?,
+    val e1rmConfidence: E1rmConfidence?
 )
 
 data class ExerciseRecords(
@@ -72,5 +75,6 @@ data class ExerciseSetRecord(
     val weightKg: Double,
     val reps: Int,
     val setVolumeKg: Double,
-    val estimatedOneRepMaxKg: Double
+    val estimatedOneRepMaxKg: Double?,
+    val e1rmConfidence: E1rmConfidence?
 )
