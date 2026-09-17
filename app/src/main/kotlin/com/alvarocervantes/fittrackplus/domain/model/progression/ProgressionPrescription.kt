@@ -1,0 +1,11 @@
+package com.alvarocervantes.fittrackplus.domain.model.progression
+
+data class ProgressionPrescription(
+    val type: ExposureType,
+    val prescribedLoadKg: Double,
+    val prescribedRepMin: Int,
+    val prescribedRepMax: Int,
+    val prescribedTargetRir: Int,
+    val prescribedSets: Int,
+    val decisionReason: String
+)

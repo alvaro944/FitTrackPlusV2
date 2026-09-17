@@ -24,16 +24,12 @@ fun calculateStrengthEstimate(
 
     val effectiveReps = reps + rir
     val confidence = when {
-        effectiveReps <= HIGH_CONFIDENCE_MAX_EFFECTIVE_REPS -> E1rmConfidence.HIGH
-        effectiveReps <= MEDIUM_CONFIDENCE_MAX_EFFECTIVE_REPS -> E1rmConfidence.MEDIUM
+        effectiveReps <= ProgressionTuning.CONF_HIGH_MAX_EFFECTIVE_REPS -> E1rmConfidence.HIGH
+        effectiveReps <= ProgressionTuning.CONF_MEDIUM_MAX_EFFECTIVE_REPS -> E1rmConfidence.MEDIUM
         else -> return null
     }
 
     // Keep Epley so existing historical curves are not retroactively rewritten.
-    val e1rmKg = loadKg * (1.0 + effectiveReps / EPLEY_REP_DIVISOR)
+    val e1rmKg = loadKg * (1.0 + effectiveReps / ProgressionTuning.EPLEY_REP_DIVISOR)
     return StrengthEstimate(e1rmKg = e1rmKg, confidence = confidence)
 }
-
-private const val HIGH_CONFIDENCE_MAX_EFFECTIVE_REPS = 6
-private const val MEDIUM_CONFIDENCE_MAX_EFFECTIVE_REPS = 10
-private const val EPLEY_REP_DIVISOR = 30.0
