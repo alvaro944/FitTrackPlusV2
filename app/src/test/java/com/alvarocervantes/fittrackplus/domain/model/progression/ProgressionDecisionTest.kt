@@ -18,6 +18,10 @@ class ProgressionDecisionTest {
         assertEquals(100.0, requireNotNull(prescription.nextProfile.loadStrengthKg), 0.0)
         assertEquals(1, prescription.nextProfile.consecutiveFailStrength)
         assertEquals(80.0, requireNotNull(prescription.nextProfile.loadVolumeKg), 0.0)
+        assertEquals(
+            "Load held after one failed exposure at a confirmed load.",
+            prescription.decisionReason
+        )
     }
 
     @Test
@@ -33,6 +37,7 @@ class ProgressionDecisionTest {
         assertEquals(97.5, requireNotNull(prescription.nextProfile.loadStrengthKg), 0.0)
         assertEquals(0, prescription.nextProfile.consecutiveFailStrength)
         assertEquals(1, prescription.nextProfile.stallCount)
+        assertEquals("Load reduced after repeated failed exposures.", prescription.decisionReason)
     }
 
     @Test
@@ -49,6 +54,11 @@ class ProgressionDecisionTest {
         assertEquals(95.0, requireNotNull(prescription.nextProfile.loadStrengthKg), 0.0)
         assertFalse(prescription.nextProfile.pendingConfirmStrength)
         assertEquals(1, prescription.nextProfile.stallCount)
+        assertEquals(
+            "Load returned to the last confirmed weight. " +
+                "A single hard session at a new load is not evidence that you lost strength.",
+            prescription.decisionReason
+        )
     }
 
     @Test

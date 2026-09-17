@@ -17,6 +17,19 @@ private data class ExposureParameters(
     val targetRir: Int
 )
 
+private data class ProgressingOutcome(
+    val profile: ExerciseProgressionProfile,
+    val loadDecision: LoadDecision
+)
+
+private enum class LoadDecision {
+    INCREASED,
+    HELD,
+    REDUCED,
+    REVERTED,
+    UNCHANGED
+}
+
 fun calculateNextPrescription(
     profile: ExerciseProgressionProfile,
     recentExposures: List<ProgressionExposure>
@@ -104,14 +117,18 @@ private fun resolveProgressing(
         return ProfileResolution(profile, "Continue alternating volume and strength exposures.")
     }
 
-    val afterOutcome = if (lastExposure.userFlaggedBadDay) {
-        profile.copy(
-            exposuresSinceRecovery = profile.exposuresSinceRecovery + 1,
-            nextExposureType = lastExposure.type.oppositeLane()
+    val progressingOutcome = if (lastExposure.userFlaggedBadDay) {
+        ProgressingOutcome(
+            profile.copy(
+                exposuresSinceRecovery = profile.exposuresSinceRecovery + 1,
+                nextExposureType = lastExposure.type.oppositeLane()
+            ),
+            LoadDecision.UNCHANGED
         )
     } else {
         applyProgressingOutcome(profile, exposures, lastExposure)
     }
+    val afterOutcome = progressingOutcome.profile
     val profileWithExposure = afterOutcome.copy(
         exposuresSinceRecovery = if (lastExposure.userFlaggedBadDay) {
             afterOutcome.exposuresSinceRecovery
@@ -138,7 +155,12 @@ private fun resolveProgressing(
     val reason = if (lastExposure.userFlaggedBadDay) {
         "Bad day recorded. Keeping the progression signal unchanged."
     } else {
-        outcomeReason(lastExposure.outcomeClass, lastExposure.type, profileWithExposure)
+        outcomeReason(
+            lastExposure.outcomeClass,
+            lastExposure.type,
+            progressingOutcome.loadDecision,
+            profileWithExposure
+        )
     }
     return ProfileResolution(profileWithExposure, reason)
 }
@@ -148,7 +170,7 @@ private fun applyProgressingOutcome(
     profile: ExerciseProgressionProfile,
     exposures: List<ProgressionExposure>,
     lastExposure: ProgressionExposure
-): ExerciseProgressionProfile {
+): ProgressingOutcome {
     val type = lastExposure.type
     val currentLoad = profile.laneLoad(type) ?: lastExposure.prescribedLoadKg
     val pendingConfirm = profile.lanePendingConfirm(type)
@@ -182,66 +204,87 @@ private fun applyProgressingOutcome(
                     currentLoad * (1 + ProgressionTuning.MAX_SINGLE_JUMP_PCT / ProgressionTuning.PERCENT_BASE)
                 )
             }
+            ProgressingOutcome(
+                profile.withLaneDecision(
+                    type = type,
+                    load = increasedLoad,
+                    previousLoad = currentLoad,
+                    pendingConfirm = true,
+                    consecutiveFail = 0,
+                    nextType = nextType
+                ),
+                LoadDecision.INCREASED
+            )
+        }
+        OutcomeClass.STRONG -> ProgressingOutcome(
             profile.withLaneDecision(
                 type = type,
-                load = increasedLoad,
+                load = currentLoad + ProgressionTuning.STEP_STRONG * profile.loadIncrementKg,
                 previousLoad = currentLoad,
                 pendingConfirm = true,
                 consecutiveFail = 0,
                 nextType = nextType
-            )
-        }
-        OutcomeClass.STRONG -> profile.withLaneDecision(
-            type = type,
-            load = currentLoad + ProgressionTuning.STEP_STRONG * profile.loadIncrementKg,
-            previousLoad = currentLoad,
-            pendingConfirm = true,
-            consecutiveFail = 0,
-            nextType = nextType
+            ),
+            LoadDecision.INCREASED
         )
-        OutcomeClass.ON_TARGET -> profile.withLaneDecision(
-            type = type,
-            load = currentLoad,
-            previousLoad = previousLoad,
-            pendingConfirm = false,
-            consecutiveFail = 0,
-            nextType = nextType
-        )
-        OutcomeClass.HARD -> profile.withLaneDecision(
-            type = type,
-            load = currentLoad,
-            previousLoad = previousLoad,
-            pendingConfirm = pendingConfirm,
-            consecutiveFail = if (pendingConfirm) consecutiveFail else consecutiveFail + 1,
-            nextType = nextType
-        )
-        OutcomeClass.FAILED -> when {
-            pendingConfirm -> profile.withLaneDecision(
-                type = type,
-                load = previousLoad ?: currentLoad,
-                previousLoad = previousLoad,
-                pendingConfirm = false,
-                consecutiveFail = 0,
-                nextType = nextType
-            ).copy(stallCount = profile.stallCount + 1)
-            immediatelyPriorFailedCount + 1 >= ProgressionTuning.FAILS_TO_REDUCE -> profile.withLaneDecision(
-                type = type,
-                load = currentLoad + ProgressionTuning.STEP_REDUCE * profile.loadIncrementKg,
-                previousLoad = previousLoad,
-                pendingConfirm = false,
-                consecutiveFail = 0,
-                nextType = nextType
-            ).copy(stallCount = profile.stallCount + 1)
-            else -> profile.withLaneDecision(
+        OutcomeClass.ON_TARGET -> ProgressingOutcome(
+            profile.withLaneDecision(
                 type = type,
                 load = currentLoad,
                 previousLoad = previousLoad,
                 pendingConfirm = false,
-                consecutiveFail = consecutiveFail + 1,
+                consecutiveFail = 0,
                 nextType = nextType
+            ),
+            LoadDecision.HELD
+        )
+        OutcomeClass.HARD -> ProgressingOutcome(
+            profile.withLaneDecision(
+                type = type,
+                load = currentLoad,
+                previousLoad = previousLoad,
+                pendingConfirm = pendingConfirm,
+                consecutiveFail = if (pendingConfirm) consecutiveFail else consecutiveFail + 1,
+                nextType = nextType
+            ),
+            LoadDecision.HELD
+        )
+        OutcomeClass.FAILED -> when {
+            pendingConfirm -> ProgressingOutcome(
+                profile.withLaneDecision(
+                    type = type,
+                    load = previousLoad ?: currentLoad,
+                    previousLoad = previousLoad,
+                    pendingConfirm = false,
+                    consecutiveFail = 0,
+                    nextType = nextType
+                ).copy(stallCount = profile.stallCount + 1),
+                LoadDecision.REVERTED
+            )
+            immediatelyPriorFailedCount + 1 >= ProgressionTuning.FAILS_TO_REDUCE -> ProgressingOutcome(
+                profile.withLaneDecision(
+                    type = type,
+                    load = currentLoad + ProgressionTuning.STEP_REDUCE * profile.loadIncrementKg,
+                    previousLoad = previousLoad,
+                    pendingConfirm = false,
+                    consecutiveFail = 0,
+                    nextType = nextType
+                ).copy(stallCount = profile.stallCount + 1),
+                LoadDecision.REDUCED
+            )
+            else -> ProgressingOutcome(
+                profile.withLaneDecision(
+                    type = type,
+                    load = currentLoad,
+                    previousLoad = previousLoad,
+                    pendingConfirm = false,
+                    consecutiveFail = consecutiveFail + 1,
+                    nextType = nextType
+                ),
+                LoadDecision.HELD
             )
         }
-        null -> profile.copy(nextExposureType = nextType)
+        null -> ProgressingOutcome(profile.copy(nextExposureType = nextType), LoadDecision.UNCHANGED)
     }
 }
 
@@ -536,17 +579,25 @@ private fun ExerciseProgressionProfile.hardExposureStreakFor(outcome: OutcomeCla
 private fun outcomeReason(
     outcome: OutcomeClass?,
     type: ExposureType,
+    decision: LoadDecision,
     profile: ExerciseProgressionProfile
 ): String {
+    // profile is the post-decision state; use decision for distinctions erased by the transition.
     return when (outcome) {
         OutcomeClass.EASY -> "Load increased after an easy exposure."
         OutcomeClass.STRONG -> "Load increased after a strong exposure."
         OutcomeClass.ON_TARGET -> "Load confirmed at the target effort."
         OutcomeClass.HARD -> "Load held after a harder-than-expected exposure."
-        OutcomeClass.FAILED -> if (profile.laneConsecutiveFail(type) > 0) {
-            "Load held after one failed exposure at a confirmed load."
-        } else {
-            "Load reduced after repeated failed exposures."
+        OutcomeClass.FAILED -> when (decision) {
+            LoadDecision.REVERTED -> "Load returned to the last confirmed weight. " +
+                "A single hard session at a new load is not evidence that you lost strength."
+            LoadDecision.HELD -> if (profile.laneConsecutiveFail(type) > 0) {
+                "Load held after one failed exposure at a confirmed load."
+            } else {
+                "Load held after the failed exposure."
+            }
+            LoadDecision.REDUCED -> "Load reduced after repeated failed exposures."
+            else -> "Load is unchanged after the failed exposure."
         }
         null -> "No outcome was available, so the next load is unchanged."
     }
