@@ -60,7 +60,30 @@ Ficheros: `data/local/entity/WorkoutExerciseEntity.kt`,
 ## Tarea 2: RIR — entrada en Workout (R2, R3)
 
 Ficheros: `feature/workout/WorkoutScreen.kt`, `feature/workout/WorkoutViewModel.kt`,
-`res/values/strings.xml`.
+`res/values/strings.xml`, y la ruta de escritura: `data/repository/WorkoutRepository.kt`,
+`data/repository/DefaultWorkoutRepository.kt`, `data/local/dao/WorkoutDao.kt`
+(autorizados el 2026-09-16; faltaban en la lista original).
+
+Tambien autorizados **los 10 fakes de `WorkoutRepository` en `app/src/test/java/`**, que el
+metodo abstracto obliga a actualizar. Stub vacio en cada uno; registra la llamada solo donde
+el test necesite verificar la escritura. **No refactorices a un fake compartido en esta
+rama**: es la solucion correcta a la deuda real (10 fakes a mano de la misma interfaz) pero
+convertiria la fase del motor en un refactor de tests. Y **no cambies el comportamiento de
+`GetProgressionHintUseCaseTest`**: el criterio 27 exige que siga pasando igual.
+
+**El metodo nuevo de la interfaz va SIN cuerpo por defecto.** `WorkoutRepository.kt:49-50`
+declara `updateSetCompletion` y `updateSetNotes` con `= Unit`: una implementacion que se
+olvide de sobrescribirlos compila y no hace nada. No copies ese patron aqui o el RIR se
+escribira en el vacio sin error ni test en rojo. Metodo abstracto, que lo obligue el
+compilador.
+
+**En el DAO, UPDATE dirigido, no `@Update` de entidad completa.** Ya existe
+`updateExercise(exercise)`, pero obliga a leer-modificar-escribir y pisa cambios
+concurrentes de `notes`. Al estilo de `updateSetNotes`:
+`@Query("UPDATE workout_exercises SET firstSetRir = :rir WHERE id = :workoutExerciseId")`.
+
+La validacion de rango `0..10` de la Tarea 1 tiene que aplicarse **tambien en esta ruta de
+escritura**, no solo en el mapper de lectura.
 
 - [ ] Selector con `core/design/SegmentedSelector.kt`. **No crear componente nuevo.**
 - [ ] Opciones `0 / 1 / 2 / 3 / 4+`. El `4+` se persiste como `4`.
@@ -75,10 +98,24 @@ Ficheros: `feature/workout/WorkoutScreen.kt`, `feature/workout/WorkoutViewModel.
 - [ ] Test de UI state: sin RIR el ejercicio se cierra igual.
 - [ ] `test` + `build`, commit.
 
-## Tarea 3: e1RM a dominio con confianza sobre reps efectivas (R4, R5)
+## Tarea 3: e1RM nullable de dominio a pantalla (R4, R5, R6, R7)
+
+> **Fusionada con la antigua Tarea 4 el 2026-09-17.** Eran el mismo cambio y no se podian
+> separar: `estimatedOneRepMaxKg` se consume en 5 sitios de `StatsViewModel.kt` y 4 de
+> `StatsScreen.kt`, ademas de un modelo de UI propio con `Double` no-nulo. Pasarlo a `Double?`
+> rompe la compilacion de ambos ficheros, asi que la Tarea 3 antigua no podia cerrarse con el
+> build en verde sin meter `?: 0.0` en los puntos de uso — es decir, reintroduciendo el
+> centinela que R5 existe para eliminar. Un commit roto o un commit deshonesto: ninguno vale.
+>
+> **Prohibido el `?: 0.0` como puente.** Si te ves escribiendolo "temporalmente", el corte
+> esta mal hecho. La ausencia de estimacion se propaga como `null` hasta la capa que decide
+> que pintar, y ahi se decide no pintar.
 
 Ficheros: nuevo `domain/model/progression/StrengthEstimate.kt`,
-`domain/usecase/ObserveWorkoutStatsUseCase.kt`.
+`domain/usecase/ObserveWorkoutStatsUseCase.kt`, `domain/model/StatsModels.kt`,
+`feature/stats/StatsViewModel.kt`, `feature/stats/StatsScreen.kt`.
+
+**Dominio**
 
 - [ ] Sacar la formula de la extension privada de `ObserveWorkoutStatsUseCase` a un modelo de
       dominio propio. Se mantiene **Epley**: anota en el codigo por que no se cambia (cambiarla
@@ -88,11 +125,8 @@ Ficheros: nuevo `domain/model/progression/StrengthEstimate.kt`,
 - [ ] Eliminar el centinela `0.0`: `ExerciseProgressEntry.estimatedOneRepMaxKg` y
       `ExerciseSetRecord.estimatedOneRepMaxKg` pasan a `Double?`.
 - [ ] Tests del criterio 9 de la spec, los cuatro casos.
-- [ ] `test` + `build`, commit.
 
-## Tarea 4: Graficas y records honestos (R6, R7)
-
-Ficheros: `feature/stats/StatsViewModel.kt`, `feature/stats/StatsScreen.kt`.
+**Graficas y records**
 
 - [ ] `MaxWeight`, `Volume` y `Reps` siguen pintando **todos** los puntos. No los toques.
 - [ ] `EstimatedOneRepMax` pinta solo los estimables.
@@ -101,7 +135,15 @@ Ficheros: `feature/stats/StatsViewModel.kt`, `feature/stats/StatsScreen.kt`.
 - [ ] `bestEstimatedOneRepMax` solo considera estimables; puede quedar `null` y entonces la
       tarjeta no se muestra.
 - [ ] Etiqueta de confianza ("alta" / "media") en `ProgressPointDetails` y en el record.
-- [ ] `test` + `build`, commit.
+- [ ] Strings nuevos a `strings.xml`, no hardcodeados.
+- [ ] `test` + `build`, commit unico.
+
+## Tarea 4: FUSIONADA EN LA TAREA 3 (2026-09-17)
+
+No falta nada: el hueco de numeracion es intencionado para no invalidar las referencias
+ya escritas en el resto del plan. Ver la cabecera de la Tarea 3.
+
+---
 
 ## Tarea 5: Calidad de esfuerzo en Datos (R8, R9)
 
@@ -139,6 +181,20 @@ Ficheros: todo nuevo bajo `domain/model/progression/`.
 - [ ] `test` + `build`, commit.
 
 ## Tarea 7: Persistencia del motor (R10, R11, R12, R22)
+
+> **Regla de interfaz, no negociable.** Ningun metodo nuevo del repositorio lleva cuerpo por
+> defecto. Ni `= Unit`, ni `= emptyList()`, ni `= null`, ni `= error(...)`. **Todos
+> abstractos.**
+>
+> El motivo lo encontro la auditoria del 2026-09-16 en `WorkoutRepository.kt:58`:
+> `getRecentAverageRepsForExercise(...) = emptyList()`. Un default que traga en un **read**
+> es peor que en un write: no pierde un dato, **fabrica una respuesta plausible y falsa**.
+> Nueve de los diez fakes heredaban ese default, y `GetProgressionHintUseCase` responde
+> `NONE` ante una lista vacia — tests en verde que no aseguran nada.
+>
+> Aplicado a este motor seria letal: un fake olvidadizo haria que el motor viera un usuario
+> sin historial y se quedara **calibrando eternamente**, sin un solo test en rojo. Los
+> metodos de lectura de perfiles y exposiciones son exactamente esa forma. Abstractos.
 
 Ficheros: `data/local/entity/`, `data/local/dao/`, `core/database/`, `di/DatabaseModule.kt`,
 `data/local/entity/RoutineExerciseEntity.kt`.
