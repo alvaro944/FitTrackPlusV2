@@ -83,10 +83,44 @@ fun updateE1rmEwmas(
     }
 }
 
-fun calculateStrengthTrend(recentExposures: List<ProgressionExposure>): StrengthTrend {
+/**
+ * Calculates the trend from the complete, unwindowed history that produced [profile]'s EWMA
+ * point counts. A truncated history is rejected rather than silently returning [StrengthTrend.UNKNOWN].
+ */
+fun calculateStrengthTrend(
+    profile: ExerciseProgressionProfile,
+    recentExposures: List<ProgressionExposure>
+): StrengthTrend {
+    requireLaneHistoryIsComplete(profile, recentExposures, ExposureType.STRENGTH)
+    requireLaneHistoryIsComplete(profile, recentExposures, ExposureType.VOLUME)
+
     return calculateLaneTrend(recentExposures, ExposureType.STRENGTH)
         ?: calculateLaneTrend(recentExposures, ExposureType.VOLUME)
         ?: StrengthTrend.UNKNOWN
+}
+
+private fun requireLaneHistoryIsComplete(
+    profile: ExerciseProgressionProfile,
+    recentExposures: List<ProgressionExposure>,
+    type: ExposureType
+) {
+    val actualPointCount = recentExposures.count {
+        it.type == type &&
+            !it.excludeFromTrend &&
+            !it.userFlaggedBadDay &&
+            it.exposureE1rm != null &&
+            it.e1rmConfidence != null
+    }
+    val expectedPointCount = when (type) {
+        ExposureType.STRENGTH -> profile.strengthPointCount
+        ExposureType.VOLUME -> profile.volumePointCount
+        ExposureType.RECOVERY,
+        ExposureType.EVALUATION -> return
+    }
+
+    require(actualPointCount == expectedPointCount) {
+        "Strength trend requires complete $type exposure history"
+    }
 }
 
 private fun Int.toOutcomeClass(): OutcomeClass {

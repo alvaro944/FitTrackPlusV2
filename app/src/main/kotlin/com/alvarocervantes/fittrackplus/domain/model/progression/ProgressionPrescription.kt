@@ -7,5 +7,7 @@ data class ProgressionPrescription(
     val prescribedRepMax: Int,
     val prescribedTargetRir: Int,
     val prescribedSets: Int,
-    val decisionReason: String
+    val decisionReason: String,
+    val displayedE1rm: Double?,
+    val nextProfile: ExerciseProgressionProfile
 )

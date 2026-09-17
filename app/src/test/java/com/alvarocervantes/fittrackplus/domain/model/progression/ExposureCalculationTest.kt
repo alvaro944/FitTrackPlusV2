@@ -1,6 +1,7 @@
 package com.alvarocervantes.fittrackplus.domain.model.progression
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -161,8 +162,7 @@ class ExposureCalculationTest {
 
     @Test
     fun `strength trend wins over volume trend when both have enough points`() {
-        val trend = calculateStrengthTrend(
-            listOf(
+        val exposures = listOf(
                 exposure(type = ExposureType.STRENGTH, e1rm = 100.0),
                 exposure(type = ExposureType.STRENGTH, e1rm = 102.0),
                 exposure(type = ExposureType.STRENGTH, e1rm = 104.0),
@@ -172,15 +172,14 @@ class ExposureCalculationTest {
                 exposure(type = ExposureType.VOLUME, e1rm = 80.0),
                 exposure(type = ExposureType.VOLUME, e1rm = 70.0)
             )
-        )
+        val trend = calculateStrengthTrend(profileFor(exposures), exposures)
 
         assertEquals(StrengthTrend.RISING, trend)
     }
 
     @Test
     fun `volume trend is fallback and insufficient data is unknown`() {
-        val volumeTrend = calculateStrengthTrend(
-            listOf(
+        val exposures = listOf(
                 exposure(type = ExposureType.STRENGTH, e1rm = 100.0),
                 exposure(type = ExposureType.STRENGTH, e1rm = 102.0),
                 exposure(type = ExposureType.STRENGTH, e1rm = 104.0),
@@ -189,41 +188,54 @@ class ExposureCalculationTest {
                 exposure(type = ExposureType.VOLUME, e1rm = 104.0),
                 exposure(type = ExposureType.VOLUME, e1rm = 106.0)
             )
-        )
+        val volumeTrend = calculateStrengthTrend(profileFor(exposures), exposures)
 
         assertEquals(StrengthTrend.RISING, volumeTrend)
+        val insufficientExposures = listOf(exposure(type = ExposureType.STRENGTH, e1rm = 100.0))
         assertEquals(
             StrengthTrend.UNKNOWN,
-            calculateStrengthTrend(listOf(exposure(type = ExposureType.STRENGTH, e1rm = 100.0)))
+            calculateStrengthTrend(profileFor(insufficientExposures), insufficientExposures)
         )
     }
 
     @Test
     fun `asymmetric trend bands keep a small decline flat`() {
-        val trend = calculateStrengthTrend(
-            listOf(
+        val exposures = listOf(
                 exposure(type = ExposureType.STRENGTH, e1rm = 100.0),
                 exposure(type = ExposureType.STRENGTH, e1rm = 99.0),
                 exposure(type = ExposureType.STRENGTH, e1rm = 98.0),
                 exposure(type = ExposureType.STRENGTH, e1rm = 97.0)
             )
-        )
+        val trend = calculateStrengthTrend(profileFor(exposures), exposures)
 
         assertEquals(StrengthTrend.FLAT, trend)
     }
 
     @Test
     fun `asymmetric trend bands classify a large decline as falling`() {
-        val trend = calculateStrengthTrend(
-            listOf(
+        val exposures = listOf(
                 exposure(type = ExposureType.STRENGTH, e1rm = 100.0),
                 exposure(type = ExposureType.STRENGTH, e1rm = 90.0),
                 exposure(type = ExposureType.STRENGTH, e1rm = 80.0),
                 exposure(type = ExposureType.STRENGTH, e1rm = 70.0)
             )
-        )
+        val trend = calculateStrengthTrend(profileFor(exposures), exposures)
 
         assertEquals(StrengthTrend.FALLING, trend)
+    }
+
+    @Test
+    fun `truncated trend history is rejected instead of silently becoming unknown`() {
+        val fullHistory = listOf(
+            exposure(type = ExposureType.STRENGTH, e1rm = 100.0),
+            exposure(type = ExposureType.STRENGTH, e1rm = 102.0),
+            exposure(type = ExposureType.STRENGTH, e1rm = 104.0),
+            exposure(type = ExposureType.STRENGTH, e1rm = 106.0)
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            calculateStrengthTrend(profileFor(fullHistory), fullHistory.takeLast(1))
+        }
     }
 
     private fun exposure(
@@ -253,6 +265,14 @@ class ExposureCalculationTest {
             userFlaggedBadDay = false,
             intraSessionAdjustmentSteps = 0,
             decisionReason = "test"
+        )
+    }
+
+    private fun profileFor(exposures: List<ProgressionExposure>): ExerciseProgressionProfile {
+        return ExerciseProgressionProfile(
+            variantKey = "squat",
+            strengthPointCount = exposures.count { it.type == ExposureType.STRENGTH },
+            volumePointCount = exposures.count { it.type == ExposureType.VOLUME }
         )
     }
 

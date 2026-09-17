@@ -28,6 +28,7 @@ object ProgressionTuning {
     const val STEP_STRONG                =  1
     const val STEP_REDUCE                = -1
     const val MAX_SINGLE_JUMP_PCT        = 7.5
+    const val PERCENT_BASE               = 100
     const val FAILS_TO_REDUCE            = 2
     const val FAILS_TO_REVERT            = 1
     const val DEFAULT_INCREMENT_UPPER_KG = 2.5
@@ -35,6 +36,7 @@ object ProgressionTuning {
 
     // Ajuste intra-sesion (R17)
     const val INTRA_MAX_STEPS = 2
+    const val INTRA_REDUCE_SURPLUS_MAX = -2
 
     // Disparadores de RECOVERING (R18)
     const val RECOVERY_COOLDOWN_EXPOSURES = 4
@@ -45,6 +47,7 @@ object ProgressionTuning {
     const val R4_STALL_COUNT              = 2
     const val R4_STALL_WINDOW             = 6
     const val R5_HARD_STREAK              = 8
+    const val RECOVERY_HARD_TRIGGER_EXPOSURES = 2
 
     // Prescripcion de RECOVERING (R18)
     const val RECOVERY_LOAD_FACTOR = 0.90
@@ -63,10 +66,30 @@ object ProgressionTuning {
     const val CALIBRATION_EXPOSURES   = 3
     const val CALIBRATION_MAX_RETRIES = 2
     const val CALIBRATION_FAIL_FACTOR = 0.90
+    const val CALIBRATION_VOLUME_REPS = 7
+    const val CALIBRATION_STRENGTH_REPS = 5
+    const val CALIBRATION_TARGET_RIR = 2
 
     // Especificidad (R16)
     const val SPECIFIC_TIER_RATIO = 0.85
     const val PEAKING_TIER_RATIO  = 0.95
+    const val BASE_VOLUME_REP_MIN = 7
+    const val BASE_VOLUME_REP_MAX = 10
+    const val BASE_STRENGTH_REP_MIN = 4
+    const val BASE_STRENGTH_REP_MAX = 6
+    const val SPECIFIC_VOLUME_REP_MIN = 6
+    const val SPECIFIC_VOLUME_REP_MAX = 8
+    const val SPECIFIC_STRENGTH_REP_MIN = 3
+    const val SPECIFIC_STRENGTH_REP_MAX = 5
+    const val PEAKING_VOLUME_REP_MIN = 6
+    const val PEAKING_VOLUME_REP_MAX = 8
+    const val PEAKING_STRENGTH_REP_MIN = 2
+    const val PEAKING_STRENGTH_REP_MAX = 4
+    const val BASE_TARGET_RIR = 2
+    const val SPECIFIC_VOLUME_TARGET_RIR = 2
+    const val SPECIFIC_STRENGTH_TARGET_RIR = 1
+    const val PEAKING_VOLUME_TARGET_RIR = 2
+    const val PEAKING_STRENGTH_TARGET_RIR = 1
 
     // Limite de producto (R10)
     const val MAX_PRIMARY_EXERCISES = 3
