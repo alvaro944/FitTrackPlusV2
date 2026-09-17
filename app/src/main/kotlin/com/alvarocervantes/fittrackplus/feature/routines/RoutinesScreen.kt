@@ -70,6 +70,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import com.alvarocervantes.fittrackplus.R
 import com.alvarocervantes.fittrackplus.core.design.FitSpacing
 import com.alvarocervantes.fittrackplus.core.design.FitTrackAddButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackBadge
@@ -93,6 +96,8 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackScreenHeader
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTonalButton
 import com.alvarocervantes.fittrackplus.core.design.FitTrackTargetPrescriptionFields
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSegmentedSelector
+import com.alvarocervantes.fittrackplus.domain.model.progression.ExerciseRole
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonBlock
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonCard
 import com.alvarocervantes.fittrackplus.core.design.components.SkeletonText
@@ -143,6 +148,12 @@ fun RoutinesScreen(
             viewModel.clearMessage()
         }
     }
+
+    RoutineEditorMessageEffect(
+        message = state.routineEditorMessage,
+        snackbarHostState = snackbarHostState,
+        onShown = viewModel::clearMessage
+    )
 
     routinePendingArchive?.let { routine ->
         FitTrackConfirmDialog(
@@ -255,6 +266,9 @@ fun RoutinesScreen(
                 onExerciseSetsChange = viewModel::updateExerciseSets,
                 onExerciseRepsChange = viewModel::updateExerciseReps,
                 onExerciseNotesChange = viewModel::updateExerciseNotes,
+                onExerciseProgressionRoleChange = viewModel::updateExerciseProgressionRole,
+                onExerciseGoalWeightChange = viewModel::updateExerciseGoalWeight,
+                onExerciseLoadIncrementChange = viewModel::updateExerciseLoadIncrement,
                 onAddExerciseAlternative = viewModel::addExerciseAlternative,
                 onBeginExerciseAlternativeEdit = viewModel::beginExerciseAlternativeEdit,
                 onCancelExerciseAlternativeEdit = viewModel::cancelExerciseAlternativeEdit,
@@ -622,6 +636,9 @@ private fun RoutineEditorContent(
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
+    onExerciseProgressionRoleChange: (Int, Int, ExerciseRole) -> Unit,
+    onExerciseGoalWeightChange: (Int, Int, String) -> Unit,
+    onExerciseLoadIncrementChange: (Int, Int, String) -> Unit,
     onAddExerciseAlternative: (Int, Int) -> Unit,
     onBeginExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
     onCancelExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
@@ -754,6 +771,9 @@ private fun RoutineEditorContent(
                 onExerciseSetsChange = onExerciseSetsChange,
                 onExerciseRepsChange = onExerciseRepsChange,
                 onExerciseNotesChange = onExerciseNotesChange,
+                onExerciseProgressionRoleChange = onExerciseProgressionRoleChange,
+                onExerciseGoalWeightChange = onExerciseGoalWeightChange,
+                onExerciseLoadIncrementChange = onExerciseLoadIncrementChange,
                 onAddExerciseAlternative = onAddExerciseAlternative,
                 onBeginExerciseAlternativeEdit = onBeginExerciseAlternativeEdit,
                 onCancelExerciseAlternativeEdit = onCancelExerciseAlternativeEdit,
@@ -835,6 +855,9 @@ private fun RoutineDayEditor(
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
+    onExerciseProgressionRoleChange: (Int, Int, ExerciseRole) -> Unit,
+    onExerciseGoalWeightChange: (Int, Int, String) -> Unit,
+    onExerciseLoadIncrementChange: (Int, Int, String) -> Unit,
     onAddExerciseAlternative: (Int, Int) -> Unit,
     onBeginExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
     onCancelExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
@@ -977,6 +1000,9 @@ private fun RoutineDayEditor(
                     onExerciseSetsChange = onExerciseSetsChange,
                     onExerciseRepsChange = onExerciseRepsChange,
                     onExerciseNotesChange = onExerciseNotesChange,
+                onExerciseProgressionRoleChange = onExerciseProgressionRoleChange,
+                onExerciseGoalWeightChange = onExerciseGoalWeightChange,
+                onExerciseLoadIncrementChange = onExerciseLoadIncrementChange,
                     onAddExerciseAlternative = onAddExerciseAlternative,
                     onBeginExerciseAlternativeEdit = onBeginExerciseAlternativeEdit,
                     onCancelExerciseAlternativeEdit = onCancelExerciseAlternativeEdit,
@@ -1020,6 +1046,9 @@ private fun RoutineExerciseEditor(
     onExerciseSetsChange: (Int, Int, String) -> Unit,
     onExerciseRepsChange: (Int, Int, String) -> Unit,
     onExerciseNotesChange: (Int, Int, String) -> Unit,
+    onExerciseProgressionRoleChange: (Int, Int, ExerciseRole) -> Unit,
+    onExerciseGoalWeightChange: (Int, Int, String) -> Unit,
+    onExerciseLoadIncrementChange: (Int, Int, String) -> Unit,
     onAddExerciseAlternative: (Int, Int) -> Unit,
     onBeginExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
     onCancelExerciseAlternativeEdit: (Int, Int, Int) -> Unit,
@@ -1244,6 +1273,15 @@ private fun RoutineExerciseEditor(
             isValidTargetReps = ::isValidTargetReps,
             targetSetsError = exercise.targetSetsError,
             targetRepsError = exercise.targetRepsError
+        )
+
+        ProgressionRoleFields(
+            exercise = exercise,
+            onRoleChange = { role -> onExerciseProgressionRoleChange(dayIndex, exerciseIndex, role) },
+            onGoalWeightChange = { value -> onExerciseGoalWeightChange(dayIndex, exerciseIndex, value) },
+            onLoadIncrementChange = { value ->
+                onExerciseLoadIncrementChange(dayIndex, exerciseIndex, value)
+            }
         )
 
         NotesActionRow(
@@ -1505,6 +1543,96 @@ private fun NotesActionRow(
                 text = if (hasNote) "Editar nota" else "Añadir nota",
                 modifier = Modifier.padding(start = FitSpacing.sm)
             )
+        }
+    }
+}
+
+private val PROGRESSION_ROLE_ORDER = listOf(
+    ExerciseRole.ACCESSORY,
+    ExerciseRole.SECONDARY,
+    ExerciseRole.PRIMARY
+)
+
+/**
+ * Progression role picker. Only PRIMARY changes behaviour in V1: SECONDARY and ACCESSORY are
+ * labels today and keep using the simple progression hint. The goal and increment fields only
+ * appear for PRIMARY because they are the only inputs the engine reads.
+ */
+@Composable
+private fun ProgressionRoleFields(
+    exercise: RoutineExerciseEditorUiState,
+    onRoleChange: (ExerciseRole) -> Unit,
+    onGoalWeightChange: (String) -> Unit,
+    onLoadIncrementChange: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+        Text(
+            text = stringResource(R.string.routine_progression_role_label),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        FitTrackSegmentedSelector(
+            options = PROGRESSION_ROLE_ORDER.map { role -> stringResource(role.labelRes()) },
+            selectedIndex = PROGRESSION_ROLE_ORDER.indexOf(exercise.progressionRole),
+            onSelect = { index -> onRoleChange(PROGRESSION_ROLE_ORDER[index]) }
+        )
+        Text(
+            text = stringResource(R.string.routine_progression_role_guidance),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        if (exercise.progressionRole == ExerciseRole.PRIMARY) {
+            FitTrackSelectAllTextField(
+                value = exercise.goalWeightKg,
+                onValueChange = onGoalWeightChange,
+                label = { Text(stringResource(R.string.routine_primary_goal_weight_label)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = ImeAction.Next
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            FitTrackSelectAllTextField(
+                value = exercise.loadIncrementKg,
+                onValueChange = onLoadIncrementChange,
+                label = { Text(stringResource(R.string.routine_primary_load_increment_label)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = ImeAction.Done
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+private fun ExerciseRole.labelRes(): Int {
+    return when (this) {
+        ExerciseRole.PRIMARY -> R.string.routine_progression_role_primary
+        ExerciseRole.SECONDARY -> R.string.routine_progression_role_secondary
+        ExerciseRole.ACCESSORY -> R.string.routine_progression_role_accessory
+    }
+}
+
+/**
+ * Shows editor-level refusals. The PRIMARY limit is refused out loud, never silently: the user
+ * has to learn why the fourth primary was rejected.
+ */
+@Composable
+private fun RoutineEditorMessageEffect(
+    message: RoutineEditorMessage?,
+    snackbarHostState: SnackbarHostState,
+    onShown: () -> Unit
+) {
+    val text = when (message) {
+        RoutineEditorMessage.PRIMARY_LIMIT_REACHED ->
+            stringResource(R.string.routine_primary_limit_message)
+        null -> null
+    }
+    if (text != null) {
+        LaunchedEffect(message) {
+            snackbarHostState.showSnackbar(text)
+            onShown()
         }
     }
 }
