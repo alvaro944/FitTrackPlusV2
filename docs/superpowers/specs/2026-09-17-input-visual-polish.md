@@ -102,7 +102,43 @@ vez del teal generico de MaterialComponents) pero **no elimino el rectangulo**.
 **Esta spec respeta esa instruccion: no propone un cuarto intento a ciegas.** Propone una
 hipotesis concreta con protocolo de verificacion y un punto de parada.
 
-### Hipotesis (SIN CONFIRMAR)
+### Reproduccion capturada (2026-09-17)
+
+Esto es lo que pedia la nota de 2026-07-07 y nunca se habia recogido. Reproducido en
+emulador Pixel_10_Pro (API 36) sobre el APK debug de `feature/progression-engine-primary`,
+tocando el campo de repeticiones de una serie en Entrenar.
+
+**La ventana del handle, via `adb shell dumpsys window windows`:**
+
+```
+mAttrs={(886,1646)(62x75) gr=TOP START CENTER sim={adjust=pan}
+        ty=APPLICATION_SUB_PANEL fmt=TRANSLUCENT
+        surfaceInsets=Rect(48, 48 - 48, 48)
+        fl=NOT_FOCUSABLE LAYOUT_NO_LIMITS WATCH_OUTSIDE_TOUCH HARDWARE_ACCELERATED}
+mParentWindow=Window{... MainActivity} mLayoutAttached=true
+mBaseLayer=21000 mSubLayer=2
+```
+
+**Dos hechos que esto establece:**
+
+1. **El rectangulo ES esa ventana.** El cuadrado medido sobre la captura ocupa
+   x 886-948, y 1646-1721. La ventana esta en (886,1646) y mide 62x75, o sea
+   x 886-948, y 1646-1721. Encaja al pixel. No es un artefacto de dibujo ni del OEM:
+   es el popup del handle.
+
+2. **El blanco no lo pinta la ventana, lo pinta la View de dentro.** `fmt=TRANSLUCENT`
+   significa que el formato de la ventana **si** admite transparencia. Si el fondo viniera
+   del formato, seria opaco. Que sea translucido y aun asi se vea blanco solo deja una
+   explicacion: algo dentro de la jerarquia de esa ventana esta resolviendo un fondo.
+
+Es tambien la explicacion de por que fallaron los dos intentos de 2026-07-07: los drawables
+`android:textSelectHandle*` cambian **el dibujo del handle**, y
+`LocalTextSelectionColors.handleColor` cambia **su tinte**. Ninguno de los dos toca el fondo
+de la View que lo contiene. Atacaban la gota, no el rectangulo.
+
+La captura ampliada esta en el hilo de la sesion del 2026-09-17.
+
+### Hipotesis (probable, pendiente del experimento B1)
 
 `app/src/main/res/values/themes.xml`:
 
