@@ -2203,7 +2203,7 @@ Los tres se encontraron ejecutando la app, no corriendo tests. Merece la pena an
 2. **`UnknownFormatConversionException`** al renderizar la tarjeta: los marcadores `%1$s`/`%3$d` de `strings.xml` se habian quedado en `%1`/`%3`. Causa: `sd` interpreta `$s` y `$d` como referencias a grupos de captura y se los come. **Leccion de herramienta: no usar `sd` para escribir format strings de Android.**
 3. **Los 3 tests instrumentados podridos** (`WorkoutDaoTest` x2, `UserPreferencesRepositoryTest`), verificados como preexistentes ejecutandolos en `develop`. Van en rama aparte.
 
-### PENDIENTE que bloquea el cierre de fase
+### RESUELTO el mismo dia: el idioma de decisionReason
 
 **`decisionReason` se genera en ingles dentro del motor y la app es en español.**
 
@@ -2211,7 +2211,9 @@ Los tres se encontraron ejecutando la app, no corriendo tests. Merece la pena an
 
 El arreglo correcto **no** es traducir los literales: es que el dominio devuelva un **codigo de razon** (enum o sealed class) y que la UI lo mapee a `strings.xml`. Es el mismo patron que ya aplicamos con `LoadDecision.REVERTED`: la capa de decision expresa QUE decidio, no COMO se cuenta.
 
-No se hace en esta pasada a proposito. Son ~20 puntos de retorno en el fichero mas critico del proyecto, sus tests aseveran sobre el texto, y hacerlo con prisa al final de una sesion larga es la forma tipica de meter un bug sutil en la logica que decide cargas reales. Va en su propia pasada, con su propia verificacion.
+Hecho asi: `ProgressionReason` con 27 valores, mapeo a `strings.xml` en `WorkoutScreen`, y la exposicion persiste `reason.name` en vez de prosa. Los tests pasan a aseverar sobre el codigo de decision, no sobre la redaccion: cambiar una frase ya no rompe un test, y cambiar una decision si. Verificado en emulador. **27 de 27 criterios cumplidos.**
+
+De paso se elimino una duplicacion: `calculateIntraSessionAdjustmentSteps` e `intraSessionAdjustmentSteps` implementaban la misma regla de R17 en dos ficheros. Dos copias de una regla que decide cargas acaban divergiendo.
 
 ### Pendiente de pasada manual del dueño
 

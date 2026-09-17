@@ -680,13 +680,12 @@ recuperacion reactiva por señal en vez de calendario fijo.
   y pasada visual parcial hecha por el agente.
 - **Auditoria completa de los 27 criterios: `docs/progress/progression-engine-v1-criteria.md`.**
 
-### Bloquea el cierre
+### Cerrado
 
-26 de 27 criterios cumplidos. El que falta: **`decisionReason` sale en ingles** y la app es en
-español. El mecanismo funciona (la razon se muestra siempre), pero R19 existe para que el usuario
-la entienda. Arreglo correcto: codigo de razon en el dominio y `strings.xml` en la UI. Va en su
-propia pasada, no al final de una sesion larga: son ~20 puntos de retorno en el fichero que decide
-cargas reales.
+**27 de 27 criterios cumplidos.** El ultimo pendiente era que `decisionReason` salia en ingles
+dentro de un app en español. Resuelto con el patron correcto y no traduciendo literales: el
+dominio devuelve un `ProgressionReason` y la UI lo mapea a `strings.xml`. La capa de decision dice
+QUE decidio; la UI dice COMO se cuenta.
 
 ### Pendiente de pasada manual del dueño
 

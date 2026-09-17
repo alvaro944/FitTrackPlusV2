@@ -47,4 +47,33 @@
     <string name="routine_primary_load_increment_label">Incremento de carga (kg)</string>
     <string name="routine_primary_limit_message">Una rutina admite como máximo 3 ejercicios PRIMARY. PRIMARY implica gestión de fatiga y en V1 no hay fatiga cruzada entre ejercicios; con más primarios el modelo mentiría.</string>
 
+    <!-- Progression engine decision reasons. The domain returns a code; these are the words. -->
+    <string name="progression_reason_calibration_complete">Calibracion terminada. Empezamos a progresar.</string>
+    <string name="progression_reason_calibration_retry">Repetimos la calibracion con algo menos de carga.</string>
+    <string name="progression_reason_calibration_baseline">Exposicion de calibracion para tener una referencia fiable.</string>
+    <string name="progression_reason_alternating">Seguimos alternando exposiciones de volumen y de fuerza.</string>
+    <string name="progression_reason_bad_day">Dia marcado como malo. No cambiamos nada por una sesion asi.</string>
+    <string name="progression_reason_recovery_exposure">Sesion de recuperacion partiendo de tu carga actual.</string>
+    <string name="progression_reason_recovery_complete">Recuperacion terminada. Vamos a comprobar como estas.</string>
+    <string name="progression_reason_recovery_continue">Seguimos recuperando con menos carga y menos volumen.</string>
+    <string name="progression_reason_evaluation_exposure">Comprobamos como ha ido la recuperacion antes de volver a progresar.</string>
+    <string name="progression_reason_evaluation_passed">Comprobacion superada. Volvemos a la progresion normal.</string>
+    <string name="progression_reason_evaluation_hard">La comprobacion salio exigente. Bajamos un poco antes de seguir.</string>
+    <string name="progression_reason_evaluation_failed_twice">Dos comprobaciones seguidas exigentes. Recalibramos desde una carga mas segura.</string>
+    <string name="progression_reason_recovery_hard_streak">Recuperacion tras una racha larga de sesiones duras.</string>
+    <string name="progression_reason_recovery_falling_trend">Recuperacion porque tu tendencia de fuerza esta bajando.</string>
+    <string name="progression_reason_recovery_low_surplus">Recuperacion porque llevas varias sesiones con poco margen.</string>
+    <string name="progression_reason_recovery_repeated_stalls">Recuperacion tras varios intentos de subir que no cuajaron.</string>
+    <string name="progression_reason_recovery_repeated_hard">Recuperacion tras varias exposiciones duras seguidas.</string>
+    <string name="progression_reason_load_increased_easy">Subimos carga: la ultima sesion te sobro bastante margen.</string>
+    <string name="progression_reason_load_increased_strong">Subimos carga: la ultima sesion salio con buen margen.</string>
+    <string name="progression_reason_load_confirmed">Carga confirmada: el esfuerzo fue el previsto.</string>
+    <string name="progression_reason_load_held_hard">Mantenemos la carga: la ultima sesion fue mas exigente de lo esperado.</string>
+    <string name="progression_reason_load_reverted">Volvemos a la ultima carga confirmada. Una sesion dura con un peso nuevo no significa que hayas perdido fuerza.</string>
+    <string name="progression_reason_load_held_one_failure">Mantenemos la carga. Una sola sesion mala no indica perdida de fuerza.</string>
+    <string name="progression_reason_load_held_failure">Mantenemos la carga tras la sesion fallida.</string>
+    <string name="progression_reason_load_reduced_repeated">Bajamos la carga tras varias sesiones fallidas seguidas.</string>
+    <string name="progression_reason_load_unchanged_failure">La carga no cambia tras la sesion fallida.</string>
+    <string name="progression_reason_load_unchanged_no_outcome">Sin datos suficientes de la ultima sesion, mantenemos la carga.</string>
+
 </resources>

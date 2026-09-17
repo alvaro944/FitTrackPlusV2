@@ -22,6 +22,7 @@ import com.alvarocervantes.fittrackplus.domain.usecase.DetectPersonalRecordUseCa
 import com.alvarocervantes.fittrackplus.domain.usecase.FinishWorkoutSessionUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.GetNextWorkoutPreviewUseCase
 import com.alvarocervantes.fittrackplus.domain.model.progression.ProgressionPrescription
+import com.alvarocervantes.fittrackplus.domain.model.progression.ProgressionReason
 import com.alvarocervantes.fittrackplus.domain.model.progression.calculateSurplus
 import com.alvarocervantes.fittrackplus.domain.model.progression.intraSessionAdjustmentSteps
 import com.alvarocervantes.fittrackplus.domain.model.progression.intraSessionSuggestedLoadKg
@@ -899,7 +900,7 @@ class WorkoutViewModel @Inject constructor(
                 repMax = prescription.prescribedRepMax,
                 targetRir = prescription.prescribedTargetRir,
                 prescribedSets = prescription.prescribedSets,
-                decisionReason = prescription.decisionReason,
+                reason = prescription.reason,
                 displayedE1rmKg = prescription.displayedE1rm,
                 isBadDay = _uiState.value.primaryProgression[exercise.id]?.isBadDay == true
             )
@@ -1052,7 +1053,7 @@ data class PrimaryProgressionUiState(
     val repMax: Int,
     val targetRir: Int,
     val prescribedSets: Int,
-    val decisionReason: String,
+    val reason: ProgressionReason,
     val displayedE1rmKg: Double?,
     val isBadDay: Boolean = false,
     /** Proposed for the sets after the probe. Null until the probe is logged. Never imposed. */

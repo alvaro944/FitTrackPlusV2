@@ -50,7 +50,7 @@ Leyenda: **OK** verificado · **MANUAL** requiere pasada del dueño · **NO** no
 | 23 | El e1RM mostrado viene de `ewmaStrengthE1rm` | **OK** | `ProgressionDecisionTest` |
 | 24 | El cuarto PRIMARY se rechaza con mensaje | **OK** | `RoutineProgressionRoleTest`, 6 casos |
 | 25 | El motor es invocable desde JUnit puro | **OK** | todos sus tests lo son; cero imports de Room/Android |
-| 26 | Toda prescripcion trae `decisionReason` | **OK (mecanismo)** / **NO (idioma)** | se muestra siempre, pero **en ingles**. Ver abajo |
+| 26 | Toda prescripcion trae su razon | **OK** | `ProgressionReason` en dominio + `strings.xml` en UI; verificado en pantalla en español |
 
 ## Regresion
 
@@ -60,19 +60,31 @@ Leyenda: **OK** verificado · **MANUAL** requiere pasada del dueño · **NO** no
 
 ---
 
-## El unico criterio no cumplido: 26, por idioma
+## Criterio 26: resuelto el 2026-09-17
 
-`decisionReason` se genera en ingles dentro de `ProgressionDecision.kt` y la app es en español.
-El mecanismo cumple —la razon se muestra siempre y nunca hay un peso a secas— pero una
-explicacion que el usuario no entiende no explica nada, y R19 existe para que la entienda.
+`decisionReason` se generaba en ingles dentro del motor. Arreglado con el patron correcto, no
+traduciendo literales: el dominio devuelve ahora un **`ProgressionReason`** (27 valores) y la UI
+lo mapea a `strings.xml`. Mismo criterio que `LoadDecision.REVERTED`: **la capa de decision dice
+QUE decidio, la UI dice COMO se cuenta.**
 
-**Arreglo correcto:** que el dominio devuelva un codigo de razon (enum) y la UI lo mapee a
-`strings.xml`. Mismo patron que `LoadDecision.REVERTED`: la capa de decision dice QUE decidio,
-no COMO se cuenta. Traducir los literales en el dominio seria mover el problema, no resolverlo.
+Efectos laterales buenos:
 
-**No se hace al cierre de esta fase a proposito:** son ~20 puntos de retorno en el fichero mas
-critico del proyecto, sus tests aseveran sobre el texto, y un error ahi cambia cargas reales.
-Va en su propia pasada.
+- Los tests aseveran sobre el **codigo** de decision, no sobre la redaccion. Cambiar una frase ya
+  no rompe un test, y un cambio de decision si lo rompe. Es lo que queriamos.
+- La exposicion persiste `reason.name`, asi que el historial guarda un codigo estable en vez de
+  prosa que una reescritura futura cambiaria en silencio. Con `fromStoredName()` tolerante a
+  valores desconocidos.
+- El copy queda traducible sin tocar el motor.
+
+Verificado en emulador: la tarjeta muestra "Exposicion de calibracion para tener una referencia
+fiable." sobre una prescripcion real de 100 kg.
+
+Ademas se elimino una duplicacion: existian `calculateIntraSessionAdjustmentSteps` (en
+`ProgressionDecision.kt`) e `intraSessionAdjustmentSteps` (en `IntraSessionAdjustment.kt`)
+implementando la misma regla de R17. Dos copias de una regla que decide cargas acaban divergiendo.
+Se conserva la de `IntraSessionAdjustment.kt`, que ademas comprueba el tipo de exposicion.
+
+**27 de 27 criterios cumplidos.** Queda solo la pasada manual del dueño.
 
 ## Pendiente de pasada manual
 

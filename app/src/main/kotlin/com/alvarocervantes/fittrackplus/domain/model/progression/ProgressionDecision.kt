@@ -8,7 +8,7 @@ import kotlin.math.round
 
 private data class ProfileResolution(
     val profile: ExerciseProgressionProfile,
-    val reason: String
+    val reason: ProgressionReason
 )
 
 private data class ExposureParameters(
@@ -61,20 +61,8 @@ fun calculateNextPrescription(
     return prescriptionFor(resolution, exposures)
 }
 
-// The next exposure uses only probeSurplus; adjusted sets must never feed back into R15.
-fun calculateIntraSessionAdjustmentSteps(
-    state: ProgressionState,
-    probeSurplus: Int?
-): Int {
-    if (state != ProgressionState.PROGRESSING || probeSurplus == null) return 0
-
-    return when {
-        probeSurplus >= ProgressionTuning.SURPLUS_EASY_MIN -> ProgressionTuning.INTRA_MAX_STEPS
-        probeSurplus == ProgressionTuning.SURPLUS_STRONG -> ProgressionTuning.STEP_STRONG
-        probeSurplus <= ProgressionTuning.INTRA_REDUCE_SURPLUS_MAX -> ProgressionTuning.STEP_REDUCE
-        else -> 0
-    }
-}
+// The intra-session rule lives in IntraSessionAdjustment.kt. One rule, one place: two copies of it
+// would drift, and this one decides loads.
 
 @Suppress("CyclomaticComplexMethod")
 private fun resolveCalibration(
@@ -96,7 +84,7 @@ private fun resolveCalibration(
             nextExposureType = ExposureType.VOLUME,
             calibrationRetries = 0
         )
-        return ProfileResolution(nextProfile, "Calibration complete. Starting normal progression.")
+        return ProfileResolution(nextProfile, ProgressionReason.CALIBRATION_COMPLETE)
     }
 
     if (lastExposure?.outcomeClass == OutcomeClass.FAILED &&
@@ -108,7 +96,7 @@ private fun resolveCalibration(
             nextExposureType = lastExposure.type,
             calibrationRetries = profile.calibrationRetries + 1
         )
-        return ProfileResolution(nextProfile, "Calibration retry with a reduced load.")
+        return ProfileResolution(nextProfile, ProgressionReason.CALIBRATION_RETRY)
     }
 
     val nextType = when (validExposures.size) {
@@ -118,7 +106,7 @@ private fun resolveCalibration(
     }
     return ProfileResolution(
         profile.copy(nextExposureType = nextType),
-        "Calibration exposure to establish a reliable baseline."
+        ProgressionReason.CALIBRATION_BASELINE
     )
 }
 
@@ -128,7 +116,7 @@ private fun resolveProgressing(
     lastExposure: ProgressionExposure?
 ): ProfileResolution {
     if (lastExposure == null || !lastExposure.type.isProgressionType()) {
-        return ProfileResolution(profile, "Continue alternating volume and strength exposures.")
+        return ProfileResolution(profile, ProgressionReason.PROGRESSION_ALTERNATING)
     }
 
     val progressingOutcome = if (lastExposure.userFlaggedBadDay) {
@@ -167,7 +155,7 @@ private fun resolveProgressing(
     }
 
     val reason = if (lastExposure.userFlaggedBadDay) {
-        "Bad day recorded. Keeping the progression signal unchanged."
+        ProgressionReason.BAD_DAY
     } else {
         outcomeReason(
             lastExposure.outcomeClass,
@@ -307,7 +295,7 @@ private fun resolveRecovering(
     lastExposure: ProgressionExposure?
 ): ProfileResolution {
     if (lastExposure?.type != ExposureType.RECOVERY) {
-        return ProfileResolution(profile, "Recovery exposure prescribed from the current lane load.")
+        return ProfileResolution(profile, ProgressionReason.RECOVERY_EXPOSURE)
     }
 
     val remaining = (profile.recoveryExposuresRemaining - 1).coerceAtLeast(0)
@@ -317,7 +305,7 @@ private fun resolveRecovering(
                 state = ProgressionState.EVALUATING,
                 recoveryExposuresRemaining = 0
             ),
-            "Recovery complete. Evaluating the strength lane."
+            ProgressionReason.RECOVERY_COMPLETE
         )
     }
     return ProfileResolution(
@@ -325,7 +313,7 @@ private fun resolveRecovering(
             recoveryExposuresRemaining = remaining,
             nextExposureType = profile.nextExposureType.oppositeLane()
         ),
-        "Continue recovery with reduced load and volume."
+        ProgressionReason.RECOVERY_CONTINUE
     )
 }
 
@@ -334,7 +322,7 @@ private fun resolveEvaluating(
     lastExposure: ProgressionExposure?
 ): ProfileResolution {
     if (lastExposure?.type != ExposureType.EVALUATION) {
-        return ProfileResolution(profile, "Evaluation exposure checks recovery before normal progression.")
+        return ProfileResolution(profile, ProgressionReason.EVALUATION_EXPOSURE)
     }
 
     val passed = lastExposure.probeSurplus?.let {
@@ -349,7 +337,7 @@ private fun resolveEvaluating(
                 evaluationFailStreak = 0,
                 exposuresSinceRecovery = 0
             ),
-            "Evaluation passed. Returning to normal progression."
+            ProgressionReason.EVALUATION_PASSED
         )
     }
     if (profile.evaluationFailStreak == 0) {
@@ -363,7 +351,7 @@ private fun resolveEvaluating(
                 evaluationFailStreak = 1,
                 exposuresSinceRecovery = 0
             ),
-            "Evaluation was hard. Reducing both lanes before progressing."
+            ProgressionReason.EVALUATION_HARD
         )
     }
 
@@ -382,7 +370,7 @@ private fun resolveEvaluating(
             calibrationRetries = 0,
             nextExposureType = ExposureType.VOLUME
         ),
-        "Evaluation failed twice. Recalibrating from a safer load."
+        ProgressionReason.EVALUATION_FAILED_TWICE
     )
 }
 
@@ -404,7 +392,7 @@ private fun prescriptionFor(
         prescribedRepMax = parts.parameters.repMax,
         prescribedTargetRir = parts.parameters.targetRir,
         prescribedSets = parts.sets,
-        decisionReason = resolution.reason,
+        reason = resolution.reason,
         displayedE1rm = profile.ewmaStrengthE1rm,
         nextProfile = profile
     )
@@ -493,7 +481,7 @@ private data class PrescriptionParts(
     val sets: Int
 )
 
-private data class RecoveryTrigger(val exposures: Int, val reason: String)
+private data class RecoveryTrigger(val exposures: Int, val reason: ProgressionReason)
 
 @Suppress("ReturnCount")
 private fun recoveryTrigger(
@@ -505,7 +493,7 @@ private fun recoveryTrigger(
     if (profile.hardExposureStreak >= ProgressionTuning.R1_HARD_STREAK_CAP) {
         return RecoveryTrigger(
             ProgressionTuning.RECOVERY_HARD_TRIGGER_EXPOSURES,
-            "Recovery after a sustained hard streak."
+            ProgressionReason.RECOVERY_HARD_STREAK
         )
     }
     val trend = calculateStrengthTrend(profile, exposures)
@@ -515,7 +503,7 @@ private fun recoveryTrigger(
     if (trend == StrengthTrend.FALLING && badCount >= ProgressionTuning.R2_BAD_REQUIRED) {
         return RecoveryTrigger(
             ProgressionTuning.RECOVERY_HARD_TRIGGER_EXPOSURES,
-            "Recovery after a falling strength trend."
+            ProgressionReason.RECOVERY_FALLING_TREND
         )
     }
     val recentSurpluses = recentJudged.mapNotNull(ProgressionExposure::probeSurplus)
@@ -524,13 +512,13 @@ private fun recoveryTrigger(
         recentSurpluses.average() <= ProgressionTuning.R3_MEAN_SURPLUS_MAX &&
         trend != StrengthTrend.RISING
     ) {
-        return RecoveryTrigger(ProgressionTuning.STEP_STRONG, "Recovery after consistently low probe surplus.")
+        return RecoveryTrigger(ProgressionTuning.STEP_STRONG, ProgressionReason.RECOVERY_LOW_SURPLUS)
     }
     if (profile.stallCount >= ProgressionTuning.R4_STALL_COUNT) {
-        return RecoveryTrigger(ProgressionTuning.STEP_STRONG, "Recovery after repeated stalled load reductions.")
+        return RecoveryTrigger(ProgressionTuning.STEP_STRONG, ProgressionReason.RECOVERY_REPEATED_STALLS)
     }
     if (profile.hardExposureStreak >= ProgressionTuning.R5_HARD_STREAK) {
-        return RecoveryTrigger(ProgressionTuning.STEP_STRONG, "Recovery after repeated hard exposures.")
+        return RecoveryTrigger(ProgressionTuning.STEP_STRONG, ProgressionReason.RECOVERY_REPEATED_HARD)
     }
     return null
 }
@@ -595,25 +583,24 @@ private fun outcomeReason(
     type: ExposureType,
     decision: LoadDecision,
     profile: ExerciseProgressionProfile
-): String {
+): ProgressionReason {
     // profile is the post-decision state; use decision for distinctions erased by the transition.
     return when (outcome) {
-        OutcomeClass.EASY -> "Load increased after an easy exposure."
-        OutcomeClass.STRONG -> "Load increased after a strong exposure."
-        OutcomeClass.ON_TARGET -> "Load confirmed at the target effort."
-        OutcomeClass.HARD -> "Load held after a harder-than-expected exposure."
+        OutcomeClass.EASY -> ProgressionReason.LOAD_INCREASED_EASY
+        OutcomeClass.STRONG -> ProgressionReason.LOAD_INCREASED_STRONG
+        OutcomeClass.ON_TARGET -> ProgressionReason.LOAD_CONFIRMED
+        OutcomeClass.HARD -> ProgressionReason.LOAD_HELD_HARD
         OutcomeClass.FAILED -> when (decision) {
-            LoadDecision.REVERTED -> "Load returned to the last confirmed weight. " +
-                "A single hard session at a new load is not evidence that you lost strength."
+            LoadDecision.REVERTED -> ProgressionReason.LOAD_REVERTED
             LoadDecision.HELD -> if (profile.laneConsecutiveFail(type) > 0) {
-                "Load held after one failed exposure at a confirmed load."
+                ProgressionReason.LOAD_HELD_ONE_FAILURE
             } else {
-                "Load held after the failed exposure."
+                ProgressionReason.LOAD_HELD_FAILURE
             }
-            LoadDecision.REDUCED -> "Load reduced after repeated failed exposures."
-            else -> "Load is unchanged after the failed exposure."
+            LoadDecision.REDUCED -> ProgressionReason.LOAD_REDUCED_REPEATED
+            else -> ProgressionReason.LOAD_UNCHANGED_FAILURE
         }
-        null -> "No outcome was available, so the next load is unchanged."
+        null -> ProgressionReason.LOAD_UNCHANGED_NO_OUTCOME
     }
 }
 

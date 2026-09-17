@@ -64,7 +64,7 @@ class RecordProgressionExposureUseCase @Inject constructor(
                 state = profile.state,
                 exposureType = prescription.type
             ),
-            decisionReason = prescription.decisionReason
+            decisionReason = prescription.reason.name
         )
 
         progressionRepository.insertExposure(exposure)

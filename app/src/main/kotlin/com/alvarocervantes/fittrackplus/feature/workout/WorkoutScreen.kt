@@ -102,6 +102,7 @@ import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSegmented
 import com.alvarocervantes.fittrackplus.R
 import com.alvarocervantes.fittrackplus.domain.model.PrType
 import com.alvarocervantes.fittrackplus.domain.model.ProgressionHint
+import com.alvarocervantes.fittrackplus.domain.model.progression.ProgressionReason
 import com.alvarocervantes.fittrackplus.feature.routines.isValidTargetReps
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
@@ -1428,7 +1429,7 @@ private fun PrimaryPrescriptionCard(
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = progression.decisionReason,
+                text = stringResource(progression.reason.labelRes()),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1478,4 +1479,42 @@ private fun PrimaryPrescriptionCard(
 
 private fun Double.formatLoad(): String {
     return if (this % 1.0 == 0.0) toInt().toString() else String.format(Locale.getDefault(), "%.1f", this)
+}
+
+/**
+ * Turns the engine's decision code into the sentence the user reads.
+ *
+ * The mapping lives here and not in the domain on purpose: the engine says WHAT it decided, the UI
+ * says HOW to tell it. That keeps the copy translatable and out of the layer that decides loads.
+ */
+private fun ProgressionReason.labelRes(): Int {
+    return when (this) {
+        ProgressionReason.CALIBRATION_COMPLETE -> R.string.progression_reason_calibration_complete
+        ProgressionReason.CALIBRATION_RETRY -> R.string.progression_reason_calibration_retry
+        ProgressionReason.CALIBRATION_BASELINE -> R.string.progression_reason_calibration_baseline
+        ProgressionReason.PROGRESSION_ALTERNATING -> R.string.progression_reason_alternating
+        ProgressionReason.BAD_DAY -> R.string.progression_reason_bad_day
+        ProgressionReason.RECOVERY_EXPOSURE -> R.string.progression_reason_recovery_exposure
+        ProgressionReason.RECOVERY_COMPLETE -> R.string.progression_reason_recovery_complete
+        ProgressionReason.RECOVERY_CONTINUE -> R.string.progression_reason_recovery_continue
+        ProgressionReason.EVALUATION_EXPOSURE -> R.string.progression_reason_evaluation_exposure
+        ProgressionReason.EVALUATION_PASSED -> R.string.progression_reason_evaluation_passed
+        ProgressionReason.EVALUATION_HARD -> R.string.progression_reason_evaluation_hard
+        ProgressionReason.EVALUATION_FAILED_TWICE -> R.string.progression_reason_evaluation_failed_twice
+        ProgressionReason.RECOVERY_HARD_STREAK -> R.string.progression_reason_recovery_hard_streak
+        ProgressionReason.RECOVERY_FALLING_TREND -> R.string.progression_reason_recovery_falling_trend
+        ProgressionReason.RECOVERY_LOW_SURPLUS -> R.string.progression_reason_recovery_low_surplus
+        ProgressionReason.RECOVERY_REPEATED_STALLS -> R.string.progression_reason_recovery_repeated_stalls
+        ProgressionReason.RECOVERY_REPEATED_HARD -> R.string.progression_reason_recovery_repeated_hard
+        ProgressionReason.LOAD_INCREASED_EASY -> R.string.progression_reason_load_increased_easy
+        ProgressionReason.LOAD_INCREASED_STRONG -> R.string.progression_reason_load_increased_strong
+        ProgressionReason.LOAD_CONFIRMED -> R.string.progression_reason_load_confirmed
+        ProgressionReason.LOAD_HELD_HARD -> R.string.progression_reason_load_held_hard
+        ProgressionReason.LOAD_REVERTED -> R.string.progression_reason_load_reverted
+        ProgressionReason.LOAD_HELD_ONE_FAILURE -> R.string.progression_reason_load_held_one_failure
+        ProgressionReason.LOAD_HELD_FAILURE -> R.string.progression_reason_load_held_failure
+        ProgressionReason.LOAD_REDUCED_REPEATED -> R.string.progression_reason_load_reduced_repeated
+        ProgressionReason.LOAD_UNCHANGED_FAILURE -> R.string.progression_reason_load_unchanged_failure
+        ProgressionReason.LOAD_UNCHANGED_NO_OUTCOME -> R.string.progression_reason_load_unchanged_no_outcome
+    }
 }

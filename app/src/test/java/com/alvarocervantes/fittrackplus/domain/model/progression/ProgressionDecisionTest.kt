@@ -20,10 +20,7 @@ class ProgressionDecisionTest {
         assertEquals(100.0, requireNotNull(prescription.nextProfile.loadStrengthKg), 0.0)
         assertEquals(1, prescription.nextProfile.consecutiveFailStrength)
         assertEquals(80.0, requireNotNull(prescription.nextProfile.loadVolumeKg), 0.0)
-        assertEquals(
-            "Load held after one failed exposure at a confirmed load.",
-            prescription.decisionReason
-        )
+        assertEquals(ProgressionReason.LOAD_HELD_ONE_FAILURE, prescription.reason)
     }
 
     @Test
@@ -39,7 +36,7 @@ class ProgressionDecisionTest {
         assertEquals(97.5, requireNotNull(prescription.nextProfile.loadStrengthKg), 0.0)
         assertEquals(0, prescription.nextProfile.consecutiveFailStrength)
         assertEquals(1, prescription.nextProfile.stallCount)
-        assertEquals("Load reduced after repeated failed exposures.", prescription.decisionReason)
+        assertEquals(ProgressionReason.LOAD_REDUCED_REPEATED, prescription.reason)
     }
 
     @Test
@@ -56,11 +53,7 @@ class ProgressionDecisionTest {
         assertEquals(95.0, requireNotNull(prescription.nextProfile.loadStrengthKg), 0.0)
         assertFalse(prescription.nextProfile.pendingConfirmStrength)
         assertEquals(1, prescription.nextProfile.stallCount)
-        assertEquals(
-            "Load returned to the last confirmed weight. " +
-                "A single hard session at a new load is not evidence that you lost strength.",
-            prescription.decisionReason
-        )
+        assertEquals(ProgressionReason.LOAD_REVERTED, prescription.reason)
     }
 
     @Test
@@ -84,7 +77,7 @@ class ProgressionDecisionTest {
     fun `probe adjustment is bounded and next decision ignores adjusted set load`() {
         assertEquals(
             ProgressionTuning.STEP_REDUCE,
-            calculateIntraSessionAdjustmentSteps(ProgressionState.PROGRESSING, -2)
+            intraSessionAdjustmentSteps(-2, ProgressionState.PROGRESSING, ExposureType.STRENGTH)
         )
 
         val baseProfile = progressingProfile(consecutiveFailStrength = 1)
@@ -342,7 +335,7 @@ class ProgressionDecisionTest {
 
         assertEquals(130.0, requireNotNull(prescription.displayedE1rm), 0.0)
         assertNotEquals(prescription.nextProfile.ewmaVolumeE1rm, prescription.displayedE1rm)
-        assertTrue(prescription.decisionReason.isNotBlank())
+        assertNotNull(prescription.reason)
     }
 
     /**
@@ -461,6 +454,6 @@ class ProgressionCalibrationSeedTest {
         val prescription = calculateNextPrescription(seeded, emptyList())
 
         assertNotNull(prescription)
-        assertTrue(requireNotNull(prescription).decisionReason.isNotBlank())
+        assertNotNull(requireNotNull(prescription).reason)
     }
 }
