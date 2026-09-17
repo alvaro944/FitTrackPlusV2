@@ -2181,6 +2181,14 @@ Pendiente:
 - Estado: se revierten ambos intentos para no dejar cambios sin efecto.
 - Deuda futura: investigar la capa real que pinta ese fondo blanco (posible popup/superficie del sistema, OEM o composición del handle de Compose) y resolverlo con validación manual en dispositivo real. No aplicar más cambios sin una reproducción/control visual claro.
 
+## 2026-09-17 - Pendiente: experimento del fondo del popup de seleccion
+
+- Contexto: una captura y `dumpsys window` sobre Pixel_10_Pro/API 36 identifican el rectangulo blanco como la ventana translucida del popup del handle; el blanco lo resuelve una View de su jerarquia, no el dibujo de la gota verde.
+- Probado: en `fix/input-visual-polish`, commit `64cd117`, se elimina solo `<item name="android:background">@color/base</item>` de `Theme.FitTrackPlus`.
+- Motivo: el color de `@color/base` coincide con el recuadro, `android:background` es un atributo de tema que puede heredar cualquier View nativa y el atributo correcto para el fondo de ventana es `android:windowBackground`. Tambien explica que aparezcan recuadros similares en otros popups.
+- Pendiente: verificacion visual del dueño en emulador/dispositivo; `test` y `build` no validan este experimento. Comprobar handle, panel copiar/pegar y fondo general de la app.
+- Punto de parada: si el recuadro persiste, no aplicar otro cambio a ciegas. Abrir Layout Inspector con el handle visible e identificar la View y el fondo que lo pintan.
+
 ## 2026-08-31 - Auditoria ronda 3 cerrada en main
 
 - Alcance: tercera auditoria del proyecto, esta vez sobre **comportamiento** en vez de
