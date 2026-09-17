@@ -5,7 +5,16 @@ import com.alvarocervantes.fittrackplus.domain.model.progression.E1rmConfidence
 data class WorkoutStats(
     val sessionVolumes: List<WorkoutSessionVolume>,
     val exerciseProgress: List<ExerciseProgress>,
-    val exerciseRecords: List<ExerciseRecords>
+    val exerciseRecords: List<ExerciseRecords>,
+    val effortQuality: EffortQuality?
+)
+
+data class EffortQuality(
+    val usefulZonePercentage: Double,
+    val reportedExerciseCount: Int,
+    val failureCount: Int,
+    val usefulZoneCount: Int,
+    val farFromFailureCount: Int
 )
 
 enum class WorkoutStatsPeriod(val label: String) {

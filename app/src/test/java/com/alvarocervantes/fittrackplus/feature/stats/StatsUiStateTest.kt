@@ -16,6 +16,11 @@ class StatsUiStateTest {
     }
 
     @Test
+    fun effortQualityIsAbsentWithoutReportedRir() {
+        assertNull(StatsUiState().effortQuality)
+    }
+
+    @Test
     fun selectProgressPoint_setsPointFromCurrentProgressPoints() {
         val state = sampleState().withSelectedExerciseScope("ppl|push|bench press")
 

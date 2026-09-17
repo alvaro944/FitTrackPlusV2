@@ -8,6 +8,7 @@ import com.alvarocervantes.fittrackplus.domain.model.ExerciseProgress
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseProgressEntry
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseRecords
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseSetRecord
+import com.alvarocervantes.fittrackplus.domain.model.EffortQuality
 import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutSessionVolume
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStats
@@ -284,6 +285,7 @@ data class StatsUiState(
     val sessionVolumes: List<SessionVolumeUiState> = emptyList(),
     val exerciseProgress: List<ExerciseProgressUiState> = emptyList(),
     val exerciseRecords: List<ExerciseRecordsUiState> = emptyList(),
+    val effortQuality: EffortQualityUiState? = null,
     val selectedPeriod: WorkoutStatsPeriod = WorkoutStatsPeriod.LastFourWeeks,
     val activeRoutineId: Long? = null,
     val selectedRoutineName: String? = null,
@@ -442,11 +444,20 @@ data class ExerciseSetRecordUiState(
     val e1rmConfidence: E1rmConfidence?
 )
 
+data class EffortQualityUiState(
+    val usefulZonePercentage: Double,
+    val reportedExerciseCount: Int,
+    val failureCount: Int,
+    val usefulZoneCount: Int,
+    val farFromFailureCount: Int
+)
+
 private fun WorkoutStats.toUiState(): StatsUiState {
     return StatsUiState(
         sessionVolumes = sessionVolumes.map { it.toUiState() },
         exerciseProgress = exerciseProgress.map { it.toUiState() },
-        exerciseRecords = exerciseRecords.map { it.toUiState() }
+        exerciseRecords = exerciseRecords.map { it.toUiState() },
+        effortQuality = effortQuality?.toUiState()
     )
 }
 
@@ -510,6 +521,16 @@ private fun ExerciseSetRecord.toUiState(): ExerciseSetRecordUiState {
         setVolumeKg = setVolumeKg,
         estimatedOneRepMaxKg = estimatedOneRepMaxKg,
         e1rmConfidence = e1rmConfidence
+    )
+}
+
+private fun EffortQuality.toUiState(): EffortQualityUiState {
+    return EffortQualityUiState(
+        usefulZonePercentage = usefulZonePercentage,
+        reportedExerciseCount = reportedExerciseCount,
+        failureCount = failureCount,
+        usefulZoneCount = usefulZoneCount,
+        farFromFailureCount = farFromFailureCount
     )
 }
 

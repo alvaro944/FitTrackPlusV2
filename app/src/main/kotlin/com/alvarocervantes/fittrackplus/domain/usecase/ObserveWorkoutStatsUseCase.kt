@@ -8,6 +8,7 @@ import com.alvarocervantes.fittrackplus.domain.model.ExerciseProgress
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseProgressEntry
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseRecords
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseSetRecord
+import com.alvarocervantes.fittrackplus.domain.model.EffortQuality
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutSessionVolume
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStats
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
@@ -46,7 +47,28 @@ private fun List<WorkoutSessionWithExercises>.toWorkoutStats(
     return WorkoutStats(
         sessionVolumes = finishedSessions.recent().toSessionVolumes(),
         exerciseProgress = exerciseGroups.toExerciseProgress(),
-        exerciseRecords = exerciseGroups.toExerciseRecords()
+        exerciseRecords = exerciseGroups.toExerciseRecords(),
+        effortQuality = finishedSessions.toEffortQuality()
+    )
+}
+
+private fun List<FinishedSession>.toEffortQuality(): EffortQuality? {
+    val reportedRirs = flatMap { finishedSession ->
+        finishedSession.session.exercises.mapNotNull { exercise -> exercise.exercise.firstSetRir }
+    }
+    if (reportedRirs.isEmpty()) {
+        return null
+    }
+
+    val failureCount = reportedRirs.count { rir -> rir == 0 }
+    val usefulZoneCount = reportedRirs.count { rir -> rir in 1..3 }
+    val farFromFailureCount = reportedRirs.count { rir -> rir >= 4 }
+    return EffortQuality(
+        usefulZonePercentage = usefulZoneCount.toDouble() / reportedRirs.size * 100,
+        reportedExerciseCount = reportedRirs.size,
+        failureCount = failureCount,
+        usefulZoneCount = usefulZoneCount,
+        farFromFailureCount = farFromFailureCount
     )
 }
 

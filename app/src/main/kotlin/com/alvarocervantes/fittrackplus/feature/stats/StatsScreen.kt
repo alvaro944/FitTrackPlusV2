@@ -226,6 +226,10 @@ private fun StatsContent(
                     SummaryGrid(state = state)
                 }
 
+                state.effortQuality?.let { effortQuality ->
+                    item { EffortQualityCard(effortQuality = effortQuality) }
+                }
+
                 if (state.availableRoutineNames.isNotEmpty()) {
                     item {
                         StatsFocusControls(
@@ -398,6 +402,34 @@ private fun SummaryGrid(state: StatsUiState) {
                 compact = true
             )
         }
+    }
+}
+
+@Composable
+private fun EffortQualityCard(effortQuality: EffortQualityUiState) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.stats_effort_quality_title),
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = stringResource(
+                R.string.stats_effort_quality_summary,
+                effortQuality.usefulZonePercentage.toDisplayText(),
+                effortQuality.reportedExerciseCount
+            ),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = stringResource(
+                R.string.stats_effort_quality_distribution,
+                effortQuality.failureCount,
+                effortQuality.usefulZoneCount,
+                effortQuality.farFromFailureCount
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

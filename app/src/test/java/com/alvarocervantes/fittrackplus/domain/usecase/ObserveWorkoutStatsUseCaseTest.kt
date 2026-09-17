@@ -217,6 +217,70 @@ class ObserveWorkoutStatsUseCaseTest {
 
             assertNull(stats.exerciseProgress.single().entries.single().estimatedOneRepMaxKg)
             assertNull(stats.exerciseRecords.single().bestEstimatedOneRepMax)
+            assertNull(stats.effortQuality)
+
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun effortQualityCountsOnlyReportedRirAndGroupsEachZone() = runTest {
+        val repository = StatsWorkoutRepository(
+            sessions = listOf(
+                effortQualitySession(sessionId = 60, rir = 0),
+                effortQualitySession(sessionId = 61, rir = 2),
+                effortQualitySession(sessionId = 62, rir = 4),
+                effortQualitySession(sessionId = 63, rir = null)
+            )
+        )
+
+        ObserveWorkoutStatsUseCase(repository)().test {
+            val effortQuality = requireNotNull(awaitItem().effortQuality)
+
+            assertEquals(3, effortQuality.reportedExerciseCount)
+            assertEquals(33.333, effortQuality.usefulZonePercentage, 0.01)
+            assertEquals(1, effortQuality.failureCount)
+            assertEquals(1, effortQuality.usefulZoneCount)
+            assertEquals(1, effortQuality.farFromFailureCount)
+
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun effortQualityRespectsTheSelectedPeriod() = runTest {
+        val dayMillis = 86_400_000L
+        val repository = StatsWorkoutRepository(
+            sessions = listOf(
+                effortQualitySession(
+                    sessionId = 70,
+                    rir = 2,
+                    finishedAt = NOW_MILLIS - dayMillis * 35
+                ),
+                effortQualitySession(
+                    sessionId = 71,
+                    rir = 0,
+                    finishedAt = NOW_MILLIS - dayMillis * 7
+                ),
+                effortQualitySession(
+                    sessionId = 72,
+                    rir = 4,
+                    finishedAt = NOW_MILLIS - dayMillis * 2
+                )
+            )
+        )
+
+        ObserveWorkoutStatsUseCase(repository)(
+            period = WorkoutStatsPeriod.LastFourWeeks,
+            nowMillis = NOW_MILLIS
+        ).test {
+            val effortQuality = requireNotNull(awaitItem().effortQuality)
+
+            assertEquals(2, effortQuality.reportedExerciseCount)
+            assertEquals(0.0, effortQuality.usefulZonePercentage, 0.0)
+            assertEquals(1, effortQuality.failureCount)
+            assertEquals(0, effortQuality.usefulZoneCount)
+            assertEquals(1, effortQuality.farFromFailureCount)
 
             awaitComplete()
         }
@@ -435,6 +499,36 @@ class ObserveWorkoutStatsUseCaseTest {
         setNumber = setNumber,
         weightKg = weightKg,
         reps = reps
+    )
+
+    private fun effortQualitySession(
+        sessionId: Long,
+        rir: Int?,
+        finishedAt: Long = sessionId * 100
+    ): WorkoutSessionWithExercises = sessionWithExercises(
+        sessionId = sessionId,
+        routineName = "Effort",
+        dayName = "Push",
+        startedAt = finishedAt - 10,
+        finishedAt = finishedAt,
+        exercises = listOf(
+            exercise(
+                id = sessionId,
+                sessionId = sessionId,
+                name = "Bench Press",
+                position = 0,
+                firstSetRir = rir,
+                sets = listOf(
+                    set(
+                        id = sessionId * 10,
+                        exerciseId = sessionId,
+                        setNumber = 1,
+                        weightKg = 100.0,
+                        reps = 8
+                    )
+                )
+            )
+        )
     )
 
     private fun statsPeriodSessions(nowMillis: Long): List<WorkoutSessionWithExercises> {
