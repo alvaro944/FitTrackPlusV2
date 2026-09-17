@@ -2181,12 +2181,32 @@ Pendiente:
 - Estado: se revierten ambos intentos para no dejar cambios sin efecto.
 - Deuda futura: investigar la capa real que pinta ese fondo blanco (posible popup/superficie del sistema, OEM o composición del handle de Compose) y resolverlo con validación manual en dispositivo real. No aplicar más cambios sin una reproducción/control visual claro.
 
-## 2026-09-17 - Pendiente: experimento del fondo del popup de seleccion
+## 2026-09-17 - RESUELTO: fondo blanco del handle de cursor (deuda abierta desde 2026-07-07)
 
 - Contexto: una captura y `dumpsys window` sobre Pixel_10_Pro/API 36 identifican el rectangulo blanco como la ventana translucida del popup del handle; el blanco lo resuelve una View de su jerarquia, no el dibujo de la gota verde.
 - Probado: en `fix/input-visual-polish`, commit `64cd117`, se elimina solo `<item name="android:background">@color/base</item>` de `Theme.FitTrackPlus`.
 - Motivo: el color de `@color/base` coincide con el recuadro, `android:background` es un atributo de tema que puede heredar cualquier View nativa y el atributo correcto para el fondo de ventana es `android:windowBackground`. Tambien explica que aparezcan recuadros similares en otros popups.
-- Pendiente: verificacion visual del dueño en emulador/dispositivo; `test` y `build` no validan este experimento. Comprobar handle, panel copiar/pegar y fondo general de la app.
+- **Verificado el 2026-09-17 en emulador Pixel_10_Pro/API 36.** Con el APK de `fix/input-visual-polish` instalado en limpio, el handle de seleccion se dibuja **sin rectangulo detras**. Misma ventana (`ty=APPLICATION_SUB_PANEL fmt=TRANSLUCENT`, 62x75), mismo encuadre y mismo zoom que la captura previa al cambio. El fondo general de la app no cambia al quitar el atributo.
+- **Evidencia que lo confirmo antes del fix:** `mAttrs={(886,1646)(62x75) ... fmt=TRANSLUCENT}` frente al rectangulo medido sobre la captura en x 886-948, y 1646-1721. Encaje al pixel. Ese dato es lo que faltaba en 2026-07-07 y lo que convirtio la corazonada en diagnostico.
+- **Por que fallaron los intentos de 2026-07-07:** los drawables `android:textSelectHandle*` cambian el dibujo del handle y `LocalTextSelectionColors.handleColor` cambia su tinte. Ninguno toca el fondo de la View contenedora. Atacaban la gota, no el rectangulo.
+- Pendiente aun: confirmacion del dueño sobre los "otros sitios" donde reportaba recuadros parecidos, y sobre el panel de copiar/pegar.
+
+## 2026-09-17 - Verificado: teclado unificado a decimal en los campos de serie
+
+- Sintoma: al saltar entre peso y repeticiones el teclado se ocultaba y reaparecia. Causa: `EditorInfo` distinto en campos contiguos obliga a `restartInput`, y la mayoria de IMEs responden desmontando la vista.
+- Probado: `142e76a` unifica `KeyboardType` a `Decimal` en repeticiones; `d5a5219` declara `windowSoftInputMode="adjustResize"`, que no estaba.
+- **Verificado el 2026-09-17 via `dumpsys input_method`:** con el foco en repeticiones `inputType=0x2002`, con el foco en peso `inputType=0x2002`. **Identico.** Antes repeticiones reportaba `0x2` (numero sin decimal). La causa dominante del desmontaje esta eliminada.
+- Residuo conocido y deliberado: `imeOptions` sigue difiriendo (`0x2000006` = DONE en reps, `0x2000005` = NEXT en peso). Si el dueño percibe parpadeo residual, el siguiente paso es unificar tambien `ImeAction`, **midiendo primero**, no a ciegas.
+- Coste aceptado por el dueño: el campo de repeticiones muestra la tecla del punto decimal.
+
+## 2026-09-17 - Trampa operativa: downgrade de esquema Room entre ramas
+
+- Sintoma: `IllegalStateException: A migration from 7 to 6 was required but not found` al abrir la app, con crash inmediato.
+- Causa: instalar sobre el mismo dispositivo el APK de `feature/progression-engine-primary` (DB v7, con `firstSetRir`) y despues el de `fix/input-visual-polish` (sale de `develop`, DB v6). Room no permite bajar de version.
+- **No es un bug de ninguna de las dos ramas.** Es consecuencia de alternar APKs de ramas con esquemas distintos sobre los mismos datos.
+- Como probar dos ramas con esquemas distintos sin perder datos: respaldar antes con `adb exec-out run-as <pkg> tar cf - databases > backup.tar`, desinstalar, instalar la otra rama, y restaurar con `adb push backup.tar /data/local/tmp/` + `adb shell "run-as <pkg> sh -c 'rm -rf databases && tar xf /data/local/tmp/backup.tar'"`. **Ojo: eso salva Room pero NO DataStore**, asi que las preferencias (onboarding visto, rutina activa, unidad de peso) se pierden igual.
+- Mejor opcion cuando se pueda: integrar la rama de menor version en la de mayor y probar un solo APK.
+
 - Punto de parada: si el recuadro persiste, no aplicar otro cambio a ciegas. Abrir Layout Inspector con el handle visible e identificar la View y el fondo que lo pintan.
 
 ## 2026-08-31 - Auditoria ronda 3 cerrada en main
