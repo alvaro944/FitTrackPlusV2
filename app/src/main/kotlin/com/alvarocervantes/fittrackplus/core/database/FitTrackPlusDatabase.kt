@@ -4,8 +4,11 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.alvarocervantes.fittrackplus.data.local.dao.ProgressionDao
 import com.alvarocervantes.fittrackplus.data.local.dao.RoutineDao
 import com.alvarocervantes.fittrackplus.data.local.dao.WorkoutDao
+import com.alvarocervantes.fittrackplus.data.local.entity.ExerciseProgressionProfileEntity
+import com.alvarocervantes.fittrackplus.data.local.entity.ProgressionExposureEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.RoutineDayEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.RoutineEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.RoutineExerciseAlternativeEntity
@@ -23,12 +26,15 @@ import com.alvarocervantes.fittrackplus.domain.model.TargetRepsRange
         RoutineExerciseAlternativeEntity::class,
         WorkoutSessionEntity::class,
         WorkoutExerciseEntity::class,
-        WorkoutSetEntity::class
+        WorkoutSetEntity::class,
+        ExerciseProgressionProfileEntity::class,
+        ProgressionExposureEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 abstract class FitTrackPlusDatabase : RoomDatabase() {
+    abstract fun progressionDao(): ProgressionDao
     abstract fun routineDao(): RoutineDao
     abstract fun workoutDao(): WorkoutDao
 }
@@ -42,6 +48,79 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
 val MIGRATION_6_7 = object : Migration(6, 7) {
     override fun migrate(database: SupportSQLiteDatabase) {
         database.execSQL("ALTER TABLE `workout_exercises` ADD COLUMN `firstSetRir` INTEGER")
+    }
+}
+
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE `routine_exercises` ADD COLUMN `progressionRole` TEXT NOT NULL DEFAULT 'ACCESSORY'"
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `exercise_progression_profiles` (
+                `variantKey` TEXT NOT NULL,
+                `goalWeightKg` REAL,
+                `loadIncrementKg` REAL NOT NULL DEFAULT 2.5,
+                `state` TEXT NOT NULL DEFAULT 'CALIBRATING',
+                `loadVolumeKg` REAL,
+                `loadStrengthKg` REAL,
+                `pendingConfirmVolume` INTEGER NOT NULL DEFAULT 0,
+                `pendingConfirmStrength` INTEGER NOT NULL DEFAULT 0,
+                `nextExposureType` TEXT NOT NULL DEFAULT 'VOLUME',
+                `hardExposureStreak` INTEGER NOT NULL DEFAULT 0,
+                `exposuresSinceRecovery` INTEGER NOT NULL DEFAULT 0,
+                `consecutiveFailVolume` INTEGER NOT NULL DEFAULT 0,
+                `consecutiveFailStrength` INTEGER NOT NULL DEFAULT 0,
+                `previousLoadVolumeKg` REAL,
+                `previousLoadStrengthKg` REAL,
+                `stallCount` INTEGER NOT NULL DEFAULT 0,
+                `ewmaStrengthE1rm` REAL,
+                `ewmaVolumeE1rm` REAL,
+                `strengthPointCount` INTEGER NOT NULL DEFAULT 0,
+                `volumePointCount` INTEGER NOT NULL DEFAULT 0,
+                `recoveryExposuresRemaining` INTEGER NOT NULL DEFAULT 0,
+                `evaluationFailStreak` INTEGER NOT NULL DEFAULT 0,
+                `calibrationRetries` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`variantKey`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `progression_exposures` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `variantKey` TEXT NOT NULL,
+                `workoutExerciseId` INTEGER,
+                `exposureIndex` INTEGER NOT NULL,
+                `performedAt` INTEGER NOT NULL,
+                `type` TEXT NOT NULL,
+                `prescribedLoadKg` REAL NOT NULL,
+                `prescribedRepMin` INTEGER NOT NULL,
+                `prescribedRepMax` INTEGER NOT NULL,
+                `prescribedTargetRir` INTEGER NOT NULL,
+                `prescribedSets` INTEGER NOT NULL,
+                `probeReps` INTEGER,
+                `probeRir` INTEGER,
+                `probeSurplus` INTEGER,
+                `outcomeClass` TEXT,
+                `setCompletionRatio` REAL,
+                `exposureE1rm` REAL,
+                `e1rmConfidence` TEXT,
+                `excludeFromTrend` INTEGER NOT NULL,
+                `userFlaggedBadDay` INTEGER NOT NULL,
+                `intraSessionAdjustmentSteps` INTEGER NOT NULL,
+                `decisionReason` TEXT NOT NULL,
+                FOREIGN KEY(`workoutExerciseId`) REFERENCES `workout_exercises`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_progression_exposures_variantKey` ON `progression_exposures` (`variantKey`)"
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_progression_exposures_workoutExerciseId` ON `progression_exposures` (`workoutExerciseId`)"
+        )
     }
 }
 

@@ -1,5 +1,6 @@
 package com.alvarocervantes.fittrackplus.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -31,5 +32,7 @@ data class RoutineExerciseEntity(
     val position: Int,
     val notes: String? = null,
     val targetRepsMin: Int? = null,
-    val targetRepsMax: Int? = null
+    val targetRepsMax: Int? = null,
+    @ColumnInfo(defaultValue = "'ACCESSORY'")
+    val progressionRole: String = "ACCESSORY"
 )
