@@ -2181,6 +2181,16 @@ Pendiente:
 - Estado: se revierten ambos intentos para no dejar cambios sin efecto.
 - Deuda futura: investigar la capa real que pinta ese fondo blanco (posible popup/superficie del sistema, OEM o composición del handle de Compose) y resolverlo con validación manual en dispositivo real. No aplicar más cambios sin una reproducción/control visual claro.
 
+## 2026-09-17 - Verificada en dispositivo la migracion Room 7->8 del motor
+
+- Contexto: `Migration7To8Test` es el **primer test de migracion del proyecto**. Al ejecutarlo se descubrio que la infraestructura para ello no existia.
+- Bloqueo 1: `FileNotFoundException: Missing file: .../FitTrackPlusDatabase/7.json`. Los esquemas se exportan a `app/schemas/` via `room.schemaLocation`, pero **nunca se empaquetaban en los assets del APK de test**. Arreglo: `assets.srcDirs(files("$projectDir/schemas"))` en el sourceSet `androidTest` de `app/build.gradle.kts`. Una linea. Sin ella, ningun test de migracion del proyecto puede ejecutarse jamas.
+- Bloqueo 2: `AssertionError: expected null, but was:<1>` sobre el `ON DELETE SET NULL`. **No era un fallo de la migracion.** En SQLite las claves foraneas estan DESACTIVADAS por defecto en cada conexion; Room las activa en produccion (`FitTrackPlusDatabase_Impl.kt:98`, `PRAGMA foreign_keys = ON` dentro de `onOpen`), pero `MigrationTestHelper` devuelve una conexion cruda sin ese pragma. Arreglo: `execSQL("PRAGMA foreign_keys = ON")` en el test, **sobre la misma conexion del DELETE**, con comentario explicando por que.
+- **Resultado: `Migration7To8Test` en verde sobre Pixel_10_Pro / API 36.** La migracion conserva los datos previos, aplica los defaults (`progressionRole = 'ACCESSORY'`) y respeta el `ON DELETE SET NULL` de `progression_exposures`.
+- Por que importaba: `main` (la version del movil del dueño) esta en DB v6. La rama del motor esta en v8. Al actualizar, el salto v6->v8 corre `MIGRATION_6_7` y `MIGRATION_7_8` seguidas sobre el historial real. Ese camino estaba sin probar.
+- Leccion: Codex paro sin parchear la migracion cuando el test fallo. Correcto. "Arreglar" la migracion para contentar al test habria roto el `ON DELETE SET NULL` **en produccion, donde funciona bien**, por culpa de un test mal montado.
+- Nota: `sh gradlew connectedAndroidTest` completo sigue en **BUILD FAILED** por 3 tests podridos preexistentes (`WorkoutDaoTest` x2, `UserPreferencesRepositoryTest`), verificados como preexistentes ejecutandolos en `develop`. Van en rama aparte.
+
 ## 2026-09-17 - RESUELTO: fondo blanco del handle de cursor (deuda abierta desde 2026-07-07)
 
 - Contexto: una captura y `dumpsys window` sobre Pixel_10_Pro/API 36 identifican el rectangulo blanco como la ventana translucida del popup del handle; el blanco lo resuelve una View de su jerarquia, no el dibujo de la gota verde.
