@@ -147,7 +147,13 @@ ya escritas en el resto del plan. Ver la cabecera de la Tarea 3.
 
 ## Tarea 5: Calidad de esfuerzo en Datos (R8, R9)
 
-Ficheros: `domain/usecase/ObserveWorkoutStatsUseCase.kt`, `feature/stats/`.
+Ficheros: `domain/model/StatsModels.kt` (autorizado el 2026-09-17; faltaba en la lista),
+`domain/usecase/ObserveWorkoutStatsUseCase.kt`, `feature/stats/`, `res/values/strings.xml`.
+
+**La metrica nueva en `WorkoutStats` es nullable.** Cuando no hay ningun RIR reportado en el
+periodo, la ausencia se representa con `null` y la UI decide no pintar. No uses `0.0` ni un
+porcentaje cero: un "0%" se lee como "lo haces todo mal" cuando lo que pasa es que no hay
+datos. Misma regla que en la Tarea 3.
 
 - [ ] Porcentaje de ejercicios con RIR reportado en zona 1-3. Denominador **solo** los
       reportados: los `NULL` no cuentan ni a favor ni en contra.
