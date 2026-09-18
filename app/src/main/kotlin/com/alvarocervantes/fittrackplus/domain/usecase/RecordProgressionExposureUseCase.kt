@@ -77,9 +77,11 @@ class RecordProgressionExposureUseCase @Inject constructor(
         )
 
         progressionRepository.insertExposure(exposure)
-        progressionRepository.upsertProfile(
-            updateE1rmEwmas(prescription.nextProfile, exposure)
-        )
+        // Stored WITHOUT folding in the exposure just written. calculateNextPrescription folds the
+        // last exposure in when it reads, and it is the single owner of that step: when the recorder
+        // did it too, every estimable session was counted twice, the stored point counts drifted
+        // ahead of the history and the trend check threw after a few sessions. Found 2026-09-18.
+        progressionRepository.upsertProfile(prescription.nextProfile)
     }
 
     data class Input(
