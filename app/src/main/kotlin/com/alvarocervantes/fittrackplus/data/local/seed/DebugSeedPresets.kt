@@ -1,5 +1,7 @@
 package com.alvarocervantes.fittrackplus.data.local.seed
 
+import com.alvarocervantes.fittrackplus.domain.model.progression.ExerciseRole
+
 internal const val DEFAULT_BASE_TARGET_REPS = "8-12"
 
 internal data class DebugSeedCatalog(
@@ -23,7 +25,14 @@ internal data class DebugSeedDayDefinition(
 internal data class DebugSeedExerciseDefinition(
     val name: String,
     val targetSets: Int,
-    val targetReps: String = DEFAULT_BASE_TARGET_REPS
+    val targetReps: String = DEFAULT_BASE_TARGET_REPS,
+    val progressionRole: ExerciseRole = ExerciseRole.ACCESSORY,
+    val progression: DebugSeedProgressionDefinition? = null
+)
+
+internal data class DebugSeedProgressionDefinition(
+    val goalWeightKg: Double? = null,
+    val loadIncrementKg: Double
 )
 
 internal data class DebugSeedSessionDefinition(
@@ -37,10 +46,59 @@ internal data class DebugSeedSessionDefinition(
 
 internal fun buildDebugSeedCatalog(): DebugSeedCatalog {
     return DebugSeedCatalog(
-        activeRoutineName = "Rutina Álvaro",
+        activeRoutineName = "Motor PRIMARY — Prueba",
         routines = listOf(
+            buildProgressionTestRoutineSeed(),
             buildAlvaroBaseRoutineSeed(),
             buildPplDemoRoutineSeed()
+        )
+    )
+}
+
+private fun buildProgressionTestRoutineSeed(): DebugSeedRoutineDefinition {
+    return DebugSeedRoutineDefinition(
+        name = "Motor PRIMARY — Prueba",
+        createdDaysAgo = 0L,
+        updatedDaysAgo = 0L,
+        days = listOf(
+            DebugSeedDayDefinition(
+                name = "Prueba de progresión",
+                exercises = listOf(
+                    DebugSeedExerciseDefinition(
+                        name = "Press banca",
+                        targetSets = 3,
+                        targetReps = "6-8",
+                        progressionRole = ExerciseRole.PRIMARY,
+                        progression = DebugSeedProgressionDefinition(
+                            goalWeightKg = 100.0,
+                            loadIncrementKg = 2.5
+                        )
+                    ),
+                    DebugSeedExerciseDefinition("Remo con cable", 3, "8-10")
+                )
+            )
+        ),
+        finishedSessions = listOf(
+            DebugSeedSessionDefinition(
+                dayIndex = 0,
+                weekNumber = 1,
+                startedDaysAgo = 8L,
+                minutes = 45,
+                setValues = listOf(
+                    listOf(67.5 to 7, 67.5 to 7, 67.5 to 6),
+                    listOf(45.0 to 10, 45.0 to 10, 45.0 to 9)
+                )
+            ),
+            DebugSeedSessionDefinition(
+                dayIndex = 0,
+                weekNumber = 2,
+                startedDaysAgo = 3L,
+                minutes = 46,
+                setValues = listOf(
+                    listOf(70.0 to 7, 70.0 to 7, 70.0 to 7),
+                    listOf(47.5 to 10, 47.5 to 9, 47.5 to 9)
+                )
+            )
         )
     )
 }
