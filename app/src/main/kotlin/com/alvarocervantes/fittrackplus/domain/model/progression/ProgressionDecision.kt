@@ -417,20 +417,21 @@ private fun calibrationPrescription(
         ExposureType.RECOVERY,
         ExposureType.EVALUATION -> error("Calibration must prescribe a progression lane")
     }
+    val lastCalibration = exposures.lastOrNull { it.type.isCalibrationType() }
+    val calibrationE1rm = profile.ewmaVolumeE1rm ?: profile.ewmaStrengthE1rm
     val load = when {
-        type == ExposureType.VOLUME && exposures.none { it.type.isCalibrationType() } -> calibrationSeed(profile)
-        type == ExposureType.STRENGTH -> estimateLoad(
-            profile.ewmaVolumeE1rm ?: calibrationSeed(profile),
+        lastCalibration == null -> calibrationSeed(profile)
+        // With an e1RM, derive the lane load from it. estimateLoad expects an e1RM and divides it.
+        calibrationE1rm != null -> estimateLoad(
+            calibrationE1rm,
             parameters.repMin,
             parameters.targetRir,
             profile.loadIncrementKg
         )
-        else -> estimateLoad(
-            profile.ewmaVolumeE1rm ?: calibrationSeed(profile),
-            parameters.repMin,
-            parameters.targetRir,
-            profile.loadIncrementKg
-        )
+        // Without one, steer by what the probe said. Feeding a working load to estimateLoad here
+        // divided a load the owner had already lifted, so an easy session lowered the weight:
+        // 12.5 -> 10 -> 7.5 -> 5 while every probe reported surplus. Found in the 2026-09-18 pass.
+        else -> steerCalibrationLoad(lastCalibration, profile.loadIncrementKg)
     }
     return PrescriptionParts(type, parameters, load, ProgressionTuning.CALIBRATION_EXPOSURES)
 }
@@ -693,6 +694,27 @@ private fun ExposureType.oppositeLane(): ExposureType {
 private fun calibrationSeed(profile: ExerciseProgressionProfile): Double {
     return profile.loadVolumeKg ?: profile.loadStrengthKg
     ?: error("Calibration requires a user-provided starting load")
+}
+
+/**
+ * Next calibration load when no e1RM is available yet, read straight from the last probe.
+ *
+ * Calibration cannot rely on an e1RM that may never appear: a light load with reserve left gives
+ * `reps + rir` above the confidence cutoff, so nothing is estimable. Steering by the surplus fixes
+ * that on its own — raising the load lowers the reserve, the effective reps drop under the cutoff,
+ * an e1RM becomes estimable and calibration can finish.
+ */
+private fun steerCalibrationLoad(last: ProgressionExposure, increment: Double): Double {
+    val steps = when (last.outcomeClass) {
+        OutcomeClass.EASY -> ProgressionTuning.STEP_EASY
+        OutcomeClass.STRONG -> ProgressionTuning.STEP_STRONG
+        OutcomeClass.FAILED -> ProgressionTuning.STEP_REDUCE
+        OutcomeClass.ON_TARGET,
+        OutcomeClass.HARD,
+        null -> 0
+    }
+    val steered = last.prescribedLoadKg + steps * increment
+    return if (steered > 0.0) steered else last.prescribedLoadKg
 }
 
 private fun estimateLoad(e1rm: Double, reps: Int, rir: Int, increment: Double): Double {
