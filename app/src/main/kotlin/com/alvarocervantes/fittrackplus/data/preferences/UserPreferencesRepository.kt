@@ -1,23 +1,17 @@
 package com.alvarocervantes.fittrackplus.data.preferences
 
-import android.content.Context
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import com.alvarocervantes.fittrackplus.core.design.AppThemeMode
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-
-private val Context.userPreferencesDataStore by preferencesDataStore(
-    name = "fittrackplus_user_preferences"
-)
 
 data class RestTimerPreferences(
     val durationSeconds: Int = 0,
@@ -29,37 +23,37 @@ data class RestTimerPreferences(
 
 @Singleton
 class UserPreferencesRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    private val dataStore: DataStore<Preferences>
 ) {
-    val activeRoutineId: Flow<Long?> = context.userPreferencesDataStore.data.map { preferences ->
+    val activeRoutineId: Flow<Long?> = dataStore.data.map { preferences ->
         preferences[Keys.ACTIVE_ROUTINE_ID]
     }
 
-    val weightUnit: Flow<String> = context.userPreferencesDataStore.data.map { preferences ->
+    val weightUnit: Flow<String> = dataStore.data.map { preferences ->
         preferences[Keys.WEIGHT_UNIT] ?: "kg"
     }
 
-    val themeMode: Flow<AppThemeMode> = context.userPreferencesDataStore.data.map { preferences ->
+    val themeMode: Flow<AppThemeMode> = dataStore.data.map { preferences ->
         AppThemeMode.fromStorageValue(preferences[Keys.THEME_MODE])
     }
 
-    val hasSeenSnapshotInfo: Flow<Boolean> = context.userPreferencesDataStore.data.map { preferences ->
+    val hasSeenSnapshotInfo: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[Keys.HAS_SEEN_SNAPSHOT_INFO] ?: false
     }
 
-    val hasSeenOnboarding: Flow<Boolean> = context.userPreferencesDataStore.data.map { preferences ->
+    val hasSeenOnboarding: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[Keys.HAS_SEEN_ONBOARDING] ?: false
     }
 
-    val dailyStepGoal: Flow<Int> = context.userPreferencesDataStore.data.map { preferences ->
+    val dailyStepGoal: Flow<Int> = dataStore.data.map { preferences ->
         preferences[Keys.DAILY_STEP_GOAL] ?: 10_000
     }
 
-    val healthConnectConnected: Flow<Boolean> = context.userPreferencesDataStore.data.map { preferences ->
+    val healthConnectConnected: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[Keys.HEALTH_CONNECT_CONNECTED] ?: false
     }
 
-    val restTimerPreferences: Flow<RestTimerPreferences> = context.userPreferencesDataStore.data.map { preferences ->
+    val restTimerPreferences: Flow<RestTimerPreferences> = dataStore.data.map { preferences ->
         RestTimerPreferences(
             durationSeconds = preferences[Keys.REST_TIMER_DURATION_SECONDS] ?: 0,
             remainingSeconds = preferences[Keys.REST_TIMER_REMAINING_SECONDS] ?: 0,
@@ -70,7 +64,7 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     suspend fun setActiveRoutineId(routineId: Long?) {
-        context.userPreferencesDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             if (routineId == null) {
                 preferences.remove(Keys.ACTIVE_ROUTINE_ID)
             } else {
@@ -80,43 +74,43 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     suspend fun setWeightUnit(unit: String) {
-        context.userPreferencesDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[Keys.WEIGHT_UNIT] = unit
         }
     }
 
     suspend fun setThemeMode(mode: AppThemeMode) {
-        context.userPreferencesDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[Keys.THEME_MODE] = mode.storageValue
         }
     }
 
     suspend fun dismissSnapshotInfo() {
-        context.userPreferencesDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[Keys.HAS_SEEN_SNAPSHOT_INFO] = true
         }
     }
 
     suspend fun setHasSeenOnboarding(seen: Boolean) {
-        context.userPreferencesDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[Keys.HAS_SEEN_ONBOARDING] = seen
         }
     }
 
     suspend fun setDailyStepGoal(goal: Int) {
-        context.userPreferencesDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[Keys.DAILY_STEP_GOAL] = goal
         }
     }
 
     suspend fun setHealthConnectConnected(connected: Boolean) {
-        context.userPreferencesDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[Keys.HEALTH_CONNECT_CONNECTED] = connected
         }
     }
 
     suspend fun setRestTimerPreferences(timer: RestTimerPreferences) {
-        context.userPreferencesDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[Keys.REST_TIMER_DURATION_SECONDS] = timer.durationSeconds
             preferences[Keys.REST_TIMER_REMAINING_SECONDS] = timer.remainingSeconds
             preferences[Keys.REST_TIMER_STATUS] = timer.status
