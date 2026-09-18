@@ -83,12 +83,37 @@ class CalibrationSteeringTest {
         loadIncrementKg = increment
     )
 
+    @Test
+    fun `calibration steers from what was lifted, not from what was prescribed`() {
+        // Session 11 of the owner's real data: the engine asked for 10 kg, they lifted 15 kg x 9
+        // and still had 3 in reserve. Steering from the prescribed 10 would keep underestimating
+        // them; steering from the lifted 15 is the only honest starting point.
+        val prescription = requireNotNull(
+            calculateNextPrescription(
+                seededProfile(),
+                listOf(
+                    calibrationExposure(
+                        index = 1,
+                        type = ExposureType.STRENGTH,
+                        load = 10.0,
+                        outcome = OutcomeClass.STRONG,
+                        lifted = 15.0
+                    )
+                )
+            )
+        )
+
+        // 15 lifted + one step for a STRONG probe, never anything anchored to the prescribed 10.
+        assertEquals(17.5, prescription.prescribedLoadKg, 0.0)
+    }
+
     private fun calibrationExposure(
         index: Int,
         type: ExposureType,
         load: Double,
         outcome: OutcomeClass,
-        e1rm: Double? = null
+        e1rm: Double? = null,
+        lifted: Double? = null
     ) = ProgressionExposure(
         variantKey = "dominadas",
         workoutExerciseId = null,
@@ -100,6 +125,7 @@ class CalibrationSteeringTest {
         prescribedRepMax = 7,
         prescribedTargetRir = 2,
         prescribedSets = 3,
+        probeLoadKg = lifted,
         probeReps = 10,
         probeRir = 4,
         probeSurplus = 3,

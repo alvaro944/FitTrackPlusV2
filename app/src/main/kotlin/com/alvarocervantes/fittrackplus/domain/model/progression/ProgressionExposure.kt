@@ -12,6 +12,8 @@ data class ProgressionExposure(
     val prescribedRepMax: Int,
     val prescribedTargetRir: Int,
     val prescribedSets: Int,
+    /** The load actually lifted on the probe set. Null for exposures recorded before v9. */
+    val probeLoadKg: Double?,
     val probeReps: Int?,
     val probeRir: Int?,
     val probeSurplus: Int?,

@@ -10,6 +10,7 @@ import com.alvarocervantes.fittrackplus.core.database.MIGRATION_4_5
 import com.alvarocervantes.fittrackplus.core.database.MIGRATION_5_6
 import com.alvarocervantes.fittrackplus.core.database.MIGRATION_6_7
 import com.alvarocervantes.fittrackplus.core.database.MIGRATION_7_8
+import com.alvarocervantes.fittrackplus.core.database.MIGRATION_8_9
 import com.alvarocervantes.fittrackplus.data.local.dao.ProgressionDao
 import com.alvarocervantes.fittrackplus.data.local.dao.RoutineDao
 import com.alvarocervantes.fittrackplus.data.local.dao.WorkoutDao
@@ -39,7 +40,8 @@ object DatabaseModule {
             MIGRATION_4_5,
             MIGRATION_5_6,
             MIGRATION_6_7,
-            MIGRATION_7_8
+            MIGRATION_7_8,
+            MIGRATION_8_9
         ).build()
     }
 

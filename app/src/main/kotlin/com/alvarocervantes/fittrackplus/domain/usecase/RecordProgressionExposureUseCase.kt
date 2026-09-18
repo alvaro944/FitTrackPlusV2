@@ -38,8 +38,11 @@ class RecordProgressionExposureUseCase @Inject constructor(
             completedSetCount = input.completedSetCount,
             prescribedSets = prescription.prescribedSets
         )
+        // The e1RM measures the owner, so it comes from what they actually lifted. Estimating from
+        // the prescribed load made the engine measure itself: 15 kg lifted read as 10 kg.
+        val liftedLoadKg = input.probeLoadKg ?: prescription.prescribedLoadKg
         val estimate = calculateStrengthEstimate(
-            loadKg = prescription.prescribedLoadKg,
+            loadKg = liftedLoadKg,
             reps = input.probeReps,
             rir = input.probeRir
         )
@@ -54,6 +57,7 @@ class RecordProgressionExposureUseCase @Inject constructor(
             prescribedRepMax = prescription.prescribedRepMax,
             prescribedTargetRir = prescription.prescribedTargetRir,
             prescribedSets = prescription.prescribedSets,
+            probeLoadKg = liftedLoadKg,
             probeReps = input.probeReps,
             probeRir = input.probeRir,
             probeSurplus = classification.surplus,
@@ -83,6 +87,8 @@ class RecordProgressionExposureUseCase @Inject constructor(
         val workoutExerciseId: Long?,
         val performedAt: Long,
         val prescription: ProgressionPrescription,
+        /** What was actually on the bar for the probe set. Null only if the set had no weight logged. */
+        val probeLoadKg: Double?,
         val probeReps: Int,
         val probeRir: Int?,
         val completedSetCount: Int,

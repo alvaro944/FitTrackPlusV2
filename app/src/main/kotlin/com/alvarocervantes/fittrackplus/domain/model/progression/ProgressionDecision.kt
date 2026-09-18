@@ -713,8 +713,11 @@ private fun steerCalibrationLoad(last: ProgressionExposure, increment: Double): 
         OutcomeClass.HARD,
         null -> 0
     }
-    val steered = last.prescribedLoadKg + steps * increment
-    return if (steered > 0.0) steered else last.prescribedLoadKg
+    // Steer from what was actually lifted. The owner may take more than prescribed, and the next
+    // load must start from reality, not from what the engine asked for last time.
+    val base = last.probeLoadKg ?: last.prescribedLoadKg
+    val steered = base + steps * increment
+    return if (steered > 0.0) steered else base
 }
 
 private fun estimateLoad(e1rm: Double, reps: Int, rir: Int, increment: Double): Double {

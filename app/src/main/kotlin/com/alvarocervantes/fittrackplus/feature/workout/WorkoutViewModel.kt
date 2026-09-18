@@ -995,6 +995,11 @@ class WorkoutViewModel @Inject constructor(
             val probe = exercise.sets.minByOrNull { it.setNumber } ?: return@forEach
             if (!probe.isCompleted) return@forEach
             val reps = probe.repsText.toIntOrNull() ?: return@forEach
+            // Same conversion the app uses to persist the set, so the engine and the history can
+            // never disagree on what was lifted. Zero means nothing was logged, not a real 0 kg.
+            val liftedKg = parseWorkoutWeightInput(probe.weightText)
+                ?.let(_uiState.value.weightUnit::toKilograms)
+                ?.takeIf { it > 0.0 }
             runCatching {
                 recordProgressionExposure(
                     RecordProgressionExposureUseCase.Input(
@@ -1002,6 +1007,7 @@ class WorkoutViewModel @Inject constructor(
                         workoutExerciseId = exercise.id,
                         performedAt = System.currentTimeMillis(),
                         prescription = prescription,
+                        probeLoadKg = liftedKg,
                         probeReps = reps,
                         probeRir = exercise.firstSetRir,
                         completedSetCount = exercise.sets.count { it.isCompleted },

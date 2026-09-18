@@ -30,7 +30,7 @@ import com.alvarocervantes.fittrackplus.domain.model.TargetRepsRange
         ExerciseProgressionProfileEntity::class,
         ProgressionExposureEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 abstract class FitTrackPlusDatabase : RoomDatabase() {
@@ -48,6 +48,22 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
 val MIGRATION_6_7 = object : Migration(6, 7) {
     override fun migrate(database: SupportSQLiteDatabase) {
         database.execSQL("ALTER TABLE `workout_exercises` ADD COLUMN `firstSetRir` INTEGER")
+    }
+}
+
+/**
+ * Records the load actually lifted on the probe set.
+ *
+ * The engine stored only the PRESCRIBED load, so when the owner lifted something else — which the
+ * UI explicitly allows — it recorded what it had asked for, not what happened: 15 kg lifted, 10 kg
+ * recorded. It could never learn from the owner, only from itself. Found in the 2026-09-18 pass.
+ *
+ * Additive and nullable: exposures written before this have no actual load and fall back to the
+ * prescribed one.
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `progression_exposures` ADD COLUMN `probeLoadKg` REAL")
     }
 }
 

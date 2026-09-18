@@ -32,6 +32,7 @@ data class ProgressionExposureEntity(
     val prescribedRepMax: Int,
     val prescribedTargetRir: Int,
     val prescribedSets: Int,
+    val probeLoadKg: Double? = null,
     val probeReps: Int?,
     val probeRir: Int?,
     val probeSurplus: Int?,

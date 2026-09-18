@@ -254,6 +254,7 @@ class ExposureCalculationTest {
             prescribedRepMax = 6,
             prescribedTargetRir = 2,
             prescribedSets = 3,
+            probeLoadKg = null,
             probeReps = 5,
             probeRir = 2,
             probeSurplus = 0,
