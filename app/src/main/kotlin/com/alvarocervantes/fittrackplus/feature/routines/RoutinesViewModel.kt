@@ -625,6 +625,33 @@ data class RoutineExerciseEditorUiState(
         }
 }
 
+/**
+ * Number of PRIMARY exercises across the whole routine. Single source of truth for the limit: the
+ * selector and the duplication rules must not each count it their own way.
+ */
+internal fun RoutineEditorUiState.primaryExerciseCount(): Int {
+    return days.sumOf { day -> day.exercises.count { it.progressionRole == ExerciseRole.PRIMARY } }
+}
+
+/**
+ * A duplicate never inherits PRIMARY.
+ *
+ * PRIMARY is a scarce, deliberate designation: at most 3, and it implies fatigue management. Copying
+ * an exercise or a day is a structural convenience, so carrying the role over both bypassed the
+ * limit silently and produced a second primary the user never asked for. It lands on SECONDARY,
+ * which keeps the signal that the exercise matters without consuming one of the three slots.
+ *
+ * The goal and the increment are PRIMARY-only inputs, so they are cleared with it.
+ */
+internal fun RoutineExerciseEditorUiState.withoutInheritedPrimaryRole(): RoutineExerciseEditorUiState {
+    if (progressionRole != ExerciseRole.PRIMARY) return this
+    return copy(
+        progressionRole = ExerciseRole.SECONDARY,
+        goalWeightKg = "",
+        loadIncrementKg = ""
+    )
+}
+
 internal data class RoutineRoleSelectionResult(
     val editor: RoutineEditorUiState,
     val primaryLimitReached: Boolean
@@ -639,8 +666,7 @@ internal fun RoutineEditorUiState.withExerciseProgressionRole(
         ?: return RoutineRoleSelectionResult(this, primaryLimitReached = false)
     val wouldExceedPrimaryLimit = role == ExerciseRole.PRIMARY &&
         exercise.progressionRole != ExerciseRole.PRIMARY &&
-        days.sumOf { day -> day.exercises.count { it.progressionRole == ExerciseRole.PRIMARY } } >=
-        ProgressionTuning.MAX_PRIMARY_EXERCISES
+        primaryExerciseCount() >= ProgressionTuning.MAX_PRIMARY_EXERCISES
     if (wouldExceedPrimaryLimit) {
         return RoutineRoleSelectionResult(this, primaryLimitReached = true)
     }

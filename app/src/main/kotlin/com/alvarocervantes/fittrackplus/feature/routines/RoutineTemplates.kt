@@ -167,8 +167,10 @@ fun RoutineEditorUiState.duplicateDay(dayIndex: Int): RoutineEditorUiState {
     val duplicate = source.copy(
         draftId = java.util.UUID.randomUUID().toString(),
         name = "${source.name} copia",
+        // A duplicated day must not clone PRIMARY roles: that bypassed the limit silently.
         exercises = source.exercises.map { exercise ->
             exercise.copy(draftId = java.util.UUID.randomUUID().toString())
+                .withoutInheritedPrimaryRole()
         }
     )
     return copy(
@@ -194,10 +196,11 @@ fun RoutineEditorUiState.duplicateExercise(dayIndex: Int, exerciseIndex: Int): R
     val day = days[dayIndex]
     if (exerciseIndex !in day.exercises.indices) return this
     val source = day.exercises[exerciseIndex]
+    // A duplicated exercise must not clone the PRIMARY role: that bypassed the limit silently.
     val duplicate = source.copy(
         draftId = java.util.UUID.randomUUID().toString(),
         name = "${source.name} copia"
-    )
+    ).withoutInheritedPrimaryRole()
     return copy(
         days = days.replaceAt(dayIndex) {
             it.copy(
