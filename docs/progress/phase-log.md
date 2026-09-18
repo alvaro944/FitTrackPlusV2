@@ -2181,6 +2181,37 @@ Pendiente:
 - Estado: se revierten ambos intentos para no dejar cambios sin efecto.
 - Deuda futura: investigar la capa real que pinta ese fondo blanco (posible popup/superficie del sistema, OEM o composición del handle de Compose) y resolverlo con validación manual en dispositivo real. No aplicar más cambios sin una reproducción/control visual claro.
 
+## 2026-09-18 - Pasada manual del motor: dos fallos que ningun test habia visto
+
+El dueño probo el motor con dominadas lastradas y reporto: "me recomienda menos de lo que ya he hecho, y aunque le digo que me sobra, al dia siguiente me pone lo mismo". Tenia razon. Se diagnostico con su base de datos real extraida del emulador, no con teorias.
+
+### Fallo 1: la calibracion bajaba la carga cuando la sesion salia facil
+
+Tres exposiciones con surplus +2, +5, +2 (le sobraba margen) y la carga bajando 12.5 -> 10 -> 7.5 -> 5.
+
+- **Confusion de unidades.** `estimateLoad()` convierte un e1RM en carga de trabajo dividiendolo. Sin e1RM, el fallback le pasaba una carga de TRABAJO: dividia algo ya levantado. `12.5 / (1 + 7/30) = 10.1`.
+- **Motor ciego.** El e1RM exige `reps + rir <= 10`. Con carga ligera y margen las tres exposiciones daban 11, 12 y 11: ninguna estimable, la calibracion nunca terminaba y caia siempre en el fallback roto.
+- Se alimentaban: facil -> RIR alto -> sin e1RM -> fallback -> baja -> aun mas facil. Un bucle que se alejaba de la respuesta.
+- Arreglo: sin e1RM, la calibracion se dirige por el resultado de la probe. Se cura sola: subir la carga baja el RIR, `reps + rir` cae bajo el corte, aparece el e1RM y la calibracion termina.
+
+### Fallo 2, mas profundo: el motor no sabia lo que se levantaba
+
+```
+sesion 11:  el motor pidio 10 kg  |  el dueño levanto 15 kg x 9 @RIR3  |  el motor registro 10 kg
+```
+
+La exposicion guardaba solo la carga PRESCRITA. Como la UI deja levantar otra cosa —la sugerencia se propone, no se impone—, el motor apuntaba lo que el habia pedido. **Nunca podia aprender del dueño, solo de si mismo.**
+
+Es un hueco de la spec, no de la implementacion: el principio del diseño era "prescrito contra realizado", y el esquema guardaba las reps y el RIR reales pero no el peso real. Arreglo: columna `probeLoadKg`, migracion v8 -> v9, e1RM y calibracion calculados sobre lo levantado.
+
+### Por que no lo vio ningun test
+
+Todos los tests del motor partian de perfiles con e1RM y de exposiciones donde lo levantado coincidia con lo prescrito. **Probaban el camino feliz del diseño, no el uso real.** Un usuario que entrena con series largas y que no obedece la prescripcion al pie de la letra rompio las dos suposiciones a la primera. Es exactamente para lo que existe la pasada manual.
+
+### Incidente operativo
+
+`connectedAndroidTest` reinstala la app y **borra los datos del emulador**. Se ejecuto sin respaldar antes y se perdio el escenario de prueba del dueño. Respaldar con `run-as ... tar` antes de lanzar la suite instrumentada sobre un emulador en uso.
+
 ## 2026-09-17 - Progression Engine PRIMARY V1: motor completo y cableado
 
 Rama `feature/progression-engine-primary`, 20 commits por delante de `develop`.
