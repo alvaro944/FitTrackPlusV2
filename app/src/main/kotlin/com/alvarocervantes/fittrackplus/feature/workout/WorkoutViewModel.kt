@@ -23,6 +23,7 @@ import com.alvarocervantes.fittrackplus.domain.usecase.FinishWorkoutSessionUseCa
 import com.alvarocervantes.fittrackplus.domain.usecase.GetNextWorkoutPreviewUseCase
 import com.alvarocervantes.fittrackplus.domain.model.progression.ProgressionPrescription
 import com.alvarocervantes.fittrackplus.domain.model.progression.ProgressionReason
+import com.alvarocervantes.fittrackplus.domain.model.progression.ProgressionTuning
 import com.alvarocervantes.fittrackplus.domain.model.progression.calculateSurplus
 import com.alvarocervantes.fittrackplus.domain.model.progression.intraSessionAdjustmentSteps
 import com.alvarocervantes.fittrackplus.domain.model.progression.intraSessionSuggestedLoadKg
@@ -890,9 +891,21 @@ class WorkoutViewModel @Inject constructor(
 
         session.exercises.forEach { exercise ->
             val routineExerciseId = exercise.exerciseTemplateId ?: return@forEach
-            val role = routine.findExercise(routineExerciseId)?.progressionRole
-            if (role != ExerciseRole.PRIMARY) return@forEach
-            val prescription = calculateNextPrescription(exercise.variantKey) ?: return@forEach
+            val routineExercise = routineExerciseId.let { routine.findExercise(it) }
+            if (routineExercise?.progressionRole != ExerciseRole.PRIMARY) return@forEach
+            // Every variant of this routine exercise is the same movement on a different machine, so
+            // a variant with no history of its own can start from what a sibling already knows.
+            val siblingVariantKeys = buildList {
+                add(routineExercise.variantKey)
+                addAll(routineExercise.alternatives.map { it.variantKey })
+            }
+            val prescription = calculateNextPrescription(
+                variantKey = exercise.variantKey,
+                siblingVariantKeys = siblingVariantKeys,
+                loadIncrementKg = routineExercise.loadIncrementKg
+                    ?: ProgressionTuning.DEFAULT_INCREMENT_UPPER_KG,
+                goalWeightKg = routineExercise.goalWeightKg
+            ) ?: return@forEach
             prescriptions[exercise.id] = prescription
             uiStates[exercise.id] = PrimaryProgressionUiState(
                 prescribedLoadKg = prescription.prescribedLoadKg,

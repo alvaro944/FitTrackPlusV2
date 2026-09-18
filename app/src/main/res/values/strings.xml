@@ -42,7 +42,7 @@
     <string name="routine_progression_role_primary">PRIMARY</string>
     <string name="routine_progression_role_secondary">SECONDARY</string>
     <string name="routine_progression_role_accessory">ACCESSORY</string>
-    <string name="routine_progression_role_guidance">Solo PRIMARY usa el motor de progresion: maximo 3 por rutina.</string>
+    <string name="routine_progression_role_guidance">Solo PRIMARY usa el motor de progresion. Recomendado 2-3: sin fatiga cruzada entre ejercicios, con muchos primarios el modelo es menos fiable.</string>
     <string name="routine_primary_goal_weight_label">Objetivo de carga (kg, opcional)</string>
     <string name="routine_primary_load_increment_label">Incremento de carga (kg)</string>
     <string name="routine_primary_limit_message">Una rutina admite como máximo 3 ejercicios PRIMARY. PRIMARY implica gestión de fatiga y en V1 no hay fatiga cruzada entre ejercicios; con más primarios el modelo mentiría.</string>

@@ -218,11 +218,7 @@ class RoutinesViewModel @Inject constructor(
         _uiState.update { state ->
             val editor = state.editor ?: return@update state
             val result = editor.withExerciseProgressionRole(dayIndex, exerciseIndex, role)
-            if (result.primaryLimitReached) {
-                state.copy(routineEditorMessage = RoutineEditorMessage.PRIMARY_LIMIT_REACHED)
-            } else {
-                state.copy(editor = result.editor.copy(isDirty = true))
-            }
+            state.copy(editor = result.editor.copy(isDirty = true))
         }
     }
 
@@ -456,7 +452,7 @@ class RoutinesViewModel @Inject constructor(
     }
 
     fun clearMessage() {
-        _uiState.update { state -> state.copy(message = null, routineEditorMessage = null) }
+        _uiState.update { state -> state.copy(message = null) }
     }
 
     private fun updateEditor(transform: (RoutineEditorUiState) -> RoutineEditorUiState) {
@@ -498,14 +494,9 @@ data class RoutinesUiState(
     val activeRoutineId: Long? = null,
     val editor: RoutineEditorUiState? = null,
     val message: String? = null,
-    val routineEditorMessage: RoutineEditorMessage? = null,
     val showArchived: Boolean = false,
     val hasSeenSnapshotInfo: Boolean = false
 )
-
-enum class RoutineEditorMessage {
-    PRIMARY_LIMIT_REACHED
-}
 
 data class RoutineListItemUiState(
     val id: Long,
@@ -652,9 +643,16 @@ internal fun RoutineExerciseEditorUiState.withoutInheritedPrimaryRole(): Routine
     )
 }
 
+/**
+ * Result of picking a role.
+ *
+ * There is no rejection case. The number of PRIMARY exercises is a recommendation, not a gate: the
+ * owner decided on 2026-09-18 that blocking their own routine over a product heuristic was
+ * paternalistic. The engine still has no cross-exercise fatigue, so many primaries make the model
+ * less reliable — that belongs in the guidance text, not in a refusal.
+ */
 internal data class RoutineRoleSelectionResult(
-    val editor: RoutineEditorUiState,
-    val primaryLimitReached: Boolean
+    val editor: RoutineEditorUiState
 )
 
 internal fun RoutineEditorUiState.withExerciseProgressionRole(
@@ -663,13 +661,7 @@ internal fun RoutineEditorUiState.withExerciseProgressionRole(
     role: ExerciseRole
 ): RoutineRoleSelectionResult {
     val exercise = days.getOrNull(dayIndex)?.exercises?.getOrNull(exerciseIndex)
-        ?: return RoutineRoleSelectionResult(this, primaryLimitReached = false)
-    val wouldExceedPrimaryLimit = role == ExerciseRole.PRIMARY &&
-        exercise.progressionRole != ExerciseRole.PRIMARY &&
-        primaryExerciseCount() >= ProgressionTuning.MAX_PRIMARY_EXERCISES
-    if (wouldExceedPrimaryLimit) {
-        return RoutineRoleSelectionResult(this, primaryLimitReached = true)
-    }
+        ?: return RoutineRoleSelectionResult(this)
     val defaultIncrement = if (role == ExerciseRole.PRIMARY && exercise.progressionRole != role) {
         exercise.defaultPrimaryLoadIncrement().toString()
     } else {
@@ -678,8 +670,7 @@ internal fun RoutineEditorUiState.withExerciseProgressionRole(
     return RoutineRoleSelectionResult(
         editor = updateExercise(dayIndex, exerciseIndex) {
             it.copy(progressionRole = role, loadIncrementKg = defaultIncrement)
-        },
-        primaryLimitReached = false
+        }
     )
 }
 

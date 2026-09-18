@@ -227,10 +227,32 @@ Nueva columna `progressionRole: String` en `RoutineExerciseEntity`, valores
 En V1 solo `PRIMARY` cambia de comportamiento. `SECONDARY` y `ACCESSORY` son etiquetas que
 por ahora se comportan identico (siguen con `GetProgressionHintUseCase`).
 
-Limite duro: **maximo 3 ejercicios PRIMARY simultaneos** por rutina activa. Al intentar el
-cuarto se rechaza con mensaje explicativo. El motivo es de diseno: PRIMARY implica gestion
-de fatiga, y en V1 no hay fatiga cruzada entre ejercicios. Con muchos primarios el modelo
-miente.
+**Enmendado el 2026-09-18 por decision del dueño: el numero de PRIMARY es una recomendacion,
+no un limite.** Marcar un cuarto no se rechaza. El motivo del consejo sigue en pie —PRIMARY
+implica gestion de fatiga y en V1 no hay fatiga cruzada, asi que con muchos primarios el
+modelo es menos fiable— pero eso se dice en el texto de guia en vez de bloquear.
+`MAX_PRIMARY_EXERCISES` pasa de tope a numero recomendado. Bloquear al dueño de su propia
+rutina por una heuristica de producto (`P-013`, documentada como arbitraria) era paternalismo.
+
+Un duplicado de ejercicio o de dia **nunca hereda PRIMARY**: aterriza en SECONDARY y se le
+limpian objetivo e incremento. Copiar la estructura no es elegir un primario.
+
+**Alternativas (variantes del mismo movimiento).** Cada variante mantiene **su propio
+perfil**: dos maquinas del mismo ejercicio son el mismo patron con distinta resistencia, y
+mezclarlas en una sola serie meteria un diente de sierra que el detector de tendencia leeria
+como cambio real. Ademas, tener el e1RM por maquina es util en si mismo: permite ver si vas
+parecido en las dos.
+
+Lo que un perfil separado NO debe hacer es empezar de cero cada vez que la maquina habitual
+esta ocupada. Una variante sin perfil se siembra en este orden:
+
+1. Su propio historial. Nada gana a datos reales en esa maquina.
+2. La carga de trabajo de una variante hermana. Mismo movimiento, barrio correcto.
+3. El historial de una hermana.
+4. Si no se sabe nada, no hay prescripcion. Es un estado normal, no un fallo.
+
+**La semilla es una carga de partida, no un trasplante**: la variante nueva entra en
+CALIBRATING y calibra sola. No hereda EWMA ni contador de puntos de su hermana.
 
 ### R11 — Perfil de progresion persistido
 
@@ -727,7 +749,8 @@ significa que los umbrales se **ajustan**, no se "demuestran".
 21. Dos `EVALUATING` fallidos consecutivos llevan a `CALIBRATING`.
 22. Las EWMA de VOLUME y STRENGTH nunca se mezclan en la misma serie.
 23. El e1RM mostrado al usuario procede de `ewmaStrengthE1rm`.
-24. Intentar marcar un cuarto ejercicio PRIMARY se rechaza con mensaje.
+24. Marcar un cuarto PRIMARY NO se rechaza; un duplicado de ejercicio o de dia nunca hereda el
+    rol; y una variante alternativa sin perfil se siembra desde una hermana sin heredar su EWMA.
 25. `calculateNextPrescription` es invocable desde un test JUnit puro, sin Room ni Android.
 26. Toda `ProgressionPrescription` trae `decisionReason` no vacio.
 

@@ -48,7 +48,7 @@ Leyenda: **OK** verificado · **MANUAL** requiere pasada del dueño · **NO** no
 | 21 | Dos `EVALUATING` fallidos recalibran | **OK** | `ProgressionDecisionTest` |
 | 22 | Las EWMA nunca se mezclan | **OK** | `ExposureCalculationTest` |
 | 23 | El e1RM mostrado viene de `ewmaStrengthE1rm` | **OK** | `ProgressionDecisionTest` |
-| 24 | El cuarto PRIMARY se rechaza con mensaje | **OK** | `RoutineProgressionRoleTest`, 6 casos |
+| 24 | Recomendacion, no limite; duplicados no heredan; alternativas se siembran | **OK** | `RoutineProgressionRoleTest`, `RoutineDuplicationPrimaryTest`, `CalculateNextPrescriptionSeedTest` |
 | 25 | El motor es invocable desde JUnit puro | **OK** | todos sus tests lo son; cero imports de Room/Android |
 | 26 | Toda prescripcion trae su razon | **OK** | `ProgressionReason` en dominio + `strings.xml` en UI; verificado en pantalla en español |
 

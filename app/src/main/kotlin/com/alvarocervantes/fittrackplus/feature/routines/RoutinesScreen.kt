@@ -149,12 +149,6 @@ fun RoutinesScreen(
         }
     }
 
-    RoutineEditorMessageEffect(
-        message = state.routineEditorMessage,
-        snackbarHostState = snackbarHostState,
-        onShown = viewModel::clearMessage
-    )
-
     routinePendingArchive?.let { routine ->
         FitTrackConfirmDialog(
             title = "Archivar rutina",
@@ -1615,24 +1609,6 @@ private fun ExerciseRole.labelRes(): Int {
 }
 
 /**
- * Shows editor-level refusals. The PRIMARY limit is refused out loud, never silently: the user
- * has to learn why the fourth primary was rejected.
+ * The PRIMARY count is a recommendation, not a gate, so the editor has no refusals left to show.
+ * Kept as a note rather than an empty effect: if a refusal ever comes back, it belongs here.
  */
-@Composable
-private fun RoutineEditorMessageEffect(
-    message: RoutineEditorMessage?,
-    snackbarHostState: SnackbarHostState,
-    onShown: () -> Unit
-) {
-    val text = when (message) {
-        RoutineEditorMessage.PRIMARY_LIMIT_REACHED ->
-            stringResource(R.string.routine_primary_limit_message)
-        null -> null
-    }
-    if (text != null) {
-        LaunchedEffect(message) {
-            snackbarHostState.showSnackbar(text)
-            onShown()
-        }
-    }
-}
