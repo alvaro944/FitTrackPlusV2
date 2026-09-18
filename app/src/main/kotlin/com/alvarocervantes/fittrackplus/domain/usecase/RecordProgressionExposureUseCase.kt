@@ -24,6 +24,11 @@ class RecordProgressionExposureUseCase @Inject constructor(
         val profile = progressionRepository.getProfile(input.variantKey) ?: return
         val prescription = input.prescription
 
+        // Swapping to an alternative mid-session changes the performed variant, and a machine with
+        // different plates is a different resistance. Writing this prescription into that variant's
+        // history would attribute a load the user never actually trained on it.
+        if (prescription.nextProfile.variantKey != input.variantKey) return
+
         val classification = classifyExposure(
             probeReps = input.probeReps,
             probeRir = input.probeRir,
