@@ -77,10 +77,21 @@ private fun resolveCalibration(
     val hasEstimate = validExposures.any { it.exposureE1rm != null }
 
     if (validExposures.size >= ProgressionTuning.CALIBRATION_EXPOSURES && hasBothTypes && hasEstimate) {
+        // A lane load is a WORKING load, derived from the e1RM for that lane's reps and reserve.
+        // Copying the e1RM straight in prescribed roughly the owner's max for a set of 7: 70 kg x 8
+        // @RIR2 gives an e1RM of 93, and 93 kg became the volume load. Found 2026-09-18.
+        val tier = profile.specificityTier()
+        val anyE1rm = profile.ewmaStrengthE1rm ?: profile.ewmaVolumeE1rm
+        fun laneLoad(laneE1rm: Double?, type: ExposureType, fallback: Double): Double {
+            val e1rm = laneE1rm ?: anyE1rm ?: return fallback
+            val parameters = specificityParameters(tier, type)
+            return estimateLoad(e1rm, parameters.repMin, parameters.targetRir, profile.loadIncrementKg)
+        }
+        val seed = profile.loadVolumeKg ?: profile.loadStrengthKg ?: calibrationSeed(profile)
         val nextProfile = profile.copy(
             state = ProgressionState.PROGRESSING,
-            loadVolumeKg = profile.ewmaVolumeE1rm ?: profile.loadVolumeKg ?: calibrationSeed(profile),
-            loadStrengthKg = profile.ewmaStrengthE1rm ?: profile.loadStrengthKg ?: calibrationSeed(profile),
+            loadVolumeKg = laneLoad(profile.ewmaVolumeE1rm, ExposureType.VOLUME, seed),
+            loadStrengthKg = laneLoad(profile.ewmaStrengthE1rm, ExposureType.STRENGTH, seed),
             nextExposureType = ExposureType.VOLUME,
             calibrationRetries = 0
         )

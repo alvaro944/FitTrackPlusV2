@@ -117,3 +117,69 @@ class ProgressionRoundTripTest {
         const val SESSIONS = 14
     }
 }
+
+/**
+ * Regression test for the unsafe jump found on 2026-09-18 while generating seed data with the real
+ * engine: finishing calibration copied the lane e1RM straight into the lane load, so 70 kg x 8
+ * @RIR2 (e1RM ~93) prescribed 93 kg for a set of 7 — roughly the owner's max.
+ */
+class CalibrationCompletionLoadTest {
+
+    @Test
+    fun `finishing calibration never prescribes near the owner's max`() = runTest {
+        val progression = CompletionRepo()
+        val calculate = CalculateNextPrescriptionUseCase(progression, ExerciseLoadHistory { 70.0 })
+        val record = RecordProgressionExposureUseCase(progression)
+
+        var reachedProgressing = false
+        repeat(6) { session ->
+            val prescription = requireNotNull(calculate(COMPLETION_VARIANT))
+            val lastLifted = progression.exposures.lastOrNull()?.probeLoadKg ?: 70.0
+            // No session may jump more than a handful of increments over what was just lifted.
+            assert(prescription.prescribedLoadKg <= lastLifted * 1.10) {
+                "Session ${session + 1}: prescribed ${prescription.prescribedLoadKg} after lifting $lastLifted"
+            }
+            if (prescription.nextProfile.state == ProgressionState.PROGRESSING) reachedProgressing = true
+            record(
+                RecordProgressionExposureUseCase.Input(
+                    variantKey = COMPLETION_VARIANT,
+                    workoutExerciseId = null,
+                    performedAt = session.toLong(),
+                    prescription = prescription,
+                    probeLoadKg = prescription.prescribedLoadKg,
+                    probeReps = prescription.prescribedRepMin,
+                    probeRir = 2,
+                    completedSetCount = prescription.prescribedSets,
+                    userFlaggedBadDay = false
+                )
+            )
+        }
+        assert(reachedProgressing) { "Calibration should have finished within six sessions" }
+    }
+
+    private class CompletionRepo : ProgressionRepository {
+        val profiles = mutableMapOf(
+            COMPLETION_VARIANT to ExerciseProgressionProfile(
+                variantKey = COMPLETION_VARIANT,
+                state = ProgressionState.CALIBRATING,
+                loadVolumeKg = 70.0,
+                loadStrengthKg = 70.0
+            )
+        )
+        val exposures = mutableListOf<ProgressionExposure>()
+
+        override suspend fun getProfile(variantKey: String) = profiles[variantKey]
+        override suspend fun upsertProfile(profile: ExerciseProgressionProfile) {
+            profiles[profile.variantKey] = profile
+        }
+        override suspend fun getExposures(variantKey: String) = exposures.filter { it.variantKey == variantKey }
+        override suspend fun insertExposure(exposure: ProgressionExposure): Long {
+            exposures += exposure
+            return exposures.size.toLong()
+        }
+    }
+
+    private companion object {
+        const val COMPLETION_VARIANT = "press-banca-completion"
+    }
+}
