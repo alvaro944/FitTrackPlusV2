@@ -36,3 +36,5 @@ docs/design/final-form-v2/.thumbnail
 # Generado por updateDaemonJvm. Fija el daemon a un JDK concreto y rompe detekt
 # cuando ese JDK es mas nuevo que su compilador embebido. El proyecto usa JDK 17.
 gradle/gradle-daemon-jvm.properties
+# Design explorations (mockups/prototypes). No code; keep out of app branches.
+design/
