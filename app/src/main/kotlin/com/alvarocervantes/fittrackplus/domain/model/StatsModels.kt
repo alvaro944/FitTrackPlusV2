@@ -1,9 +1,20 @@
 package com.alvarocervantes.fittrackplus.domain.model
 
+import com.alvarocervantes.fittrackplus.domain.model.progression.E1rmConfidence
+
 data class WorkoutStats(
     val sessionVolumes: List<WorkoutSessionVolume>,
     val exerciseProgress: List<ExerciseProgress>,
-    val exerciseRecords: List<ExerciseRecords>
+    val exerciseRecords: List<ExerciseRecords>,
+    val effortQuality: EffortQuality?
+)
+
+data class EffortQuality(
+    val usefulZonePercentage: Double,
+    val reportedExerciseCount: Int,
+    val failureCount: Int,
+    val usefulZoneCount: Int,
+    val farFromFailureCount: Int
 )
 
 enum class WorkoutStatsPeriod(val label: String) {
@@ -39,7 +50,8 @@ data class ExerciseProgressEntry(
     val volumeKg: Double,
     val maxWeightKg: Double,
     val totalReps: Int,
-    val estimatedOneRepMaxKg: Double
+    val estimatedOneRepMaxKg: Double?,
+    val e1rmConfidence: E1rmConfidence?
 )
 
 data class ExerciseRecords(
@@ -72,5 +84,6 @@ data class ExerciseSetRecord(
     val weightKg: Double,
     val reps: Int,
     val setVolumeKg: Double,
-    val estimatedOneRepMaxKg: Double
+    val estimatedOneRepMaxKg: Double?,
+    val e1rmConfidence: E1rmConfidence?
 )

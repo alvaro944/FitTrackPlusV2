@@ -71,6 +71,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -97,8 +98,11 @@ import com.alvarocervantes.fittrackplus.core.design.FitTrackIconBadgeVariant
 import com.alvarocervantes.fittrackplus.core.design.accentWarm
 import com.alvarocervantes.fittrackplus.core.design.components.ConfettiAnimation
 import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSelectAllTextField
+import com.alvarocervantes.fittrackplus.core.design.components.FitTrackSegmentedSelector
+import com.alvarocervantes.fittrackplus.R
 import com.alvarocervantes.fittrackplus.domain.model.PrType
 import com.alvarocervantes.fittrackplus.domain.model.ProgressionHint
+import com.alvarocervantes.fittrackplus.domain.model.progression.ProgressionReason
 import com.alvarocervantes.fittrackplus.feature.routines.isValidTargetReps
 import com.alvarocervantes.fittrackplus.core.design.FitTrackCard
 import com.alvarocervantes.fittrackplus.core.design.FitTrackConfirmDialog
@@ -268,6 +272,8 @@ fun WorkoutScreen(
                 onSetWeightChange = viewModel::updateSetWeight,
                 onSetRepsChange = viewModel::updateSetReps,
                 onSetNotesChange = viewModel::updateSetNotes,
+                onFirstSetRirChange = viewModel::updateExerciseFirstSetRir,
+                onToggleBadDay = viewModel::toggleBadDay,
                 onCompleteSet = viewModel::completeSet,
                 onStepWeight = viewModel::stepSetWeight,
                 onStepReps = viewModel::stepSetReps,
@@ -372,6 +378,8 @@ private fun WorkoutContent(
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
     onSetNotesChange: (Long, String) -> Unit,
+    onFirstSetRirChange: (Long, Int?) -> Unit,
+    onToggleBadDay: (Long) -> Unit,
     onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit,
@@ -454,12 +462,15 @@ private fun WorkoutContent(
                         exercise = exercise,
                         weightUnitLabel = state.weightUnit.label,
                         hint = state.hints[exercise.id] ?: ProgressionHint.NONE,
+                        progression = state.primaryProgression[exercise.id],
                         isExpanded = state.expandedExerciseId == exercise.id,
                         onOpenAlternatives = onOpenExerciseAlternatives,
                         onToggleExpanded = onToggleExerciseExpanded,
                         onSetWeightChange = onSetWeightChange,
                         onSetRepsChange = onSetRepsChange,
                         onSetNotesChange = onSetNotesChange,
+                        onFirstSetRirChange = onFirstSetRirChange,
+                        onToggleBadDay = onToggleBadDay,
                         onCompleteSet = onCompleteSet,
                         onStepWeight = onStepWeight,
                         onStepReps = onStepReps
@@ -830,12 +841,15 @@ private fun WorkoutExerciseCard(
     exercise: WorkoutExerciseUiState,
     weightUnitLabel: String,
     hint: ProgressionHint,
+    progression: PrimaryProgressionUiState?,
     isExpanded: Boolean,
     onOpenAlternatives: (Long) -> Unit,
     onToggleExpanded: (Long) -> Unit,
     onSetWeightChange: (Long, String) -> Unit,
     onSetRepsChange: (Long, String) -> Unit,
     onSetNotesChange: (Long, String) -> Unit,
+    onFirstSetRirChange: (Long, Int?) -> Unit,
+    onToggleBadDay: (Long) -> Unit,
     onCompleteSet: (Long) -> Unit,
     onStepWeight: (Long, Double) -> Unit,
     onStepReps: (Long, Int) -> Unit
@@ -938,6 +952,17 @@ private fun WorkoutExerciseCard(
             }
 
             if (isExpanded) {
+                progression?.let { primary ->
+                    PrimaryPrescriptionCard(
+                        progression = primary,
+                        weightUnitLabel = weightUnitLabel,
+                        onToggleBadDay = { onToggleBadDay(exercise.id) }
+                    )
+                }
+                FirstSetRirSelector(
+                    firstSetRir = exercise.firstSetRir,
+                    onFirstSetRirChange = { rir -> onFirstSetRirChange(exercise.id, rir) }
+                )
                 if (exercise.sets.isEmpty()) {
                     Text(
                         text = "Sin series configuradas",
@@ -959,6 +984,45 @@ private fun WorkoutExerciseCard(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FirstSetRirSelector(
+    firstSetRir: Int?,
+    onFirstSetRirChange: (Int?) -> Unit
+) {
+    val options = listOf(
+        stringResource(R.string.workout_first_set_rir_option_zero),
+        stringResource(R.string.workout_first_set_rir_option_one),
+        stringResource(R.string.workout_first_set_rir_option_two),
+        stringResource(R.string.workout_first_set_rir_option_three),
+        stringResource(R.string.workout_first_set_rir_option_four_plus)
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)) {
+        Text(
+            text = stringResource(R.string.workout_first_set_rir_question),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        FitTrackSegmentedSelector(
+            options = options,
+            selectedIndex = firstSetRir?.coerceAtMost(4) ?: -1,
+            onSelect = { index -> onFirstSetRirChange(firstSetRirFromSelection(index)) }
+        )
+        Text(
+            text = stringResource(R.string.workout_first_set_rir_guidance),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (firstSetRir != null) {
+            TextButton(
+                onClick = { onFirstSetRirChange(null) },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(stringResource(R.string.workout_first_set_rir_clear))
             }
         }
     }
@@ -1333,5 +1397,124 @@ private fun progressionHintSupportText(hint: ProgressionHint): String {
         ProgressionHint.UP -> "Has superado el rango las ultimas sesiones. Considera subir peso."
         ProgressionHint.DOWN -> "No has alcanzado el rango las ultimas sesiones. Considera bajar peso."
         ProgressionHint.NONE -> ""
+    }
+}
+
+/**
+ * What the engine prescribes for a PRIMARY exercise today, and why it decided that.
+ *
+ * R19 makes the explanation mandatory. A weight with no reason turns the engine back into a black
+ * box, and an engine the user cannot follow is an engine the user stops trusting.
+ */
+@Composable
+private fun PrimaryPrescriptionCard(
+    progression: PrimaryProgressionUiState,
+    weightUnitLabel: String,
+    onToggleBadDay: () -> Unit
+) {
+    FitTrackCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(FitSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(FitSpacing.xs)
+        ) {
+            Text(
+                text = stringResource(
+                    R.string.workout_primary_prescription,
+                    progression.prescribedLoadKg.formatLoad(),
+                    weightUnitLabel,
+                    progression.repMin,
+                    progression.repMax,
+                    progression.targetRir
+                ),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = stringResource(progression.reason.labelRes()),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            progression.displayedE1rmKg?.let { e1rm ->
+                Text(
+                    text = stringResource(
+                        R.string.workout_primary_e1rm,
+                        e1rm.formatLoad(),
+                        weightUnitLabel
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            progression.suggestedRemainingSetLoadKg?.let { suggested ->
+                Text(
+                    text = stringResource(
+                        R.string.workout_primary_suggested_next,
+                        suggested.formatLoad(),
+                        weightUnitLabel
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.workout_primary_bad_day),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Switch(checked = progression.isBadDay, onCheckedChange = { onToggleBadDay() })
+            }
+            if (progression.isBadDay) {
+                Text(
+                    text = stringResource(R.string.workout_primary_bad_day_guidance),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+private fun Double.formatLoad(): String {
+    return if (this % 1.0 == 0.0) toInt().toString() else String.format(Locale.getDefault(), "%.1f", this)
+}
+
+/**
+ * Turns the engine's decision code into the sentence the user reads.
+ *
+ * The mapping lives here and not in the domain on purpose: the engine says WHAT it decided, the UI
+ * says HOW to tell it. That keeps the copy translatable and out of the layer that decides loads.
+ */
+private fun ProgressionReason.labelRes(): Int {
+    return when (this) {
+        ProgressionReason.CALIBRATION_COMPLETE -> R.string.progression_reason_calibration_complete
+        ProgressionReason.CALIBRATION_RETRY -> R.string.progression_reason_calibration_retry
+        ProgressionReason.CALIBRATION_BASELINE -> R.string.progression_reason_calibration_baseline
+        ProgressionReason.PROGRESSION_ALTERNATING -> R.string.progression_reason_alternating
+        ProgressionReason.BAD_DAY -> R.string.progression_reason_bad_day
+        ProgressionReason.RECOVERY_EXPOSURE -> R.string.progression_reason_recovery_exposure
+        ProgressionReason.RECOVERY_COMPLETE -> R.string.progression_reason_recovery_complete
+        ProgressionReason.RECOVERY_CONTINUE -> R.string.progression_reason_recovery_continue
+        ProgressionReason.EVALUATION_EXPOSURE -> R.string.progression_reason_evaluation_exposure
+        ProgressionReason.EVALUATION_PASSED -> R.string.progression_reason_evaluation_passed
+        ProgressionReason.EVALUATION_HARD -> R.string.progression_reason_evaluation_hard
+        ProgressionReason.EVALUATION_FAILED_TWICE -> R.string.progression_reason_evaluation_failed_twice
+        ProgressionReason.RECOVERY_HARD_STREAK -> R.string.progression_reason_recovery_hard_streak
+        ProgressionReason.RECOVERY_FALLING_TREND -> R.string.progression_reason_recovery_falling_trend
+        ProgressionReason.RECOVERY_LOW_SURPLUS -> R.string.progression_reason_recovery_low_surplus
+        ProgressionReason.RECOVERY_REPEATED_STALLS -> R.string.progression_reason_recovery_repeated_stalls
+        ProgressionReason.RECOVERY_REPEATED_HARD -> R.string.progression_reason_recovery_repeated_hard
+        ProgressionReason.LOAD_INCREASED_EASY -> R.string.progression_reason_load_increased_easy
+        ProgressionReason.LOAD_INCREASED_STRONG -> R.string.progression_reason_load_increased_strong
+        ProgressionReason.LOAD_CONFIRMED -> R.string.progression_reason_load_confirmed
+        ProgressionReason.LOAD_HELD_HARD -> R.string.progression_reason_load_held_hard
+        ProgressionReason.LOAD_REVERTED -> R.string.progression_reason_load_reverted
+        ProgressionReason.LOAD_HELD_ONE_FAILURE -> R.string.progression_reason_load_held_one_failure
+        ProgressionReason.LOAD_HELD_FAILURE -> R.string.progression_reason_load_held_failure
+        ProgressionReason.LOAD_REDUCED_REPEATED -> R.string.progression_reason_load_reduced_repeated
+        ProgressionReason.LOAD_UNCHANGED_FAILURE -> R.string.progression_reason_load_unchanged_failure
+        ProgressionReason.LOAD_UNCHANGED_NO_OUTCOME -> R.string.progression_reason_load_unchanged_no_outcome
     }
 }

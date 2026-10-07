@@ -1,7 +1,9 @@
 package com.alvarocervantes.fittrackplus.di
 
+import com.alvarocervantes.fittrackplus.data.repository.DefaultProgressionRepository
 import com.alvarocervantes.fittrackplus.data.repository.DefaultRoutineRepository
 import com.alvarocervantes.fittrackplus.data.repository.DefaultWorkoutRepository
+import com.alvarocervantes.fittrackplus.data.repository.ProgressionRepository
 import com.alvarocervantes.fittrackplus.data.repository.RoutineRepository
 import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
 import dagger.Binds
@@ -13,6 +15,12 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
+    @Binds
+    @Singleton
+    abstract fun bindProgressionRepository(
+        repository: DefaultProgressionRepository
+    ): ProgressionRepository
+
     @Binds
     @Singleton
     abstract fun bindRoutineRepository(

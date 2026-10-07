@@ -1,6 +1,8 @@
 package com.alvarocervantes.fittrackplus.data.local.seed
 
+import com.alvarocervantes.fittrackplus.domain.model.progression.ExerciseRole
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -43,5 +45,22 @@ class DebugSeedPresetsTest {
         assertEquals(2, femoralDay.exercises.first().targetSets)
         assertEquals("Tríceps en polea", femoralDay.exercises.last().name)
         assertEquals(2, femoralDay.exercises.last().targetSets)
+    }
+
+    @Test
+    fun progressionTestRoutineIsActiveAndSeedsAPrimaryWithLoadHistory() {
+        val catalog = buildDebugSeedCatalog()
+        val routine = catalog.routines.first { it.name == catalog.activeRoutineName }
+        val primary = routine.days.single().exercises.first()
+
+        assertEquals("Motor PRIMARY — Prueba", routine.name)
+        assertEquals("Press banca", primary.name)
+        assertEquals(ExerciseRole.PRIMARY, primary.progressionRole)
+        assertEquals(2.5, primary.progression?.loadIncrementKg)
+        assertNotNull(primary.progression)
+        assertEquals(2, routine.finishedSessions.size)
+        assertTrue(routine.finishedSessions.all { session ->
+            session.setValues.first().all { (weightKg, reps) -> weightKg > 0.0 && reps > 0 }
+        })
     }
 }

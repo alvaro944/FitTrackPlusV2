@@ -66,6 +66,9 @@ interface WorkoutDao {
     @Update
     suspend fun updateExercise(exercise: WorkoutExerciseEntity)
 
+    @Query("UPDATE workout_exercises SET firstSetRir = :rir WHERE id = :workoutExerciseId")
+    suspend fun updateExerciseFirstSetRir(workoutExerciseId: Long, rir: Int?)
+
     @Update
     suspend fun updateSession(session: WorkoutSessionEntity)
 

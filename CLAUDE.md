@@ -11,7 +11,8 @@ Current branch: `main` (stable, in daily use). `develop` is the integration bran
 Current status:
 
 - Phase 6 visual pass complete and merged.
-- Alternative exercises feature complete and merged (DB v2).
+- Alternative exercises feature complete and merged.
+- Progression Engine PRIMARY V1 built on `feature/progression-engine-primary` (DB v8). Pending the owner manual pass.
 - Next: UX improvements — routine editor, workout entry, progression hints.
 - Firebase and sync are still out of scope.
 
@@ -98,7 +99,11 @@ Minimum verification for any code change:
 - `test`
 - `build`
 
-For UI changes, also do a manual pass in emulator/device when possible. `adb` is not currently on PATH in this workspace, so manual validation may remain pending in `docs/progress/project-progress.md`.
+For UI changes, also do a manual pass in emulator/device.
+
+`adb` IS available at `$ANDROID_HOME/platform-tools/adb` even though it is not on PATH, so an
+agent can install, drive and screenshot the app without asking. Verified 2026-09-17. Instrumented
+tests need a booted emulator: `sh gradlew connectedAndroidTest`.
 
 ### macOS / Claude Code environment notes
 

@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.alvarocervantes.fittrackplus.core.database.FitTrackPlusDatabase
 import com.alvarocervantes.fittrackplus.data.local.dao.RoutineDao
 import com.alvarocervantes.fittrackplus.data.local.dao.WorkoutDao
+import com.alvarocervantes.fittrackplus.data.local.entity.ExerciseProgressionProfileEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.RoutineDayEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.RoutineEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.RoutineExerciseEntity
@@ -12,6 +13,7 @@ import com.alvarocervantes.fittrackplus.data.local.entity.WorkoutSessionEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.WorkoutSetEntity
 import com.alvarocervantes.fittrackplus.data.preferences.UserPreferencesRepository
 import com.alvarocervantes.fittrackplus.domain.model.TargetRepsRange
+import com.alvarocervantes.fittrackplus.domain.model.progression.ExerciseRole
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -76,7 +78,9 @@ class DebugDemoDataSeeder @Inject constructor(
                             DemoExercise(
                                 name = exercise.name,
                                 targetSets = exercise.targetSets,
-                                targetReps = exercise.targetReps
+                                targetReps = exercise.targetReps,
+                                progressionRole = exercise.progressionRole,
+                                progression = exercise.progression
                             )
                         }
                     )
@@ -117,21 +121,36 @@ class DebugDemoDataSeeder @Inject constructor(
         )
         val demoExercises = exercises.mapIndexed { index, exercise ->
             val targetRange = TargetRepsRange.parse(exercise.targetReps)
+            val variantKey = "exercise-$dayId-$index"
             val exerciseId = routineDao.insertExercise(
                 RoutineExerciseEntity(
                     routineDayId = dayId,
-                    variantKey = "exercise-$dayId-$index",
-                    defaultVariantKey = "exercise-$dayId-$index",
+                    variantKey = variantKey,
+                    defaultVariantKey = variantKey,
                     name = exercise.name,
                     targetSets = exercise.targetSets,
                     targetRepsText = exercise.targetReps,
                     position = index,
                     targetRepsMin = targetRange?.min,
-                    targetRepsMax = targetRange?.max
+                    targetRepsMax = targetRange?.max,
+                    progressionRole = exercise.progressionRole.name
                 )
             )
+            if (exercise.progressionRole == ExerciseRole.PRIMARY) {
+                val progression = requireNotNull(exercise.progression) {
+                    "PRIMARY debug exercises need a progression profile."
+                }
+                database.progressionDao().upsertProfile(
+                    ExerciseProgressionProfileEntity(
+                        variantKey = variantKey,
+                        goalWeightKg = progression.goalWeightKg,
+                        loadIncrementKg = progression.loadIncrementKg
+                    )
+                )
+            }
             DemoWorkoutExercise(
                 id = exerciseId,
+                variantKey = variantKey,
                 name = exercise.name,
                 targetSets = exercise.targetSets,
                 targetReps = exercise.targetReps,
@@ -173,7 +192,7 @@ class DebugDemoDataSeeder @Inject constructor(
                 WorkoutExerciseEntity(
                     sessionId = sessionId,
                     exerciseTemplateId = exercise.id,
-                    performedVariantKey = "exercise-${exercise.id}",
+                    performedVariantKey = exercise.variantKey,
                     exerciseNameSnapshot = exercise.name,
                     targetRepsSnapshot = exercise.targetReps,
                     position = exercise.position,
@@ -189,7 +208,8 @@ class DebugDemoDataSeeder @Inject constructor(
                         workoutExerciseId = workoutExerciseId,
                         setNumber = setIndex + 1,
                         weightKg = value.first,
-                        reps = value.second
+                        reps = value.second,
+                        isCompleted = true
                     )
                 )
             }
@@ -200,7 +220,9 @@ class DebugDemoDataSeeder @Inject constructor(
 private data class DemoExercise(
     val name: String,
     val targetSets: Int,
-    val targetReps: String
+    val targetReps: String,
+    val progressionRole: ExerciseRole,
+    val progression: DebugSeedProgressionDefinition?
 )
 
 private data class DemoDay(
@@ -212,6 +234,7 @@ private data class DemoDay(
 
 private data class DemoWorkoutExercise(
     val id: Long,
+    val variantKey: String,
     val name: String,
     val targetSets: Int,
     val targetReps: String,

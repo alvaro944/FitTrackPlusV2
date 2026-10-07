@@ -10,6 +10,7 @@ import com.alvarocervantes.fittrackplus.data.repository.WorkoutRepository
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDaySnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
+import com.alvarocervantes.fittrackplus.domain.model.progression.E1rmConfidence
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -36,6 +37,7 @@ class ObserveWorkoutStatsUseCaseTest {
                             sessionId = 1,
                             name = "Bench Press",
                             position = 0,
+                            firstSetRir = 0,
                             sets = listOf(
                                 set(id = 101, exerciseId = 11, setNumber = 1, weightKg = 100.0, reps = 5),
                                 set(id = 102, exerciseId = 11, setNumber = 2, weightKg = 90.0, reps = 8)
@@ -64,6 +66,7 @@ class ObserveWorkoutStatsUseCaseTest {
                             sessionId = 2,
                             name = " bench press ",
                             position = 0,
+                            firstSetRir = 0,
                             sets = listOf(
                                 set(id = 201, exerciseId = 21, setNumber = 1, weightKg = 102.5, reps = 4),
                                 set(id = 202, exerciseId = 21, setNumber = 2, weightKg = 80.0, reps = 10)
@@ -120,7 +123,8 @@ class ObserveWorkoutStatsUseCaseTest {
             assertEquals(1L, benchProgress.entries[0].sessionId)
             assertEquals(1220.0, benchProgress.entries[0].volumeKg, 0.0)
             assertEquals(13, benchProgress.entries[0].totalReps)
-            assertEquals(116.666, benchProgress.entries[0].estimatedOneRepMaxKg, 0.01)
+            assertEquals(116.666, requireNotNull(benchProgress.entries[0].estimatedOneRepMaxKg), 0.01)
+            assertEquals(E1rmConfidence.HIGH, benchProgress.entries[0].e1rmConfidence)
             assertEquals(2L, benchProgress.entries[1].sessionId)
             assertEquals(1210.0, benchProgress.entries[1].volumeKg, 0.0)
             assertEquals(14, benchProgress.entries[1].totalReps)
@@ -131,6 +135,7 @@ class ObserveWorkoutStatsUseCaseTest {
             assertEquals(10, benchRecords.maxReps?.reps)
             assertEquals(800.0, benchRecords.bestSetVolume?.setVolumeKg ?: -1.0, 0.0)
             assertEquals(116.666, benchRecords.bestEstimatedOneRepMax?.estimatedOneRepMaxKg ?: -1.0, 0.01)
+            assertEquals(E1rmConfidence.HIGH, benchRecords.bestEstimatedOneRepMax?.e1rmConfidence)
 
             // Open session must NOT appear in any list
             assertEquals(0, stats.sessionVolumes.count { it.sessionId == 3L })
@@ -177,6 +182,105 @@ class ObserveWorkoutStatsUseCaseTest {
             assertNull(records.bestSetVolume)
             assertNull(records.bestEstimatedOneRepMax)
             assertNotNull(stats.exerciseProgress.single().entries.single())
+
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun missingFirstSetRirLeavesEstimatedOneRepMaxAbsent() = runTest {
+        val repository = StatsWorkoutRepository(
+            sessions = listOf(
+                sessionWithExercises(
+                    sessionId = 5,
+                    routineName = "Push",
+                    dayName = "Day 1",
+                    startedAt = 500,
+                    finishedAt = 550,
+                    exercises = listOf(
+                        exercise(
+                            id = 51,
+                            sessionId = 5,
+                            name = "Bench Press",
+                            position = 0,
+                            sets = listOf(
+                                set(id = 501, exerciseId = 51, setNumber = 1, weightKg = 100.0, reps = 8)
+                            )
+                        )
+                    )
+                )
+            )
+        )
+
+        ObserveWorkoutStatsUseCase(repository)().test {
+            val stats = awaitItem()
+
+            assertNull(stats.exerciseProgress.single().entries.single().estimatedOneRepMaxKg)
+            assertNull(stats.exerciseRecords.single().bestEstimatedOneRepMax)
+            assertNull(stats.effortQuality)
+
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun effortQualityCountsOnlyReportedRirAndGroupsEachZone() = runTest {
+        val repository = StatsWorkoutRepository(
+            sessions = listOf(
+                effortQualitySession(sessionId = 60, rir = 0),
+                effortQualitySession(sessionId = 61, rir = 2),
+                effortQualitySession(sessionId = 62, rir = 4),
+                effortQualitySession(sessionId = 63, rir = null)
+            )
+        )
+
+        ObserveWorkoutStatsUseCase(repository)().test {
+            val effortQuality = requireNotNull(awaitItem().effortQuality)
+
+            assertEquals(3, effortQuality.reportedExerciseCount)
+            assertEquals(33.333, effortQuality.usefulZonePercentage, 0.01)
+            assertEquals(1, effortQuality.failureCount)
+            assertEquals(1, effortQuality.usefulZoneCount)
+            assertEquals(1, effortQuality.farFromFailureCount)
+
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun effortQualityRespectsTheSelectedPeriod() = runTest {
+        val dayMillis = 86_400_000L
+        val repository = StatsWorkoutRepository(
+            sessions = listOf(
+                effortQualitySession(
+                    sessionId = 70,
+                    rir = 2,
+                    finishedAt = NOW_MILLIS - dayMillis * 35
+                ),
+                effortQualitySession(
+                    sessionId = 71,
+                    rir = 0,
+                    finishedAt = NOW_MILLIS - dayMillis * 7
+                ),
+                effortQualitySession(
+                    sessionId = 72,
+                    rir = 4,
+                    finishedAt = NOW_MILLIS - dayMillis * 2
+                )
+            )
+        )
+
+        ObserveWorkoutStatsUseCase(repository)(
+            period = WorkoutStatsPeriod.LastFourWeeks,
+            nowMillis = NOW_MILLIS
+        ).test {
+            val effortQuality = requireNotNull(awaitItem().effortQuality)
+
+            assertEquals(2, effortQuality.reportedExerciseCount)
+            assertEquals(0.0, effortQuality.usefulZonePercentage, 0.0)
+            assertEquals(1, effortQuality.failureCount)
+            assertEquals(0, effortQuality.usefulZoneCount)
+            assertEquals(1, effortQuality.farFromFailureCount)
 
             awaitComplete()
         }
@@ -368,6 +472,7 @@ class ObserveWorkoutStatsUseCaseTest {
         sessionId: Long,
         name: String,
         position: Int,
+        firstSetRir: Int? = null,
         sets: List<WorkoutSetEntity>
     ): WorkoutExerciseWithSets = WorkoutExerciseWithSets(
         exercise = WorkoutExerciseEntity(
@@ -376,7 +481,8 @@ class ObserveWorkoutStatsUseCaseTest {
             exerciseTemplateId = id + 100,
             exerciseNameSnapshot = name,
             targetRepsSnapshot = "8-10",
-            position = position
+            position = position,
+            firstSetRir = firstSetRir
         ),
         sets = sets
     )
@@ -393,6 +499,36 @@ class ObserveWorkoutStatsUseCaseTest {
         setNumber = setNumber,
         weightKg = weightKg,
         reps = reps
+    )
+
+    private fun effortQualitySession(
+        sessionId: Long,
+        rir: Int?,
+        finishedAt: Long = sessionId * 100
+    ): WorkoutSessionWithExercises = sessionWithExercises(
+        sessionId = sessionId,
+        routineName = "Effort",
+        dayName = "Push",
+        startedAt = finishedAt - 10,
+        finishedAt = finishedAt,
+        exercises = listOf(
+            exercise(
+                id = sessionId,
+                sessionId = sessionId,
+                name = "Bench Press",
+                position = 0,
+                firstSetRir = rir,
+                sets = listOf(
+                    set(
+                        id = sessionId * 10,
+                        exerciseId = sessionId,
+                        setNumber = 1,
+                        weightKg = 100.0,
+                        reps = 8
+                    )
+                )
+            )
+        )
     )
 
     private fun statsPeriodSessions(nowMillis: Long): List<WorkoutSessionWithExercises> {
@@ -497,6 +633,7 @@ private class StatsWorkoutRepository(
     ): Long = error("Not used")
 
     override suspend fun updateSet(setId: Long, weightKg: Double, reps: Int) = error("Not used")
+    override suspend fun updateExerciseFirstSetRir(workoutExerciseId: Long, rir: Int?) {}
     override suspend fun updateSetCompletion(setId: Long, isCompleted: Boolean) = error("Not used")
     override suspend fun updateSetNotes(setId: Long, notes: String?) = error("Not used")
     override suspend fun finishSession(sessionId: Long, notes: String?) = error("Not used")

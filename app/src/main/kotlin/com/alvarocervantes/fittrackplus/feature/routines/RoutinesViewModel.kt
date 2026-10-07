@@ -9,6 +9,8 @@ import com.alvarocervantes.fittrackplus.domain.model.RoutineDraft
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseAlternativeDraft
 import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseDraft
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
+import com.alvarocervantes.fittrackplus.domain.model.progression.ExerciseRole
+import com.alvarocervantes.fittrackplus.domain.model.progression.ProgressionTuning
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
@@ -205,6 +207,34 @@ class RoutinesViewModel @Inject constructor(
     fun updateExerciseNotes(dayIndex: Int, exerciseIndex: Int, notes: String) {
         updateEditor { editor ->
             editor.updateExercise(dayIndex, exerciseIndex) { exercise -> exercise.copy(notes = notes) }
+        }
+    }
+
+    fun updateExerciseProgressionRole(
+        dayIndex: Int,
+        exerciseIndex: Int,
+        role: ExerciseRole
+    ) {
+        _uiState.update { state ->
+            val editor = state.editor ?: return@update state
+            val result = editor.withExerciseProgressionRole(dayIndex, exerciseIndex, role)
+            state.copy(editor = result.editor.copy(isDirty = true))
+        }
+    }
+
+    fun updateExerciseGoalWeight(dayIndex: Int, exerciseIndex: Int, goalWeightKg: String) {
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
+                exercise.copy(goalWeightKg = goalWeightKg)
+            }
+        }
+    }
+
+    fun updateExerciseLoadIncrement(dayIndex: Int, exerciseIndex: Int, loadIncrementKg: String) {
+        updateEditor { editor ->
+            editor.updateExercise(dayIndex, exerciseIndex) { exercise ->
+                exercise.copy(loadIncrementKg = loadIncrementKg)
+            }
         }
     }
 
@@ -561,6 +591,9 @@ data class RoutineExerciseEditorUiState(
     val targetSets: String = "3",
     val targetRepsText: String = "8-12",
     val notes: String = "",
+    val progressionRole: ExerciseRole = ExerciseRole.ACCESSORY,
+    val goalWeightKg: String = "",
+    val loadIncrementKg: String = "",
     val alternatives: List<RoutineExerciseAlternativeEditorUiState> = emptyList()
 ) {
     val isNameBlank: Boolean
@@ -581,6 +614,76 @@ data class RoutineExerciseEditorUiState(
         } else {
             "Usa 8, 8-12, AMRAP o RPE 8."
         }
+}
+
+/**
+ * Number of PRIMARY exercises across the whole routine. Single source of truth for the limit: the
+ * selector and the duplication rules must not each count it their own way.
+ */
+internal fun RoutineEditorUiState.primaryExerciseCount(): Int {
+    return days.sumOf { day -> day.exercises.count { it.progressionRole == ExerciseRole.PRIMARY } }
+}
+
+/**
+ * A duplicate never inherits PRIMARY.
+ *
+ * PRIMARY is a scarce, deliberate designation: at most 3, and it implies fatigue management. Copying
+ * an exercise or a day is a structural convenience, so carrying the role over both bypassed the
+ * limit silently and produced a second primary the user never asked for. It lands on SECONDARY,
+ * which keeps the signal that the exercise matters without consuming one of the three slots.
+ *
+ * The goal and the increment are PRIMARY-only inputs, so they are cleared with it.
+ */
+internal fun RoutineExerciseEditorUiState.withoutInheritedPrimaryRole(): RoutineExerciseEditorUiState {
+    if (progressionRole != ExerciseRole.PRIMARY) return this
+    return copy(
+        progressionRole = ExerciseRole.SECONDARY,
+        goalWeightKg = "",
+        loadIncrementKg = ""
+    )
+}
+
+/**
+ * Result of picking a role.
+ *
+ * There is no rejection case. The number of PRIMARY exercises is a recommendation, not a gate: the
+ * owner decided on 2026-09-18 that blocking their own routine over a product heuristic was
+ * paternalistic. The engine still has no cross-exercise fatigue, so many primaries make the model
+ * less reliable — that belongs in the guidance text, not in a refusal.
+ */
+internal data class RoutineRoleSelectionResult(
+    val editor: RoutineEditorUiState
+)
+
+internal fun RoutineEditorUiState.withExerciseProgressionRole(
+    dayIndex: Int,
+    exerciseIndex: Int,
+    role: ExerciseRole
+): RoutineRoleSelectionResult {
+    val exercise = days.getOrNull(dayIndex)?.exercises?.getOrNull(exerciseIndex)
+        ?: return RoutineRoleSelectionResult(this)
+    val defaultIncrement = if (role == ExerciseRole.PRIMARY && exercise.progressionRole != role) {
+        exercise.defaultPrimaryLoadIncrement().toString()
+    } else {
+        exercise.loadIncrementKg
+    }
+    return RoutineRoleSelectionResult(
+        editor = updateExercise(dayIndex, exerciseIndex) {
+            it.copy(progressionRole = role, loadIncrementKg = defaultIncrement)
+        }
+    )
+}
+
+private fun RoutineExerciseEditorUiState.defaultPrimaryLoadIncrement(): Double {
+    val lowerBodyKeywords = listOf(
+        "sentadilla", "peso muerto", "prensa", "zancada", "hip thrust", "gemelo",
+        "squat", "deadlift", "leg press", "lunge", "calf", "hamstring"
+    )
+    return if (lowerBodyKeywords.any { keyword -> name.contains(keyword, ignoreCase = true) }) {
+        ProgressionTuning.DEFAULT_INCREMENT_LOWER_KG
+    } else {
+        ProgressionTuning.DEFAULT_INCREMENT_UPPER_KG
+    }
 }
 
 data class RoutineExerciseAlternativeEditorUiState(
@@ -670,6 +773,9 @@ private fun RoutineSnapshot.toEditorState(): RoutineEditorUiState {
                         targetSets = exercise.targetSets.toString(),
                         targetRepsText = exercise.targetRepsText,
                         notes = exercise.notes.orEmpty(),
+                        progressionRole = exercise.progressionRole,
+                        goalWeightKg = exercise.goalWeightKg?.toString().orEmpty(),
+                        loadIncrementKg = exercise.loadIncrementKg?.toString().orEmpty(),
                         alternatives = exercise.alternatives.map { alternative ->
                             RoutineExerciseAlternativeEditorUiState(
                                 alternativeId = alternative.id,
@@ -700,6 +806,9 @@ private fun RoutineEditorUiState.toDraft(): RoutineDraft {
                         targetSets = exercise.targetSets.toInt(),
                         targetRepsText = exercise.targetRepsText.trim(),
                         notes = exercise.notes.trim().ifBlank { null },
+                        progressionRole = exercise.progressionRole,
+                        goalWeightKg = exercise.goalWeightKg.toNullablePositiveDouble(),
+                        loadIncrementKg = exercise.loadIncrementKg.toNullablePositiveDouble(),
                         defaultVariantKey = exercise.defaultVariantKey ?: exercise.variantKey,
                         alternatives = exercise.alternatives.map { alternative ->
                             RoutineExerciseAlternativeDraft(
@@ -715,6 +824,10 @@ private fun RoutineEditorUiState.toDraft(): RoutineDraft {
             )
         }
     )
+}
+
+private fun String.toNullablePositiveDouble(): Double? {
+    return trim().replace(',', '.').toDoubleOrNull()?.takeIf { it > 0.0 }
 }
 
 private fun <T> List<T>.replaceAt(index: Int, transform: (T) -> T): List<T> {

@@ -2181,6 +2181,87 @@ Pendiente:
 - Estado: se revierten ambos intentos para no dejar cambios sin efecto.
 - Deuda futura: investigar la capa real que pinta ese fondo blanco (posible popup/superficie del sistema, OEM o composición del handle de Compose) y resolverlo con validación manual en dispositivo real. No aplicar más cambios sin una reproducción/control visual claro.
 
+## 2026-09-18 - Pasada manual del motor: dos fallos que ningun test habia visto
+
+El dueño probo el motor con dominadas lastradas y reporto: "me recomienda menos de lo que ya he hecho, y aunque le digo que me sobra, al dia siguiente me pone lo mismo". Tenia razon. Se diagnostico con su base de datos real extraida del emulador, no con teorias.
+
+### Fallo 1: la calibracion bajaba la carga cuando la sesion salia facil
+
+Tres exposiciones con surplus +2, +5, +2 (le sobraba margen) y la carga bajando 12.5 -> 10 -> 7.5 -> 5.
+
+- **Confusion de unidades.** `estimateLoad()` convierte un e1RM en carga de trabajo dividiendolo. Sin e1RM, el fallback le pasaba una carga de TRABAJO: dividia algo ya levantado. `12.5 / (1 + 7/30) = 10.1`.
+- **Motor ciego.** El e1RM exige `reps + rir <= 10`. Con carga ligera y margen las tres exposiciones daban 11, 12 y 11: ninguna estimable, la calibracion nunca terminaba y caia siempre en el fallback roto.
+- Se alimentaban: facil -> RIR alto -> sin e1RM -> fallback -> baja -> aun mas facil. Un bucle que se alejaba de la respuesta.
+- Arreglo: sin e1RM, la calibracion se dirige por el resultado de la probe. Se cura sola: subir la carga baja el RIR, `reps + rir` cae bajo el corte, aparece el e1RM y la calibracion termina.
+
+### Fallo 2, mas profundo: el motor no sabia lo que se levantaba
+
+```
+sesion 11:  el motor pidio 10 kg  |  el dueño levanto 15 kg x 9 @RIR3  |  el motor registro 10 kg
+```
+
+La exposicion guardaba solo la carga PRESCRITA. Como la UI deja levantar otra cosa —la sugerencia se propone, no se impone—, el motor apuntaba lo que el habia pedido. **Nunca podia aprender del dueño, solo de si mismo.**
+
+Es un hueco de la spec, no de la implementacion: el principio del diseño era "prescrito contra realizado", y el esquema guardaba las reps y el RIR reales pero no el peso real. Arreglo: columna `probeLoadKg`, migracion v8 -> v9, e1RM y calibracion calculados sobre lo levantado.
+
+### Por que no lo vio ningun test
+
+Todos los tests del motor partian de perfiles con e1RM y de exposiciones donde lo levantado coincidia con lo prescrito. **Probaban el camino feliz del diseño, no el uso real.** Un usuario que entrena con series largas y que no obedece la prescripcion al pie de la letra rompio las dos suposiciones a la primera. Es exactamente para lo que existe la pasada manual.
+
+### Incidente operativo
+
+`connectedAndroidTest` reinstala la app y **borra los datos del emulador**. Se ejecuto sin respaldar antes y se perdio el escenario de prueba del dueño. Respaldar con `run-as ... tar` antes de lanzar la suite instrumentada sobre un emulador en uso.
+
+## 2026-09-17 - Progression Engine PRIMARY V1: motor completo y cableado
+
+Rama `feature/progression-engine-primary`, 20 commits por delante de `develop`.
+Spec: `docs/superpowers/specs/2026-09-16-progression-engine-primary-v1.md`.
+
+### Que entra
+
+- **Capa de medicion** (tareas 1-5): RIR de la primera serie persistido (DB v7), selector de un toque, e1RM con confianza sobre reps efectivas, graficas honestas y metrica de calidad de esfuerzo. Validado manualmente por el dueño.
+- **Motor** (tareas 6-9): modelo de dominio con 47 constantes en un solo `ProgressionTuning`, calculo de exposicion (surplus, cuatro guardas, dos EWMA por carril, tendencia asimetrica), decision de carga y maquina de estados. Todo funciones puras, sin Room ni Android.
+- **Persistencia** (tarea 7): DB v8 con `exercise_progression_profiles` y `progression_exposures`, migracion **verificada en dispositivo**.
+- **UI** (tareas 11, 10, 12): rol de progresion en el editor de rutinas con limite de 3 PRIMARY, ajuste intra-sesion por la probe, y tarjeta de prescripcion con su explicacion y toggle de mal dia.
+
+233 tests unitarios en verde, build y detekt en verde.
+
+### Defectos que solo aparecieron en la pasada visual
+
+Los tres se encontraron ejecutando la app, no corriendo tests. Merece la pena anotarlo:
+
+1. **Crash al abrir Workout con un PRIMARY recien marcado.** La tarea 11 creaba el perfil en `CALIBRATING` sin carga semilla; la tarea 9 lanzaba `IllegalStateException` al pedir prescripcion. **Cada tarea estaba verde por separado.** El fallo vivia en la costura, que es justo lo que ningun test unitario de las dos miraba. Arreglo: `calculateNextPrescription` devuelve `null` sin semilla, y el caso de uso siembra desde `getMaxWeightForExercise`. Con test de regresion.
+2. **`UnknownFormatConversionException`** al renderizar la tarjeta: los marcadores `%1$s`/`%3$d` de `strings.xml` se habian quedado en `%1`/`%3`. Causa: `sd` interpreta `$s` y `$d` como referencias a grupos de captura y se los come. **Leccion de herramienta: no usar `sd` para escribir format strings de Android.**
+3. **Los 3 tests instrumentados podridos** (`WorkoutDaoTest` x2, `UserPreferencesRepositoryTest`), verificados como preexistentes ejecutandolos en `develop`. Van en rama aparte.
+
+### RESUELTO el mismo dia: el idioma de decisionReason
+
+**`decisionReason` se genera en ingles dentro del motor y la app es en español.**
+
+`ProgressionDecision.kt` construye ~20 textos como "Calibration exposure to establish a reliable baseline." y la tarjeta los muestra tal cual. R19 exige que el usuario lea la explicacion; una explicacion que no entiende no cumple el requisito.
+
+El arreglo correcto **no** es traducir los literales: es que el dominio devuelva un **codigo de razon** (enum o sealed class) y que la UI lo mapee a `strings.xml`. Es el mismo patron que ya aplicamos con `LoadDecision.REVERTED`: la capa de decision expresa QUE decidio, no COMO se cuenta.
+
+Hecho asi: `ProgressionReason` con 27 valores, mapeo a `strings.xml` en `WorkoutScreen`, y la exposicion persiste `reason.name` en vez de prosa. Los tests pasan a aseverar sobre el codigo de decision, no sobre la redaccion: cambiar una frase ya no rompe un test, y cambiar una decision si. Verificado en emulador. **27 de 27 criterios cumplidos.**
+
+De paso se elimino una duplicacion: `calculateIntraSessionAdjustmentSteps` e `intraSessionAdjustmentSteps` implementaban la misma regla de R17 en dos ficheros. Dos copias de una regla que decide cargas acaban divergiendo.
+
+### Pendiente de pasada manual del dueño
+
+- Flujo completo: marcar PRIMARY, entrenar, ver la prescripcion, ajustar por la probe, finalizar y comprobar que la siguiente exposicion cambia.
+- Que el limite de 3 PRIMARY avisa con mensaje.
+- Que el toggle de mal dia hace que la exposicion no cuente.
+
+## 2026-09-17 - Verificada en dispositivo la migracion Room 7->8 del motor
+
+- Contexto: `Migration7To8Test` es el **primer test de migracion del proyecto**. Al ejecutarlo se descubrio que la infraestructura para ello no existia.
+- Bloqueo 1: `FileNotFoundException: Missing file: .../FitTrackPlusDatabase/7.json`. Los esquemas se exportan a `app/schemas/` via `room.schemaLocation`, pero **nunca se empaquetaban en los assets del APK de test**. Arreglo: `assets.srcDirs(files("$projectDir/schemas"))` en el sourceSet `androidTest` de `app/build.gradle.kts`. Una linea. Sin ella, ningun test de migracion del proyecto puede ejecutarse jamas.
+- Bloqueo 2: `AssertionError: expected null, but was:<1>` sobre el `ON DELETE SET NULL`. **No era un fallo de la migracion.** En SQLite las claves foraneas estan DESACTIVADAS por defecto en cada conexion; Room las activa en produccion (`FitTrackPlusDatabase_Impl.kt:98`, `PRAGMA foreign_keys = ON` dentro de `onOpen`), pero `MigrationTestHelper` devuelve una conexion cruda sin ese pragma. Arreglo: `execSQL("PRAGMA foreign_keys = ON")` en el test, **sobre la misma conexion del DELETE**, con comentario explicando por que.
+- **Resultado: `Migration7To8Test` en verde sobre Pixel_10_Pro / API 36.** La migracion conserva los datos previos, aplica los defaults (`progressionRole = 'ACCESSORY'`) y respeta el `ON DELETE SET NULL` de `progression_exposures`.
+- Por que importaba: `main` (la version del movil del dueño) esta en DB v6. La rama del motor esta en v8. Al actualizar, el salto v6->v8 corre `MIGRATION_6_7` y `MIGRATION_7_8` seguidas sobre el historial real. Ese camino estaba sin probar.
+- Leccion: Codex paro sin parchear la migracion cuando el test fallo. Correcto. "Arreglar" la migracion para contentar al test habria roto el `ON DELETE SET NULL` **en produccion, donde funciona bien**, por culpa de un test mal montado.
+- Nota: `sh gradlew connectedAndroidTest` completo sigue en **BUILD FAILED** por 3 tests podridos preexistentes (`WorkoutDaoTest` x2, `UserPreferencesRepositoryTest`), verificados como preexistentes ejecutandolos en `develop`. Van en rama aparte.
+
 ## 2026-09-17 - RESUELTO: fondo blanco del handle de cursor (deuda abierta desde 2026-07-07)
 
 - Contexto: una captura y `dumpsys window` sobre Pixel_10_Pro/API 36 identifican el rectangulo blanco como la ventana translucida del popup del handle; el blanco lo resuelve una View de su jerarquia, no el dibujo de la gota verde.

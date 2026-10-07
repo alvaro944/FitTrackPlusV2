@@ -281,6 +281,47 @@ class WorkoutInputDefaultsTest {
     }
 
     @Test
+    fun firstSetRirSelectorPersistsFourPlusAsFour() {
+        assertEquals(0, firstSetRirFromSelection(0))
+        assertEquals(1, firstSetRirFromSelection(1))
+        assertEquals(2, firstSetRirFromSelection(2))
+        assertEquals(3, firstSetRirFromSelection(3))
+        assertEquals(4, firstSetRirFromSelection(4))
+    }
+
+    @Test
+    fun completedExerciseWithoutFirstSetRirStillCountsTowardFinishingWorkout() {
+        val session = ActiveWorkoutSessionUiState(
+            sessionId = 1,
+            routineName = "Push",
+            dayName = "Day 1",
+            weekNumber = 1,
+            startedAt = 0,
+            exercises = listOf(
+                WorkoutExerciseUiState(
+                    id = 10,
+                    exerciseTemplateId = 7,
+                    variantKey = "bench",
+                    name = "Bench press",
+                    targetRepsText = "8-12",
+                    firstSetRir = null,
+                    sets = listOf(
+                        WorkoutSetUiState(
+                            id = 100,
+                            setNumber = 1,
+                            weightText = "70",
+                            repsText = "8",
+                            isCompleted = true
+                        )
+                    )
+                )
+            )
+        )
+
+        assertEquals(1, session.completedSetCount)
+    }
+
+    @Test
     fun selectAllOnFocusValue_selectsFullText() {
         val result = selectAllOnFocusValue(
             TextFieldValue(

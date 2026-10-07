@@ -8,11 +8,13 @@ import com.alvarocervantes.fittrackplus.domain.model.ExerciseProgress
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseProgressEntry
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseRecords
 import com.alvarocervantes.fittrackplus.domain.model.ExerciseSetRecord
+import com.alvarocervantes.fittrackplus.domain.model.EffortQuality
 import com.alvarocervantes.fittrackplus.domain.model.HeatmapDay
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutSessionVolume
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStats
 import com.alvarocervantes.fittrackplus.domain.model.WorkoutStatsPeriod
 import com.alvarocervantes.fittrackplus.domain.model.WeightUnit
+import com.alvarocervantes.fittrackplus.domain.model.progression.E1rmConfidence
 import com.alvarocervantes.fittrackplus.domain.usecase.GetWorkoutHeatmapUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ObserveWorkoutStatsUseCase
 import com.alvarocervantes.fittrackplus.domain.usecase.ReadDailyStepsUseCase
@@ -283,6 +285,7 @@ data class StatsUiState(
     val sessionVolumes: List<SessionVolumeUiState> = emptyList(),
     val exerciseProgress: List<ExerciseProgressUiState> = emptyList(),
     val exerciseRecords: List<ExerciseRecordsUiState> = emptyList(),
+    val effortQuality: EffortQualityUiState? = null,
     val selectedPeriod: WorkoutStatsPeriod = WorkoutStatsPeriod.LastFourWeeks,
     val activeRoutineId: Long? = null,
     val selectedRoutineName: String? = null,
@@ -351,12 +354,22 @@ data class StatsUiState(
         ?.let { scopeKey -> focusedExerciseProgress.firstOrNull { progress -> progress.scopeKey == scopeKey } }
     val selectedExerciseRecords: ExerciseRecordsUiState? = selectedExerciseScopeKey
         ?.let { scopeKey -> focusedExerciseRecords.firstOrNull { records -> records.scopeKey == scopeKey } }
-    val progressChartValues: List<Pair<Long, Float>> = progressPoints.map { point ->
+    val chartProgressPoints: List<ProgressChartPointUiState> = when (selectedProgressMetric) {
+        ProgressMetric.EstimatedOneRepMax -> progressPoints.filter { point ->
+            point.estimatedOneRepMaxKg != null
+        }
+        else -> progressPoints
+    }
+    val selectedChartProgressPoint: ProgressChartPointUiState? = selectedProgressPoint
+        ?.takeIf { selected -> chartProgressPoints.any { point -> point.sessionId == selected.sessionId } }
+    val progressChartValues: List<Pair<Long, Float>> = chartProgressPoints.map { point ->
         point.finishedAt to when (selectedProgressMetric) {
             ProgressMetric.MaxWeight -> weightUnit.fromKilograms(point.maxWeightKg).toFloat()
             ProgressMetric.Volume -> weightUnit.fromKilograms(point.volumeKg).toFloat()
             ProgressMetric.Reps -> point.totalReps.toFloat()
-            ProgressMetric.EstimatedOneRepMax -> weightUnit.fromKilograms(point.estimatedOneRepMaxKg).toFloat()
+            ProgressMetric.EstimatedOneRepMax -> weightUnit.fromKilograms(
+                requireNotNull(point.estimatedOneRepMaxKg)
+            ).toFloat()
         }
     }
 }
@@ -394,7 +407,8 @@ data class ExerciseProgressEntryUiState(
     val volumeKg: Double,
     val maxWeightKg: Double,
     val totalReps: Int,
-    val estimatedOneRepMaxKg: Double
+    val estimatedOneRepMaxKg: Double?,
+    val e1rmConfidence: E1rmConfidence?
 )
 
 data class ProgressChartPointUiState(
@@ -403,7 +417,8 @@ data class ProgressChartPointUiState(
     val maxWeightKg: Double,
     val volumeKg: Double,
     val totalReps: Int,
-    val estimatedOneRepMaxKg: Double
+    val estimatedOneRepMaxKg: Double?,
+    val e1rmConfidence: E1rmConfidence?
 )
 
 data class ExerciseRecordsUiState(
@@ -425,14 +440,24 @@ data class ExerciseSetRecordUiState(
     val weightKg: Double,
     val reps: Int,
     val setVolumeKg: Double,
-    val estimatedOneRepMaxKg: Double
+    val estimatedOneRepMaxKg: Double?,
+    val e1rmConfidence: E1rmConfidence?
+)
+
+data class EffortQualityUiState(
+    val usefulZonePercentage: Double,
+    val reportedExerciseCount: Int,
+    val failureCount: Int,
+    val usefulZoneCount: Int,
+    val farFromFailureCount: Int
 )
 
 private fun WorkoutStats.toUiState(): StatsUiState {
     return StatsUiState(
         sessionVolumes = sessionVolumes.map { it.toUiState() },
         exerciseProgress = exerciseProgress.map { it.toUiState() },
-        exerciseRecords = exerciseRecords.map { it.toUiState() }
+        exerciseRecords = exerciseRecords.map { it.toUiState() },
+        effortQuality = effortQuality?.toUiState()
     )
 }
 
@@ -467,7 +492,8 @@ private fun ExerciseProgressEntry.toUiState(): ExerciseProgressEntryUiState {
         volumeKg = volumeKg,
         maxWeightKg = maxWeightKg,
         totalReps = totalReps,
-        estimatedOneRepMaxKg = estimatedOneRepMaxKg
+        estimatedOneRepMaxKg = estimatedOneRepMaxKg,
+        e1rmConfidence = e1rmConfidence
     )
 }
 
@@ -493,7 +519,18 @@ private fun ExerciseSetRecord.toUiState(): ExerciseSetRecordUiState {
         weightKg = weightKg,
         reps = reps,
         setVolumeKg = setVolumeKg,
-        estimatedOneRepMaxKg = estimatedOneRepMaxKg
+        estimatedOneRepMaxKg = estimatedOneRepMaxKg,
+        e1rmConfidence = e1rmConfidence
+    )
+}
+
+private fun EffortQuality.toUiState(): EffortQualityUiState {
+    return EffortQualityUiState(
+        usefulZonePercentage = usefulZonePercentage,
+        reportedExerciseCount = reportedExerciseCount,
+        failureCount = failureCount,
+        usefulZoneCount = usefulZoneCount,
+        farFromFailureCount = farFromFailureCount
     )
 }
 
@@ -579,7 +616,8 @@ fun StatsUiState.withProgressPointsForSelection(): StatsUiState {
                 maxWeightKg = entry.maxWeightKg,
                 volumeKg = entry.volumeKg,
                 totalReps = entry.totalReps,
-                estimatedOneRepMaxKg = entry.estimatedOneRepMaxKg
+                estimatedOneRepMaxKg = entry.estimatedOneRepMaxKg,
+                e1rmConfidence = entry.e1rmConfidence
             )
     }
     val retainedPoint = selectedProgressPoint?.let { selected ->

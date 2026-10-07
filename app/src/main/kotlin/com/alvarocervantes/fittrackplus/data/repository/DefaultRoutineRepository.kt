@@ -7,6 +7,7 @@ import com.alvarocervantes.fittrackplus.data.local.entity.RoutineDayEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.RoutineEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.RoutineExerciseAlternativeEntity
 import com.alvarocervantes.fittrackplus.data.local.entity.RoutineExerciseEntity
+import com.alvarocervantes.fittrackplus.data.local.entity.ExerciseProgressionProfileEntity
 import com.alvarocervantes.fittrackplus.data.local.relation.RoutineWithDays
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDayDraft
 import com.alvarocervantes.fittrackplus.domain.model.RoutineDaySnapshot
@@ -18,6 +19,8 @@ import com.alvarocervantes.fittrackplus.domain.model.RoutineExerciseSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSnapshot
 import com.alvarocervantes.fittrackplus.domain.model.RoutineSummary
 import com.alvarocervantes.fittrackplus.domain.model.TargetRepsRange
+import com.alvarocervantes.fittrackplus.domain.model.progression.ExerciseRole
+import com.alvarocervantes.fittrackplus.domain.model.progression.ProgressionTuning
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -55,7 +58,13 @@ class DefaultRoutineRepository @Inject constructor(
     }
 
     override suspend fun getRoutineSnapshot(routineId: Long): RoutineSnapshot? {
-        return routineDao.getRoutineWithDays(routineId)?.toSnapshot()
+        val routine = routineDao.getRoutineWithDays(routineId) ?: return null
+        val profilesByVariantKey = routine.days
+            .flatMap { day -> day.exercises }
+            .map { exercise -> exercise.exercise.variantKey }
+            .distinct()
+            .associateWith { variantKey -> database.progressionDao().getProfile(variantKey) }
+        return routine.toSnapshot(profilesByVariantKey)
     }
 
     override suspend fun createRoutine(draft: RoutineDraft): Long {
@@ -135,6 +144,7 @@ class DefaultRoutineRepository @Inject constructor(
     }
 
     private suspend fun insertDays(routineId: Long, days: List<RoutineDayDraft>) {
+        val progressionDao = database.progressionDao()
         days.forEachIndexed { dayIndex, dayDraft ->
             val dayId = routineDao.insertDay(
                 RoutineDayEntity(
@@ -154,6 +164,21 @@ class DefaultRoutineRepository @Inject constructor(
                         position = exerciseIndex,
                     )
                 )
+                if (exerciseDraft.progressionRole == ExerciseRole.PRIMARY) {
+                    val existingProfile = progressionDao.getProfile(variantKey)
+                    progressionDao.upsertProfile(
+                        existingProfile?.copy(
+                            goalWeightKg = exerciseDraft.goalWeightKg,
+                            loadIncrementKg = exerciseDraft.loadIncrementKg
+                                ?: existingProfile.loadIncrementKg
+                        ) ?: ExerciseProgressionProfileEntity(
+                            variantKey = variantKey,
+                            goalWeightKg = exerciseDraft.goalWeightKg,
+                            loadIncrementKg = exerciseDraft.loadIncrementKg
+                                ?: ProgressionTuning.DEFAULT_INCREMENT_UPPER_KG
+                        )
+                    )
+                }
                 exerciseDraft.alternatives.forEachIndexed { alternativeIndex, alternativeDraft ->
                     routineDao.insertExerciseAlternative(
                         alternativeDraft.toRoutineExerciseAlternativeEntity(
@@ -168,7 +193,9 @@ class DefaultRoutineRepository @Inject constructor(
     }
 }
 
-private fun RoutineWithDays.toSnapshot(): RoutineSnapshot {
+private fun RoutineWithDays.toSnapshot(
+    profilesByVariantKey: Map<String, ExerciseProgressionProfileEntity?>
+): RoutineSnapshot {
     return RoutineSnapshot(
         id = routine.id,
         name = routine.name,
@@ -183,6 +210,7 @@ private fun RoutineWithDays.toSnapshot(): RoutineSnapshot {
                         .sortedBy { it.exercise.position }
                         .map { exerciseWithAlternatives ->
                             val exercise = exerciseWithAlternatives.exercise
+                            val profile = profilesByVariantKey[exercise.variantKey]
                             RoutineExerciseSnapshot(
                                 id = exercise.id,
                                 variantKey = exercise.variantKey,
@@ -194,6 +222,9 @@ private fun RoutineWithDays.toSnapshot(): RoutineSnapshot {
                                 notes = exercise.notes,
                                 targetRepsMin = exercise.targetRepsMin,
                                 targetRepsMax = exercise.targetRepsMax,
+                                progressionRole = exercise.progressionRole.toExerciseRole(),
+                                goalWeightKg = profile?.goalWeightKg,
+                                loadIncrementKg = profile?.loadIncrementKg,
                                 alternatives = exerciseWithAlternatives.alternatives
                                     .sortedBy { it.position }
                                     .map { alternative ->
@@ -237,7 +268,8 @@ internal fun RoutineExerciseDraft.toRoutineExerciseEntity(
         position = position,
         notes = notes?.trim()?.ifBlank { null },
         targetRepsMin = targetRange?.min,
-        targetRepsMax = targetRange?.max
+        targetRepsMax = targetRange?.max,
+        progressionRole = progressionRole.name
     )
 }
 
@@ -261,3 +293,8 @@ private fun RoutineExerciseAlternativeDraft.toRoutineExerciseAlternativeEntity(
 }
 
 private fun newVariantKey(): String = UUID.randomUUID().toString()
+
+/** Unknown or corrupt values fall back to ACCESSORY: an unreadable role must not crash the editor. */
+private fun String.toExerciseRole(): ExerciseRole {
+    return ExerciseRole.entries.firstOrNull { role -> role.name == this } ?: ExerciseRole.ACCESSORY
+}

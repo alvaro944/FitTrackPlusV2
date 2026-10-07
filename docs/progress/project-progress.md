@@ -667,6 +667,38 @@ Pendiente:
 
 - validacion manual conjunta en dispositivo/emulador cuando se prueben las fases pendientes
 
+## 2026-09-17 - Progression Engine PRIMARY V1 (pendiente de pasada manual)
+
+Rama `feature/progression-engine-primary`, 20 commits sobre `develop`. **No mergeada.**
+
+Motor determinista de progresion para ejercicios PRIMARY: exposiciones alternas VOLUME/STRENGTH,
+probe set que autorregula la sesion, e1RM como tendencia con dos EWMA separadas por carril, y
+recuperacion reactiva por señal en vez de calendario fijo.
+
+- Capa de medicion (RIR, e1RM con confianza, calidad de esfuerzo): **validada a mano por el dueño**.
+- Motor, persistencia (DB v8) y UI: 233 tests en verde, migracion verificada en dispositivo,
+  y pasada visual parcial hecha por el agente.
+- **Auditoria completa de los 27 criterios: `docs/progress/progression-engine-v1-criteria.md`.**
+
+### Cerrado
+
+**27 de 27 criterios cumplidos.** El ultimo pendiente era que `decisionReason` salia en ingles
+dentro de un app en español. Resuelto con el patron correcto y no traduciendo literales: el
+dominio devuelve un `ProgressionReason` y la UI lo mapea a `strings.xml`. La capa de decision dice
+QUE decidio; la UI dice COMO se cuenta.
+
+### Pendiente de pasada manual del dueño
+
+Marcar un PRIMARY, entrenar, ver la prescripcion con su explicacion, comprobar el ajuste por la
+probe, finalizar, y verificar que la siguiente exposicion cambia en consecuencia. Eso solo se
+valida entrenando.
+
+### Fuera de alcance de V1, a proposito
+
+SECONDARY y ACCESSORY siguen con `GetProgressionHintUseCase` intacto. Sin fatiga cruzada, sin
+recovery propagada, sin goal engine, sin importacion por JSON de IA. **Primero el motor
+determinista, y solo despues la IA.**
+
 ## Siguiente Paso
 
 1. Ejecutar validacion manual final en dispositivo/emulador para 2.1B y 2.1C:

@@ -1,5 +1,7 @@
 package com.alvarocervantes.fittrackplus.domain.model
 
+import com.alvarocervantes.fittrackplus.domain.model.progression.ExerciseRole
+
 data class RoutineSummary(
     val id: Long,
     val name: String,
@@ -26,7 +28,10 @@ data class RoutineExerciseDraft(
     val defaultVariantKey: String? = null,
     val alternatives: List<RoutineExerciseAlternativeDraft> = emptyList(),
     val targetRepsMin: Int? = null,
-    val targetRepsMax: Int? = null
+    val targetRepsMax: Int? = null,
+    val progressionRole: ExerciseRole = ExerciseRole.ACCESSORY,
+    val goalWeightKg: Double? = null,
+    val loadIncrementKg: Double? = null
 )
 
 data class RoutineExerciseAlternativeDraft(
@@ -63,7 +68,10 @@ data class RoutineExerciseSnapshot(
     val notes: String?,
     val alternatives: List<RoutineExerciseAlternativeSnapshot>,
     val targetRepsMin: Int? = null,
-    val targetRepsMax: Int? = null
+    val targetRepsMax: Int? = null,
+    val progressionRole: ExerciseRole = ExerciseRole.ACCESSORY,
+    val goalWeightKg: Double? = null,
+    val loadIncrementKg: Double? = null
 )
 
 data class RoutineExerciseAlternativeSnapshot(
